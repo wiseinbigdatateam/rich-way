@@ -439,24 +439,54 @@ const MyInfo = () => {
           marketing_notifications: false
         });
       } else {
-        // 실제 Supabase에서 알림 설정 조회
-        const { data, error } = await (supabase as any)
-          .from('member_settings')
-          .select('email_notifications, community_notifications, marketing_notifications')
-          .eq('user_id', user.user_id || user.id)
-          .single();
+        // 실제 Supabase에서 알림 설정 조회 (테이블이 없을 경우 처리)
+        try {
+          const { data, error } = await (supabase as any)
+            .from('member_settings')
+            .select('email_notifications, community_notifications, marketing_notifications')
+            .eq('user_id', user.user_id || user.id)
+            .single();
 
-        if (error && error.code !== 'PGRST116') {
-          console.error('알림 설정 로드 오류:', error);
-          return;
-        }
+          if (error) {
+            // 테이블이 없거나 데이터가 없는 경우 기본값 설정
+            if (error.code === '42P01' || error.code === 'PGRST116') {
+              console.log('member_settings 테이블이 없거나 데이터가 없습니다. 기본값을 사용합니다.');
+              setNotifications({
+                email_notifications: true,
+                community_notifications: true,
+                marketing_notifications: false
+              });
+            } else {
+              console.error('알림 설정 로드 오류:', error);
+            }
+            return;
+          }
 
-        if (data) {
-          setNotifications(data);
+          if (data) {
+            setNotifications(data);
+          }
+        } catch (tableError: any) {
+          // 테이블이 존재하지 않는 경우 기본값 설정
+          if (tableError.code === '42P01') {
+            console.log('member_settings 테이블이 존재하지 않습니다. 기본값을 사용합니다.');
+            setNotifications({
+              email_notifications: true,
+              community_notifications: true,
+              marketing_notifications: false
+            });
+          } else {
+            console.error('알림 설정 로드 중 예상치 못한 오류:', tableError);
+          }
         }
       }
     } catch (error) {
       console.error('알림 설정 로드 오류:', error);
+      // 오류 발생 시 기본값 설정
+      setNotifications({
+        email_notifications: true,
+        community_notifications: true,
+        marketing_notifications: false
+      });
     }
   };
 

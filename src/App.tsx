@@ -18,6 +18,7 @@ const CoachingSuccessPage = lazy(() => import("./pages/CoachingSuccessPage"));
 const DiagnosisPage = lazy(() => import("./pages/DiagnosisPage"));
 const FinanceDiagnosisPage = lazy(() => import("./pages/FinanceDiagnosisPage"));
 const MbtiDiagnosisPage = lazy(() => import("./pages/MbtiDiagnosisPage"));
+const MbtiDiagnosisResultPage = lazy(() => import("./pages/MbtiDiagnosisResultPage"));
 const EducationPage = lazy(() => import("./pages/EducationPage"));
 const LectureDetailPage = lazy(() => import("./pages/LectureDetailPage"));
 const ProductsPage = lazy(() => import("./pages/ProductsPage"));
@@ -29,6 +30,7 @@ const ExpertLoginPage = lazy(() => import("./pages/ExpertLoginPage"));
 const ExpertPage = lazy(() => import("./pages/ExpertPage"));
 const MyPage = lazy(() => import("./pages/MyPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
+const FinanceDiagnosisResultPage = lazy(() => import("./pages/FinanceDiagnosisResultPage"));
 
 const queryClient = new QueryClient();
 
@@ -54,6 +56,8 @@ const App = () => (
             <Route path="/diagnosis" element={<DiagnosisPage />} />
             <Route path="/diagnosis/finance" element={<FinanceDiagnosisPage />} />
             <Route path="/diagnosis/mbti" element={<MbtiDiagnosisPage />} />
+            <Route path="/diagnosis/mbti/result" element={<MbtiDiagnosisResultPage />} />
+            <Route path="/diagnosis/finance/result" element={<FinanceDiagnosisResultPage />} />
             <Route path="/education" element={<EducationPage />} />
             <Route path="/education/:id" element={<LectureDetailPage />} />
             <Route path="/products" element={<ProductsPage />} />

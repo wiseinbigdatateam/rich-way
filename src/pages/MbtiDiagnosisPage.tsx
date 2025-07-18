@@ -1,10 +1,9 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { ArrowLeft, Lightbulb } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 
 const MbtiDiagnosisPage = () => {
@@ -70,6 +69,105 @@ const MbtiDiagnosisPage = () => {
   const isLastQuestion = currentQuestion === totalQuestions - 1;
   const isCompleted = answers.length === totalQuestions && answers[totalQuestions - 1] !== undefined;
 
+  const navigate = useNavigate();
+
+  // MBTI와 4대 요인 계산 함수 (NAVERWORKS/New-Rich-Way에서 복사)
+  const calculateResults = (answers: number[]) => {
+    if (answers.length !== 31) return { mbti: "ISTJ", dimensionScores: { ei: { e: 0, i: 0 }, sn: { s: 0, n: 0 }, tf: { t: 0, f: 0 }, jp: { j: 0, p: 0 } }, factors: { psychological: 0, behavioral: 0, financial: 0, environmental: 0 } };
+    const questionAttributes = [
+      { mbti: 'E', factor: 'psychological', questionIndex: 0 },
+      { mbti: 'E', factor: 'psychological', questionIndex: 1 },
+      { mbti: 'I', factor: 'psychological', questionIndex: 2 },
+      { mbti: 'E', factor: 'psychological', questionIndex: 3 },
+      { mbti: 'I', factor: 'behavioral', questionIndex: 4 },
+      { mbti: 'S', factor: 'behavioral', questionIndex: 5 },
+      { mbti: 'N', factor: 'behavioral', questionIndex: 6 },
+      { mbti: 'S', factor: 'behavioral', questionIndex: 7 },
+      { mbti: 'N', factor: 'psychological', questionIndex: 8 },
+      { mbti: 'N', factor: 'psychological', questionIndex: 9 },
+      { mbti: 'T', factor: 'behavioral', questionIndex: 10 },
+      { mbti: 'F', factor: 'psychological', questionIndex: 11 },
+      { mbti: 'F', factor: 'psychological', questionIndex: 12 },
+      { mbti: 'T', factor: 'psychological', questionIndex: 13 },
+      { mbti: 'T', factor: 'behavioral', questionIndex: 14 },
+      { mbti: 'J', factor: 'behavioral', questionIndex: 15 },
+      { mbti: 'P', factor: 'behavioral', questionIndex: 16 },
+      { mbti: 'P', factor: 'behavioral', questionIndex: 17 },
+      { mbti: 'J', factor: 'behavioral', questionIndex: 18 },
+      { mbti: 'P', factor: 'behavioral', questionIndex: 19 },
+      { mbti: 'S', factor: 'financial', questionIndex: 20 },
+      { mbti: 'T', factor: 'financial', questionIndex: 21 },
+      { mbti: 'T', factor: 'financial', questionIndex: 22 },
+      { mbti: 'J', factor: 'financial', questionIndex: 23 },
+      { mbti: 'N', factor: 'financial', questionIndex: 24 },
+      { mbti: 'N', factor: 'environmental', questionIndex: 25 },
+      { mbti: 'E', factor: 'environmental', questionIndex: 26 },
+      { mbti: 'F', factor: 'environmental', questionIndex: 27 },
+      { mbti: 'J', factor: 'environmental', questionIndex: 28 },
+      { mbti: 'J', factor: 'environmental', questionIndex: 29 },
+      { mbti: 'J', factor: 'environmental', questionIndex: 30 }
+    ];
+    let eScore = 0, iScore = 0, sScore = 0, nScore = 0, tScore = 0, fScore = 0, jScore = 0, pScore = 0;
+    let psychologicalScore = 0, behavioralScore = 0, financialScore = 0, environmentalScore = 0;
+    const eiCount = questionAttributes.filter(q => q.mbti === 'E' || q.mbti === 'I').length;
+    const snCount = questionAttributes.filter(q => q.mbti === 'S' || q.mbti === 'N').length;
+    const tfCount = questionAttributes.filter(q => q.mbti === 'T' || q.mbti === 'F').length;
+    const jpCount = questionAttributes.filter(q => q.mbti === 'J' || q.mbti === 'P').length;
+    const psychologicalCount = questionAttributes.filter(q => q.factor === 'psychological').length;
+    const behavioralCount = questionAttributes.filter(q => q.factor === 'behavioral').length;
+    const financialCount = questionAttributes.filter(q => q.factor === 'financial').length;
+    const environmentalCount = questionAttributes.filter(q => q.factor === 'environmental').length;
+    questionAttributes.forEach((attr, idx) => {
+      const score = answers[idx];
+      if (score === undefined) return;
+      switch (attr.mbti) {
+        case 'E': eScore += score; break;
+        case 'I': iScore += 6 - score; break;
+        case 'S': sScore += 6 - score; break;
+        case 'N': nScore += score; break;
+        case 'T': tScore += score; break;
+        case 'F': fScore += 6 - score; break;
+        case 'J': jScore += score; break;
+        case 'P': pScore += 6 - score; break;
+      }
+      switch (attr.factor) {
+        case 'psychological': psychologicalScore += score; break;
+        case 'behavioral': behavioralScore += score; break;
+        case 'financial': financialScore += score; break;
+        case 'environmental': environmentalScore += score; break;
+      }
+    });
+    const maxScorePerQuestion = 5;
+    const dimensionScores = {
+      ei: { e: (eScore / (eiCount * maxScorePerQuestion / 2)) * 100, i: (iScore / (eiCount * maxScorePerQuestion / 2)) * 100 },
+      sn: { s: (sScore / (snCount * maxScorePerQuestion / 2)) * 100, n: (nScore / (snCount * maxScorePerQuestion / 2)) * 100 },
+      tf: { t: (tScore / (tfCount * maxScorePerQuestion / 2)) * 100, f: (fScore / (tfCount * maxScorePerQuestion / 2)) * 100 },
+      jp: { j: (jScore / (jpCount * maxScorePerQuestion / 2)) * 100, p: (pScore / (jpCount * maxScorePerQuestion / 2)) * 100 }
+    };
+    const mbti = [
+      dimensionScores.ei.e > dimensionScores.ei.i ? 'E' : 'I',
+      dimensionScores.sn.n > dimensionScores.sn.s ? 'N' : 'S',
+      dimensionScores.tf.t > dimensionScores.tf.f ? 'T' : 'F',
+      dimensionScores.jp.j > dimensionScores.jp.p ? 'J' : 'P'
+    ].join('');
+    const factors = {
+      psychological: (psychologicalScore / (psychologicalCount * maxScorePerQuestion)) * 100,
+      behavioral: (behavioralScore / (behavioralCount * maxScorePerQuestion)) * 100,
+      financial: (financialScore / (financialCount * maxScorePerQuestion)) * 100,
+      environmental: (environmentalScore / (environmentalCount * maxScorePerQuestion)) * 100
+    };
+    return { mbti, dimensionScores, factors };
+  };
+
+  const handleShowResult = () => {
+    const { mbti, dimensionScores, factors } = calculateResults(answers);
+    const encodedDimensionScores = encodeURIComponent(JSON.stringify(dimensionScores));
+    const encodedFactors = encodeURIComponent(JSON.stringify(factors));
+    const encodedAnswers = encodeURIComponent(JSON.stringify(answers));
+    localStorage.setItem("mbtiAnswers", JSON.stringify(answers));
+    navigate(`/diagnosis/mbti/result?type=${mbti}&dimensionScores=${encodedDimensionScores}&factors=${encodedFactors}&answers=${encodedAnswers}`);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-indigo-50">
       <Header />
@@ -113,7 +211,7 @@ const MbtiDiagnosisPage = () => {
         <Card className="mb-8 border-0 shadow-xl bg-white/90 backdrop-blur-sm">
           <CardContent className="p-8 md:p-12">
             <div className="text-center mb-8">
-              <h2 className="text-xl md:text-2xl font-semibold text-slate-800 leading-relaxed">
+              <h2 className="text-xl md:text-2xl font-semibold text-slate-800 leading-relaxed min-h-[64px] md:min-h-[80px] flex items-center justify-center">
                 {questions[currentQuestion]}
               </h2>
             </div>
@@ -184,6 +282,7 @@ const MbtiDiagnosisPage = () => {
             {isLastQuestion && isCompleted && (
               <Button 
                 className="px-8 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+                onClick={handleShowResult}
               >
                 결과 보기
               </Button>
