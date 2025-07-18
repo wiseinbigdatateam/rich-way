@@ -86,4 +86,100 @@
 ---
 
 **향후 추가/요구사항 발생 시 즉시 반영 가능한 구조로 유지 중**
-**The structure is maintained for immediate reflection of future requests/requirements** 
+**The structure is maintained for immediate reflection of future requests/requirements**
+
+---
+
+## 5. 진단 기능 개발 (최근 추가)
+- **재무진단 페이지**
+  - 개인정보, 자산정보, 지출정보, 수입정보 입력 폼 구현
+  - 단계별 진행 표시 및 유효성 검증
+  - 진단 결과 페이지로 자동 이동
+
+- **재무진단 결과 페이지**
+  - 진단 결과 시각화 (차원별 그래프, 요인별 그래프)
+  - 재무 분석 로직 구현 (자산, 부채, 수입, 지출 분석)
+  - Supabase `finance_diagnosis` 테이블에 결과 저장
+  - 로그인 상태 확인 및 로그인 모달 연동
+  - 저장 완료 후 마이페이지로 이동
+
+- **MBTI 진단 결과 페이지**
+  - MBTI 진단 결과 표시 및 분석
+  - 성격 유형별 맞춤 정보 제공
+  - Supabase `mbti_diagnosis` 테이블에 결과 저장
+
+- **데이터베이스 설정**
+  - `finance_diagnosis` 테이블 RLS(Row Level Security) 비활성화
+  - `member_settings` 테이블 생성 (알림 설정용)
+  - 기존 사용자들을 위한 기본 알림 설정 데이터 삽입
+
+- **UI 컴포넌트**
+  - 차원별 그래프 컴포넌트 (`dimension-graph.tsx`)
+  - 요인별 그래프 컴포넌트 (`factors-graph.tsx`)
+  - 재무 분석 로직 (`financeAnalysis.ts`)
+
+- **데이터 파일**
+  - 재무 분석 관련 데이터 (저축, 펜션, 보험, 자산성장전략 등)
+  - MBTI 리포트 데이터 (`mbtiReports.ts`)
+
+## 5. Diagnosis Feature Development (Recently Added)
+- **Finance Diagnosis Page**
+  - Personal info, asset info, expense info, income info input forms
+  - Step-by-step progress display and validation
+  - Automatic navigation to diagnosis result page
+
+- **Finance Diagnosis Result Page**
+  - Diagnosis result visualization (dimension graph, factors graph)
+  - Financial analysis logic implementation (asset, debt, income, expense analysis)
+  - Save results to Supabase `finance_diagnosis` table
+  - Login status check and login modal integration
+  - Navigate to mypage after saving
+
+- **MBTI Diagnosis Result Page**
+  - MBTI diagnosis result display and analysis
+  - Personality type-specific customized information
+  - Save results to Supabase `mbti_diagnosis` table
+
+- **Database Configuration**
+  - Disabled RLS(Row Level Security) for `finance_diagnosis` table
+  - Created `member_settings` table (for notification settings)
+  - Inserted default notification settings for existing users
+
+- **UI Components**
+  - Dimension graph component (`dimension-graph.tsx`)
+  - Factors graph component (`factors-graph.tsx`)
+  - Financial analysis logic (`financeAnalysis.ts`)
+
+- **Data Files**
+  - Financial analysis related data (savings, pension, insurance, asset growth strategies, etc.)
+  - MBTI report data (`mbtiReports.ts`)
+
+---
+
+## 6. 배포 준비 (최근 추가)
+- **GitHub Actions 워크플로우**
+  - AWS S3 자동 배포 설정 (`deploy.yml`)
+  - 빌드, 테스트, 배포 자동화
+
+- **배포 스크립트**
+  - EC2 배포용 스크립트 (`deploy-ec2.sh`)
+  - Nginx 설정 및 PM2 프로세스 관리
+
+- **수동 배포 가이드**
+  - AWS S3 정적 웹사이트 호스팅 설정
+  - CloudFront CDN 설정 (선택사항)
+  - 도메인 연결 가이드
+
+## 6. Deployment Preparation (Recently Added)
+- **GitHub Actions Workflow**
+  - AWS S3 automatic deployment configuration (`deploy.yml`)
+  - Build, test, deployment automation
+
+- **Deployment Scripts**
+  - EC2 deployment script (`deploy-ec2.sh`)
+  - Nginx configuration and PM2 process management
+
+- **Manual Deployment Guide**
+  - AWS S3 static website hosting setup
+  - CloudFront CDN configuration (optional)
+  - Domain connection guide 
