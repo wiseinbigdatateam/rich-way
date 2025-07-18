@@ -1,8 +1,13 @@
-name: Deploy to AWS S3
+name: Deploy to AWS
 
 on:
   push:
     branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  AWS_REGION: ap-northeast-2
 
 jobs:
   deploy:
@@ -10,10 +15,10 @@ jobs:
     
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       
     - name: Setup Node.js
-      uses: actions/setup-node@v3
+      uses: actions/setup-node@v4
       with:
         node-version: '18'
         cache: 'npm'
@@ -25,14 +30,33 @@ jobs:
       run: npm run build
       
     - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v1
+      uses: aws-actions/configure-aws-credentials@v4
       with:
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ap-northeast-2
+        aws-region: ${{ env.AWS_REGION }}
         
     - name: Deploy to S3
-      run: aws s3 sync dist/ s3://${{ secrets.S3_BUCKET }} --delete
+      uses: aws-actions/aws-cli@v2
+      with:
+        args: s3 sync dist/ s3://${{ secrets.S3_BUCKET }} --delete --cache-control "max-age=31536000,public"
       
     - name: Invalidate CloudFront cache
-      run: aws cloudfront create-invalidation --distribution-id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} --paths "/*" 
+      if: secrets.CLOUDFRONT_DISTRIBUTION_ID != ''
+      uses: aws-actions/aws-cli@v2
+      with:
+        args: cloudfront create-invalidation --distribution-id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} --paths "/*"
+        
+    - name: Deploy to EC2 (Optional)
+      if: secrets.EC2_INSTANCE_ID != ''
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USERNAME }}
+        key: ${{ secrets.EC2_SSH_KEY }}
+        script: |
+          cd /var/www/rich-way
+          git pull origin main
+          npm ci
+          npm run build
+          sudo systemctl restart nginx 
