@@ -12,8 +12,8 @@
     "build:check": "npm run build && echo '✅ 빌드 완료! dist/ 폴더를 확인하세요.'",
     "preview": "vite preview",
     "preview:check": "npm run preview & sleep 3 && curl -s http://localhost:4173 > /dev/null && echo '✅ 프리뷰 서버 정상 작동 (http://localhost:4173)' || echo '❌ 프리뷰 서버 오류'",
-    "lint": "eslint .",
-    "lint:fix": "eslint . --fix",
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "lint:fix": "eslint . --ext ts,tsx --fix",
     "type-check": "tsc --noEmit",
     "test": "echo '테스트가 설정되지 않았습니다.'",
     "deploy:build": "./scripts/build-production.sh",
@@ -24,7 +24,15 @@
     "deploy:check": "./scripts/local-check.sh",
     "deploy:preview": "npm run build && npm run preview",
     "deploy:preview:open": "npm run deploy:preview & sleep 3 && open http://localhost:4173",
-    "check": "./scripts/local-check.sh"
+    "check": "./scripts/local-check.sh",
+    "gitflow:feature": "./scripts/gitflow.sh feature-start",
+    "gitflow:feature-finish": "./scripts/gitflow.sh feature-finish",
+    "gitflow:release": "./scripts/gitflow.sh release-start",
+    "gitflow:release-finish": "./scripts/gitflow.sh release-finish",
+    "gitflow:hotfix": "./scripts/gitflow.sh hotfix-start",
+    "gitflow:hotfix-finish": "./scripts/gitflow.sh hotfix-finish",
+    "gitflow:status": "./scripts/gitflow.sh status",
+    "gitflow:help": "./scripts/gitflow.sh help"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
