@@ -24,8 +24,7 @@ dist-ssr
 *.sw?
 .env
 
-# GitFlow 스크립트 (로컬 개발용)
-scripts/gitflow.sh
+# 배포 스크립트 (로컬 개발용)
 scripts/local-check.sh
 scripts/deploy-aws.sh
 scripts/deploy-dev.sh
