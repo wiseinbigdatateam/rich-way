@@ -6,6 +6,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import MembersLoginDialog from "@/components/MembersLoginDialog";
 import SignupDialog from "@/components/SignupDialog";
 import { useToast } from "@/components/ui/use-toast";
+
+// TODO: 로그인 기능 개선 - 사용자 경험 향상
+// - 로딩 상태 추가
+// - 에러 메시지 개선  
+// - 자동 로그인 기능 추가
 import {
   DropdownMenu,
   DropdownMenuContent,
