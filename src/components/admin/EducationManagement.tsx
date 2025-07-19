@@ -156,8 +156,8 @@ const EducationManagement = () => {
     setStudentSortDirection(direction);
 
     const sortedStudents = [...students].sort((a, b) => {
-      let aValue = a[field];
-      let bValue = b[field];
+      const aValue = a[field];
+      const bValue = b[field];
       
       if (aValue < bValue) return direction === "asc" ? -1 : 1;
       if (aValue > bValue) return direction === "asc" ? 1 : -1;

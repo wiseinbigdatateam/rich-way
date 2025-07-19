@@ -60,46 +60,48 @@ const Header = () => {
   return (
     <>
       <header className="bg-white/90 backdrop-blur-sm border-b border-slate-200 sticky top-0 z-50">
-        <div className="container mx-auto px-6 py-4">
+        <div className="container mx-auto px-4 sm:px-6 py-3 sm:py-4">
           <div className="flex items-center justify-between">
-            <Link to="/" className="flex items-center space-x-2">
+            {/* 로고 및 브랜드명 */}
+            <Link to="/" className="flex items-center space-x-2 min-w-0 flex-shrink-0">
               <a href="/" tabIndex={0} aria-label="홈으로 이동" onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') window.location.href = '/'; }}>
                 <img
                   src="/richway_logo_back_x.png"
                   alt="Rich Way 로고"
-                  className="h-20 w-auto mr-5"
+                  className="h-12 sm:h-16 lg:h-20 w-auto"
                 />
               </a>
-              <h1 className="text-xl font-bold text-slate-900">부자되는 플랫폼</h1>
+              <h1 className="text-sm sm:text-lg lg:text-xl font-bold text-slate-900 hidden sm:block">부자되는 플랫폼</h1>
             </Link>
 
-            {/* Desktop Navigation */}
-            <nav className="hidden md:flex items-center space-x-8">
-              <Link to="/diagnosis" className="text-slate-600 hover:text-blue-600 transition-colors">
+            {/* Desktop Navigation - lg 이상에서만 표시 */}
+            <nav className="hidden lg:flex items-center space-x-6 xl:space-x-8">
+              <Link to="/diagnosis" className="text-slate-600 hover:text-blue-600 transition-colors text-sm xl:text-base whitespace-nowrap">
                 부자진단
               </Link>
-              <Link to="/coaching" className="text-slate-600 hover:text-blue-600 transition-colors">
+              <Link to="/coaching" className="text-slate-600 hover:text-blue-600 transition-colors text-sm xl:text-base whitespace-nowrap">
                 부자코칭
               </Link>
-              <Link to="/education" className="text-slate-600 hover:text-blue-600 transition-colors">
+              <Link to="/education" className="text-slate-600 hover:text-blue-600 transition-colors text-sm xl:text-base whitespace-nowrap">
                 부자교육
               </Link>
-              <Link to="/products" className="text-slate-600 hover:text-blue-600 transition-colors">
+              <Link to="/products" className="text-slate-600 hover:text-blue-600 transition-colors text-sm xl:text-base whitespace-nowrap">
                 부자상품
               </Link>
-              <Link to="/playground" className="text-slate-600 hover:text-blue-600 transition-colors">
+              <Link to="/playground" className="text-slate-600 hover:text-blue-600 transition-colors text-sm xl:text-base whitespace-nowrap">
                 부자놀이터
               </Link>
-              <Link to="/mypage" className="text-slate-600 hover:text-blue-600 transition-colors flex items-center gap-1">
+              <Link to="/mypage" className="text-slate-600 hover:text-blue-600 transition-colors flex items-center gap-1 text-sm xl:text-base whitespace-nowrap">
                 <User size={16} />
-                마이페이지
+                <span className="hidden xl:inline">마이페이지</span>
+                <span className="xl:hidden">마이페이지</span>
               </Link>
             </nav>
 
             {/* 인증 상태에 따른 오른쪽 메뉴 */}
-            <div className="hidden md:flex items-center space-x-4">
+            <div className="hidden md:flex items-center space-x-2 lg:space-x-4">
               {loading ? (
-                <div className="text-slate-600">로딩중...</div>
+                <div className="text-slate-600 text-sm">로딩중...</div>
               ) : user ? (
                 // 로그인된 상태
                 <>
@@ -144,13 +146,13 @@ const Header = () => {
                 // 비로그인 상태
                 <>
                   <span
-                    className="cursor-pointer text-slate-600 hover:text-blue-600 transition-colors"
+                    className="cursor-pointer text-slate-600 hover:text-blue-600 transition-colors text-sm lg:text-base whitespace-nowrap"
                     onClick={() => setIsLoginOpen(true)}
                   >
                     로그인
                   </span>
                   <span
-                    className="cursor-pointer text-slate-600 hover:text-blue-600 transition-colors"
+                    className="cursor-pointer text-slate-600 hover:text-blue-600 transition-colors text-sm lg:text-base whitespace-nowrap"
                     onClick={() => setIsSignupOpen(true)}
                   >
                     회원가입
@@ -158,18 +160,20 @@ const Header = () => {
                 </>
               )}
               <Link to="/diagnosis">
-                <Button className="bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 shadow-lg hover:shadow-xl transition-all duration-300">
-                  무료 진단 시작
+                <Button className="bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 shadow-lg hover:shadow-xl transition-all duration-300 text-xs sm:text-sm whitespace-nowrap">
+                  <span className="hidden sm:inline">무료 진단 시작</span>
+                  <span className="sm:hidden">진단 시작</span>
                 </Button>
               </Link>
             </div>
 
             {/* Mobile Menu Button */}
             <button
-              className="md:hidden"
+              className="md:hidden p-2"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
+              aria-label="메뉴 열기"
             >
-              {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
+              {isMenuOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
           </div>
 
@@ -177,22 +181,22 @@ const Header = () => {
           {isMenuOpen && (
             <div className="md:hidden mt-4 pb-4 border-t border-slate-200">
               <nav className="flex flex-col space-y-4 mt-4">
-                <Link to="/diagnosis" className="text-slate-600 hover:text-blue-600 transition-colors" onClick={() => setIsMenuOpen(false)}>
+                <Link to="/diagnosis" className="text-slate-600 hover:text-blue-600 transition-colors py-2" onClick={() => setIsMenuOpen(false)}>
                   부자진단
                 </Link>
-                <Link to="/coaching" className="text-slate-600 hover:text-blue-600 transition-colors" onClick={() => setIsMenuOpen(false)}>
+                <Link to="/coaching" className="text-slate-600 hover:text-blue-600 transition-colors py-2" onClick={() => setIsMenuOpen(false)}>
                   부자코칭
                 </Link>
-                <Link to="/education" className="text-slate-600 hover:text-blue-600 transition-colors" onClick={() => setIsMenuOpen(false)}>
+                <Link to="/education" className="text-slate-600 hover:text-blue-600 transition-colors py-2" onClick={() => setIsMenuOpen(false)}>
                   부자교육
                 </Link>
-                <Link to="/products" className="text-slate-600 hover:text-blue-600 transition-colors" onClick={() => setIsMenuOpen(false)}>
+                <Link to="/products" className="text-slate-600 hover:text-blue-600 transition-colors py-2" onClick={() => setIsMenuOpen(false)}>
                   부자상품
                 </Link>
-                <Link to="/playground" className="text-slate-600 hover:text-blue-600 transition-colors" onClick={() => setIsMenuOpen(false)}>
+                <Link to="/playground" className="text-slate-600 hover:text-blue-600 transition-colors py-2" onClick={() => setIsMenuOpen(false)}>
                   부자놀이터
                 </Link>
-                <Link to="/mypage" className="text-slate-600 hover:text-blue-600 transition-colors flex items-center gap-1" onClick={() => setIsMenuOpen(false)}>
+                <Link to="/mypage" className="text-slate-600 hover:text-blue-600 transition-colors flex items-center gap-1 py-2" onClick={() => setIsMenuOpen(false)}>
                   <User size={16} />
                   마이페이지
                 </Link>
@@ -214,14 +218,14 @@ const Header = () => {
                       </div>
                       <Link
                         to="/mypage"
-                        className="text-slate-600 hover:text-blue-600 transition-colors flex items-center gap-2"
+                        className="text-slate-600 hover:text-blue-600 transition-colors flex items-center gap-2 py-2"
                         onClick={() => setIsMenuOpen(false)}
                       >
                         <Settings size={16} />
                         설정
                       </Link>
                       <span
-                        className="cursor-pointer text-slate-600 hover:text-red-600 transition-colors flex items-center gap-2"
+                        className="cursor-pointer text-slate-600 hover:text-red-600 transition-colors flex items-center gap-2 py-2"
                         onClick={() => {
                           handleLogout();
                           setIsMenuOpen(false);
@@ -235,7 +239,7 @@ const Header = () => {
                     // 비로그인 상태 (모바일)
                     <>
                       <span
-                        className="cursor-pointer text-slate-600 hover:text-blue-600 transition-colors"
+                        className="cursor-pointer text-slate-600 hover:text-blue-600 transition-colors py-2"
                         onClick={() => {
                           setIsLoginOpen(true);
                           setIsMenuOpen(false);
@@ -244,7 +248,7 @@ const Header = () => {
                         로그인
                       </span>
                       <span
-                        className="cursor-pointer text-slate-600 hover:text-blue-600 transition-colors"
+                        className="cursor-pointer text-slate-600 hover:text-blue-600 transition-colors py-2"
                         onClick={() => {
                           setIsSignupOpen(true);
                           setIsMenuOpen(false);
@@ -255,7 +259,7 @@ const Header = () => {
                     </>
                   )}
                   <Link to="/diagnosis">
-                    <Button className="bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 w-full" onClick={() => setIsMenuOpen(false)}>
+                    <Button className="bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 w-full mt-4" onClick={() => setIsMenuOpen(false)}>
                       무료 진단 시작
                     </Button>
                   </Link>

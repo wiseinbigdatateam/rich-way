@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Play, Pause, Volume2, VolumeX, Maximize, SkipBack, SkipForward, X } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
+import { safeAddEventListener } from '@/utils/memoryLeakPrevention';
 
 interface YouTubePlayerProps {
   isOpen: boolean;
@@ -22,6 +23,7 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({ isOpen, onClose, videoUrl
   const [duration, setDuration] = useState(0);
   const [progress, setProgress] = useState([0]);
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const messageListenerRef = useRef<((event: MessageEvent) => void) | null>(null);
 
   // YouTube 비디오 ID 추출
   const getVideoId = (url: string) => {
@@ -96,6 +98,11 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({ isOpen, onClose, videoUrl
   };
 
   useEffect(() => {
+    // 이전 리스너 정리
+    if (messageListenerRef.current) {
+      window.removeEventListener('message', messageListenerRef.current);
+    }
+
     const handleMessage = (event: MessageEvent) => {
       if (event.origin !== 'https://www.youtube.com') return;
       
@@ -113,9 +120,25 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({ isOpen, onClose, videoUrl
       }
     };
 
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
+    messageListenerRef.current = handleMessage;
+    
+    // 안전한 이벤트 리스너 추가
+    const removeListener = safeAddEventListener(window, 'message', handleMessage);
+    
+    return () => {
+      removeListener();
+      messageListenerRef.current = null;
+    };
   }, []);
+
+  // 다이얼로그가 닫힐 때 상태 초기화
+  useEffect(() => {
+    if (!isOpen) {
+      setIsPlaying(false);
+      setCurrentTime(0);
+      setProgress([0]);
+    }
+  }, [isOpen]);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>

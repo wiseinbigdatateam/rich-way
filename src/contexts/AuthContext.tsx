@@ -1,5 +1,6 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, ReactNode, useRef } from 'react';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+import { isProduction, isDemoModeEnabled } from '@/utils/productionUtils';
 
 interface User {
   id: string;
@@ -34,9 +35,22 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
+// 운영 환경에서 콘솔로그 출력 함수
+const log = (message: string, data?: any) => {
+  if (!isProduction) {
+    if (data) {
+      console.log(message, data);
+    } else {
+      console.log(message);
+    }
+  }
+};
+
 export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const subscriptionRef = useRef<any>(null);
+  const isMountedRef = useRef(true);
 
   // 사용자 상태 초기화
   useEffect(() => {
@@ -45,18 +59,18 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         if (!isSupabaseConfigured) {
           // Demo 모드: localStorage에서 사용자 정보 확인
           const demoUser = localStorage.getItem('demo-user');
-          if (demoUser) {
+          if (demoUser && isMountedRef.current) {
             const parsedUser = JSON.parse(demoUser);
             setUser(parsedUser);
-            console.log('🟡 Demo 모드 사용자 복원:', parsedUser);
+            log('🟡 Demo 모드 사용자 복원:', parsedUser);
           }
         } else {
           // 실제 Supabase: 현재 세션 확인 (오류 처리 강화)
           try {
             const { data: { user: authUser }, error } = await supabase.auth.getUser();
             if (error) {
-              console.log('🟡 Supabase 사용자 확인 오류 (무시):', error.message);
-            } else if (authUser) {
+              log('🟡 Supabase 사용자 확인 오류 (무시):', error.message);
+            } else if (authUser && isMountedRef.current) {
               // Supabase Auth 사용자를 우리 User 형식으로 변환
               const userData: User = {
                 id: authUser.id,
@@ -66,16 +80,20 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
                 created_at: authUser.created_at
               };
               setUser(userData);
-              console.log('🟢 실제 Supabase 사용자 복원:', userData);
+              log('🟢 실제 Supabase 사용자 복원:', userData);
             }
           } catch (supabaseError) {
-            console.log('🟡 Supabase 연결 오류 (무시):', supabaseError);
+            log('🟡 Supabase 연결 오류 (무시):', supabaseError);
           }
         }
       } catch (error) {
-        console.error('인증 초기화 오류:', error);
+        if (!isProduction) {
+          console.error('인증 초기화 오류:', error);
+        }
       } finally {
-        setLoading(false);
+        if (isMountedRef.current) {
+          setLoading(false);
+        }
       }
     };
 
@@ -87,7 +105,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
           async (event, session) => {
             try {
-              console.log('🔄 Auth 상태 변경:', event, session?.user?.email);
+              if (!isMountedRef.current) return;
+              
+              log(`🔄 Auth 상태 변경: ${event} ${session?.user?.email || ''}`);
               
               if (event === 'SIGNED_IN' && session?.user) {
                 const userData: User = {
@@ -104,38 +124,62 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
               
               setLoading(false);
             } catch (listenerError) {
-              console.log('🟡 Auth 리스너 오류 (무시):', listenerError);
-              setLoading(false);
+              log('🟡 Auth 리스너 오류 (무시):', listenerError);
+              if (isMountedRef.current) {
+                setLoading(false);
+              }
             }
           }
         );
 
+        subscriptionRef.current = subscription;
+
         return () => {
           try {
-            subscription.unsubscribe();
+            if (subscriptionRef.current) {
+              subscriptionRef.current.unsubscribe();
+              subscriptionRef.current = null;
+            }
           } catch (unsubscribeError) {
-            console.log('🟡 Auth 리스너 해제 오류 (무시):', unsubscribeError);
+            log('🟡 Auth 리스너 해제 오류 (무시):', unsubscribeError);
           }
         };
       } catch (authError) {
-        console.log('🟡 Auth 리스너 등록 오류 (무시):', authError);
-        setLoading(false);
+        log('🟡 Auth 리스너 등록 오류 (무시):', authError);
+        if (isMountedRef.current) {
+          setLoading(false);
+        }
       }
     }
+
+    // 컴포넌트 언마운트 시 cleanup
+    return () => {
+      isMountedRef.current = false;
+      try {
+        if (subscriptionRef.current) {
+          subscriptionRef.current.unsubscribe();
+          subscriptionRef.current = null;
+        }
+      } catch (error) {
+        log('🟡 Auth 리스너 해제 오류 (무시):', error);
+      }
+    };
   }, []);
 
   // 로그인 함수
   const login = (userData: User) => {
+    if (!isMountedRef.current) return;
+    
     setUser(userData);
     setLoading(false); // 로그인 완료 후 로딩 상태 해제
     
     if (!isSupabaseConfigured) {
       // Demo 모드: localStorage에 저장
       localStorage.setItem('demo-user', JSON.stringify(userData));
-      console.log('🟡 Demo 모드 로그인:', userData);
+      log('🟡 Demo 모드 로그인:', userData);
     }
     
-    console.log('✅ 사용자 로그인 완료:', userData);
+    log('✅ 사용자 로그인 완료:', userData);
   };
 
   // 로그아웃 함수
@@ -144,25 +188,29 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       if (!isSupabaseConfigured) {
         // Demo 모드: localStorage에서 제거
         localStorage.removeItem('demo-user');
-        console.log('🟡 Demo 모드 로그아웃');
+        log('🟡 Demo 모드 로그아웃');
       } else {
         // 실제 Supabase: 로그아웃 처리 (오류 처리 강화)
         try {
           const { error } = await supabase.auth.signOut();
           if (error) {
-            console.log('🟡 Supabase 로그아웃 오류 (무시):', error.message);
+            log('🟡 Supabase 로그아웃 오류 (무시):', error.message);
           } else {
-            console.log('🟢 실제 Supabase 로그아웃');
+            log('🟢 실제 Supabase 로그아웃');
           }
         } catch (signOutError) {
-          console.log('🟡 Supabase 로그아웃 요청 오류 (무시):', signOutError);
+          log('🟡 Supabase 로그아웃 요청 오류 (무시):', signOutError);
         }
       }
       
-      setUser(null);
-      console.log('✅ 사용자 로그아웃 완료');
+      if (isMountedRef.current) {
+        setUser(null);
+      }
+      log('✅ 사용자 로그아웃 완료');
     } catch (error) {
-      console.error('로그아웃 오류:', error);
+      if (!isProduction) {
+        console.error('로그아웃 오류:', error);
+      }
     }
   };
 

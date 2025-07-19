@@ -10,6 +10,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import YouTubePlayer from "@/components/YouTubePlayer";
 import { supabase } from "@/lib/supabase";
+import { safeAddEventListener } from "@/utils/memoryLeakPrevention";
 
 const LectureDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -154,8 +155,12 @@ const LectureDetailPage = () => {
       }
     };
 
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    // 안전한 이벤트 리스너 추가
+    const removeScrollListener = safeAddEventListener(window, 'scroll', handleScroll);
+    
+    return () => {
+      removeScrollListener();
+    };
   }, []);
 
   // 질문/답변 데이터 fetch
@@ -181,7 +186,7 @@ const LectureDetailPage = () => {
       const memberIds = [...new Set(questions.map((q: any) => q.member_user_id))];
       const instructorUserIds = [...new Set(answers.map((a: any) => a.member_user_id))];
       // 회원 이름 매핑
-      let memberMap: Record<string, string> = {};
+      const memberMap: Record<string, string> = {};
       if (memberIds.length > 0) {
         const { data: members } = await supabase
           .from("member")
@@ -192,7 +197,7 @@ const LectureDetailPage = () => {
         }
       }
       // 강사 이름 매핑
-      let instructorMap: Record<string, string> = {};
+      const instructorMap: Record<string, string> = {};
       if (instructorUserIds.length > 0) {
         const { data: instructors } = await supabase
           .from("instructors")
@@ -286,7 +291,7 @@ const LectureDetailPage = () => {
 
       // 회원 이름 매핑
       const memberIds = [...new Set(data.map((r: any) => r.member_user_id))];
-      let memberMap: Record<string, string> = {};
+      const memberMap: Record<string, string> = {};
       
       if (memberIds.length > 0) {
         const { data: members } = await supabase
@@ -299,7 +304,7 @@ const LectureDetailPage = () => {
       }
 
       // 사용자의 좋아요 상태 가져오기
-      let userLikesMap: Record<string, boolean> = {};
+      const userLikesMap: Record<string, boolean> = {};
       if (userId) {
         const { data: userLikes } = await supabase
           .from("lecture_review_likes")
@@ -350,7 +355,7 @@ const LectureDetailPage = () => {
       }
       // 회원 이름 매핑
       const memberIds = [...new Set(data.map((r: any) => r.member_user_id))];
-      let memberMap: Record<string, string> = {};
+      const memberMap: Record<string, string> = {};
       if (memberIds.length > 0) {
         const { data: members } = await supabase
           .from("member")
@@ -606,7 +611,7 @@ const LectureDetailPage = () => {
     if (!fetchError && data) {
       // 회원 이름 매핑
       const memberIds = [...new Set(data.map((r: any) => r.member_user_id))];
-      let memberMap: Record<string, string> = {};
+      const memberMap: Record<string, string> = {};
       
       if (memberIds.length > 0) {
         const { data: members } = await supabase

@@ -120,16 +120,70 @@ deploy_to_ec2() {
     
     log_info "EC2 서버 '$host'에 배포 중..."
     
-    # SSH를 통한 배포
-    ssh -i $key_file $username@$host << 'EOF'
-        cd /var/www/rich-way
-        git pull origin main
-        npm ci
-        npm run build
-        sudo systemctl restart nginx
-EOF
+    # 현재 배포 백업
+    log_info "현재 배포 백업 중..."
+    ssh -i $key_file $username@$host "cp -r ~/rich-way/current ~/rich-way/backup/\$(date +%Y%m%d_%H%M%S)" 2>/dev/null || log_warning "백업 실패 (첫 배포일 수 있음)"
+    
+    # 파일 업로드
+    log_info "파일 업로드 중..."
+    rsync -avz --delete -e "ssh -i $key_file" dist/ $username@$host:~/rich-way/current/
+    
+    # 권한 설정
+    log_info "권한 설정 중..."
+    ssh -i $key_file $username@$host "sudo chmod 755 ~/ && sudo chown -R nginx:nginx ~/rich-way/ && chmod -R 755 ~/rich-way/current"
+    
+    # Nginx 재시작
+    log_info "Nginx 재시작 중..."
+    ssh -i $key_file $username@$host "sudo systemctl restart nginx"
     
     log_success "EC2 배포 완료"
+    log_info "웹사이트 URL: http://rich-way.co.kr"
+}
+
+# 운영서버 배포
+deploy_to_production() {
+    log_info "운영서버 배포 시작..."
+    
+    local host="3.34.15.65"
+    local username="ec2-user"
+    local key_file="~/awsKey/richway.pem"
+    local domain="rich-way.co.kr"
+    
+    # 키 파일 경로 확장
+    key_file=$(eval echo $key_file)
+    
+    # 키 파일 존재 확인
+    if [ ! -f "$key_file" ]; then
+        log_error "키 파일을 찾을 수 없습니다: $key_file"
+        exit 1
+    fi
+    
+    # SSH 연결 테스트
+    log_info "SSH 연결 테스트 중..."
+    if ! ssh -i $key_file -o ConnectTimeout=10 -o BatchMode=yes $username@$host "echo 'SSH 연결 성공'" 2>/dev/null; then
+        log_error "SSH 연결 실패"
+        exit 1
+    fi
+    
+    # 현재 배포 백업
+    log_info "현재 배포 백업 중..."
+    ssh -i $key_file $username@$host "cp -r ~/rich-way/current ~/rich-way/backup/\$(date +%Y%m%d_%H%M%S)" 2>/dev/null || log_warning "백업 실패 (첫 배포일 수 있음)"
+    
+    # 파일 업로드
+    log_info "파일 업로드 중..."
+    rsync -avz --delete -e "ssh -i $key_file" dist/ $username@$host:~/rich-way/current/
+    
+    # 권한 설정
+    log_info "권한 설정 중..."
+    ssh -i $key_file $username@$host "sudo chmod 755 ~/ && sudo chown -R nginx:nginx ~/rich-way/ && sudo chmod -R 755 ~/rich-way/current"
+    
+    # Nginx 재시작
+    log_info "Nginx 재시작 중..."
+    ssh -i $key_file $username@$host "sudo systemctl restart nginx"
+    
+    log_success "운영서버 배포 완료"
+    log_info "웹사이트 URL: http://$domain"
+    log_info "IP 접속: http://$host"
 }
 
 # 메인 함수
@@ -138,11 +192,15 @@ main() {
     
     log_info "AWS 배포 스크립트 시작"
     
-    # 환경 변수 확인
-    check_env_vars
+    # 환경 변수 확인 (production 배포 시에는 건너뛰기)
+    if [ "$deployment_type" != "production" ]; then
+        check_env_vars
+    fi
     
-    # 프로젝트 빌드
-    build_project
+    # 프로젝트 빌드 (production 배포 시에는 건너뛰기)
+    if [ "$deployment_type" != "production" ]; then
+        build_project
+    fi
     
     case $deployment_type in
         "s3")
@@ -153,6 +211,9 @@ main() {
             ;;
         "ec2")
             deploy_to_ec2 $2 $3 $4
+            ;;
+        "production")
+            deploy_to_production
             ;;
         "full")
             deploy_to_s3 $2
@@ -166,6 +227,7 @@ main() {
             echo "  ./scripts/deploy-aws.sh s3 <bucket-name>"
             echo "  ./scripts/deploy-aws.sh cloudfront <distribution-id>"
             echo "  ./scripts/deploy-aws.sh ec2 <host> <username> <key-file>"
+            echo "  ./scripts/deploy-aws.sh production"
             echo "  ./scripts/deploy-aws.sh full <bucket-name> [distribution-id]"
             exit 1
             ;;

@@ -74,7 +74,7 @@ const ExpertManagement = () => {
     const { data: ratingsData, error: ratingsError } = await supabase
       .from("expert_reviews")
       .select("expert_user_id, rating");
-    let ratingMap: Record<string, number> = {};
+    const ratingMap: Record<string, number> = {};
     if (!ratingsError && ratingsData) {
       // 전문가별 rating 평균 계산
       const ratingStats: Record<string, { sum: number; count: number }> = {};

@@ -188,4 +188,17 @@ function useToast() {
   }
 }
 
+// 컴포넌트 언마운트 시 모든 타이머 정리
+export const clearAllToastTimeouts = () => {
+  toastTimeouts.forEach((timeout) => {
+    clearTimeout(timeout);
+  });
+  toastTimeouts.clear();
+};
+
+// 페이지 언로드 시 정리
+if (typeof window !== 'undefined') {
+  window.addEventListener('beforeunload', clearAllToastTimeouts);
+}
+
 export { useToast, toast }

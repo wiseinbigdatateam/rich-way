@@ -808,7 +808,7 @@ export class FinanceAnalysisEngine {
     const monthlyInvestment = totalMonthlySavings * 0.7;
 
     // 목표 달성까지의 기간 계산 (기본값)
-    let yearsToTarget = this.calculateYearsToTarget(
+    const yearsToTarget = this.calculateYearsToTarget(
       currentAssets, 
       monthlyInvestment, 
       targetAmount * 100000000, // 시뮬레이션 내부는 원 단위
