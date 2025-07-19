@@ -193,62 +193,125 @@ const ExpertManagement = () => {
       toast.error("필수 항목을 입력하세요.");
       return;
     }
-    const insertForm = {
-      ...form,
-      experience_years: form.experience_years ? Number(form.experience_years) : null,
-      tags: form.tags ? form.tags.split("#").map(tag => tag.trim()).filter(Boolean) : [],
-      education_and_certifications: form.education_and_certifications ? form.education_and_certifications.split("\n").map(item => item.trim()).filter(Boolean) : [],
-      career: form.career ? form.career.split("\n").map(item => item.trim()).filter(Boolean) : [],
-      achievements: form.achievements ? form.achievements.split("\n").map(item => item.trim()).filter(Boolean) : [],
-    };
-    let error;
-    if (isEditMode && editingUserId) {
-      // 비밀번호 입력이 없으면 password 필드 제외
-      const updateForm = { ...insertForm };
-      if (!form.password) {
-        delete updateForm.password;
+
+    try {
+      // 새 전문가 등록 시 members 테이블에 먼저 레코드 생성
+      if (!isEditMode) {
+        console.log('🔄 새 전문가 등록 - members 테이블 확인/생성 중...');
+        
+        // 1. members 테이블에 해당 user_id가 있는지 확인
+        const { data: existingMember, error: checkError } = await (supabase as any)
+          .from('members')
+          .select('user_id')
+          .eq('user_id', form.user_id)
+          .single();
+
+        if (checkError && checkError.code !== 'PGRST116') { // PGRST116은 결과가 없는 경우
+          console.error('Members 확인 오류:', checkError);
+          toast.error('사용자 정보 확인 중 오류가 발생했습니다.');
+          return;
+        }
+
+        // 2. members 테이블에 없으면 새로 생성
+        if (!existingMember) {
+          console.log('📝 Members 테이블에 새 레코드 생성 중...');
+          const { error: memberError } = await supabase
+            .from('members')
+            .insert([{
+              user_id: form.user_id,
+              name: form.expert_name,
+              email: form.email,
+              password: form.password,
+              phone: form.personal_phone || form.company_phone || '',
+              signup_type: 'expert',
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            }]);
+
+          if (memberError) {
+            console.error('Members 생성 오류:', memberError);
+            if ((memberError as any).code === '23505') { // unique_violation
+              toast.error('이미 존재하는 아이디입니다. 다른 아이디를 사용해주세요.');
+            } else {
+              toast.error('사용자 계정 생성에 실패했습니다.');
+            }
+            return;
+          }
+          console.log('✅ Members 테이블 레코드 생성 완료');
+        }
       }
-      ({ error } = await (supabase.from("experts").update(updateForm).eq("user_id", editingUserId) as any));
-    } else {
-      // insert
-      ({ error } = await supabase.from("experts").insert([insertForm]));
-    }
-    if (error) {
-      if ('details' in error && 'hint' in error) {
-        console.error("Supabase error:", error.message, error.details, error.hint);
+
+      // 3. experts 테이블에 전문가 정보 저장/수정
+      const insertForm = {
+        ...form,
+        experience_years: form.experience_years ? Number(form.experience_years) : null,
+        tags: form.tags ? form.tags.split("#").map(tag => tag.trim()).filter(Boolean) : [],
+        education_and_certifications: form.education_and_certifications ? form.education_and_certifications.split("\n").map(item => item.trim()).filter(Boolean) : [],
+        career: form.career ? form.career.split("\n").map(item => item.trim()).filter(Boolean) : [],
+        achievements: form.achievements ? form.achievements.split("\n").map(item => item.trim()).filter(Boolean) : [],
+      };
+
+      let error;
+      if (isEditMode && editingUserId) {
+        // 수정 모드: 비밀번호 입력이 없으면 password 필드 제외
+        const updateForm = { ...insertForm };
+        if (!form.password) {
+          delete updateForm.password;
+        }
+        ({ error } = await (supabase as any).from("experts").update(updateForm).eq("user_id", editingUserId));
       } else {
-        console.error("Supabase error:", error.message);
+        // 새 등록 모드
+        ({ error } = await supabase.from("experts").insert([insertForm]));
       }
-      toast.error(isEditMode ? "전문가 정보 수정에 실패했습니다." : "전문가 등록에 실패했습니다.");
-      return;
+
+      if (error) {
+        console.error("Experts 저장 오류:", error);
+        
+        // 구체적인 에러 메시지 제공
+        if (error.code === '23505') {
+          toast.error('이미 등록된 전문가입니다. 다른 아이디를 사용해주세요.');
+        } else if (error.code === '23503') {
+          toast.error('사용자 계정이 존재하지 않습니다. 다시 시도해주세요.');
+        } else if (error.code === '409') {
+          toast.error('데이터 충돌이 발생했습니다. 페이지를 새로고침하고 다시 시도해주세요.');
+        } else {
+          toast.error(isEditMode ? "전문가 정보 수정에 실패했습니다." : "전문가 등록에 실패했습니다.");
+        }
+        return;
+      }
+
+      toast.success(isEditMode ? "전문가 정보가 수정되었습니다." : "전문가가 등록되었습니다.");
+      setIsDialogOpen(false);
+      setForm({
+        user_id: "",
+        password: "",
+        profile_image_url: "",
+        expert_name: "",
+        company_name: "",
+        email: "",
+        main_field: "",
+        company_phone: "",
+        personal_phone: "",
+        tags: "",
+        core_intro: "",
+        youtube_channel_url: "",
+        intro_video_url: "",
+        press_url: "",
+        education_and_certifications: "",
+        career: "",
+        achievements: "",
+        expertise_detail: "",
+        experience_years: "",
+        status: "대기",
+      });
+      setIsEditMode(false);
+      setEditingUserId(null);
+      await fetchExpertsAndRatings(); // 저장/수정 성공 시 목록 즉시 갱신
+
+    } catch (error) {
+      console.error('전문가 저장 중 예외 발생:', error);
+      toast.error('알 수 없는 오류가 발생했습니다. 다시 시도해주세요.');
     }
-    toast.success(isEditMode ? "전문가 정보가 수정되었습니다." : "전문가가 등록되었습니다.");
-    setIsDialogOpen(false);
-    setForm({
-      user_id: "",
-      password: "",
-      profile_image_url: "",
-      expert_name: "",
-      company_name: "",
-      email: "",
-      main_field: "",
-      company_phone: "",
-      personal_phone: "",
-      tags: "",
-      core_intro: "",
-      youtube_channel_url: "",
-      intro_video_url: "",
-      press_url: "",
-      education_and_certifications: "",
-      career: "",
-      achievements: "",
-      expertise_detail: "",
-      experience_years: "",
-      status: "대기",
-    });
-    setIsEditMode(false);
-    setEditingUserId(null);
-    await fetchExpertsAndRatings(); // 저장/수정 성공 시 목록 즉시 갱신
   };
 
   // 프로필 이미지 업로드
