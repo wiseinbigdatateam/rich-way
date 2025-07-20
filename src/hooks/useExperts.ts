@@ -5,18 +5,23 @@ export interface Expert {
   id: string;
   user_id: string;
   expert_name: string;
-  expert_type: string;
-  license_number?: string;
-  experience_years?: number;
-  education?: string;
-  certifications?: string[];
-  introduction?: string;
+  main_field: string; // expert_type 대신 main_field 사용
+  company_name?: string;
+  email: string;
   profile_image_url?: string;
-  contact_email?: string;
-  contact_phone?: string;
-  hourly_rate?: number;
-  is_active: boolean;
-  is_verified: boolean;
+  company_phone?: string;
+  personal_phone?: string;
+  tags?: string[];
+  core_intro?: string;
+  youtube_channel_url?: string;
+  intro_video_url?: string;
+  press_url?: string;
+  education_and_certifications?: string;
+  career?: string;
+  achievements?: string;
+  expertise_detail?: string;
+  experience_years?: number;
+  status: string;
   created_at: string;
   updated_at: string;
 }
@@ -31,10 +36,15 @@ export const useExperts = (expertType?: string) => {
       setLoading(true);
       setError(null);
 
-      // 타입 이슈 해결을 위해 기본 쿼리만 사용
-      const { data, error } = await supabase
+      // 활성 상태인 전문가만 조회
+      let query = supabase
         .from('experts')
         .select('*');
+
+      // 상태 필터링
+      query = query.eq('status', '활성');
+
+      const { data, error } = await query;
 
       if (error) {
         console.error('전문가 데이터 조회 오류:', error);
@@ -46,11 +56,12 @@ export const useExperts = (expertType?: string) => {
       let filteredData = data || [];
       
       if (filteredData.length > 0) {
-        filteredData = filteredData.filter((expert: any) => 
-          expert.is_active === true && 
-          expert.is_verified === true &&
-          (!expertType || expert.expert_type === expertType)
-        );
+        // 전문 분야별 필터링 (expertType이 main_field와 일치하는 경우)
+        if (expertType) {
+          filteredData = filteredData.filter((expert: any) => 
+            expert.main_field === expertType
+          );
+        }
         
         // 생성일 기준 정렬
         filteredData.sort((a: any, b: any) => 

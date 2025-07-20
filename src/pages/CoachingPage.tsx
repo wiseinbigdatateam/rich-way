@@ -5,23 +5,33 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Home, TrendingUp, Users, PiggyBank, CreditCard, Shield, Briefcase, Calendar, Award, Building, GraduationCap, Youtube, ExternalLink, Play, Coins, Landmark, Target, Banknote, DollarSign, LineChart, Loader2 } from "lucide-react";
+import { Home, TrendingUp, Users, PiggyBank, CreditCard, Shield, Briefcase, Calendar, Award, Building, GraduationCap, Youtube, ExternalLink, Play, Coins, Landmark, Target, Banknote, DollarSign, LineChart, Loader2, Calculator } from "lucide-react";
 import Header from "@/components/Header";
 import { useNavigate } from "react-router-dom";
 import { useExperts, type Expert } from "@/hooks/useExperts";
 import { supabase } from "@/lib/supabase";
 
+// 전문가와 상품 정보를 포함한 확장된 타입
+interface ExpertWithProducts extends Expert {
+  products?: Array<{
+    product_name: string;
+    price: number;
+    duration: number;
+    description: string;
+  }>;
+}
+
 const CoachingPage = () => {
   const navigate = useNavigate();
   const { experts: allExperts, loading, error } = useExperts();
   
-  // 전문가를 카테고리별로 분류
+  // 전문가를 카테고리별로 분류 (상품 정보 포함)
   const [coachingData, setCoachingData] = useState<{
-    realestate: Expert[];
-    tax: Expert[];
-    finance: Expert[];
-    business: Expert[];
-    retirement: Expert[];
+    realestate: ExpertWithProducts[];
+    tax: ExpertWithProducts[];
+    finance: ExpertWithProducts[];
+    business: ExpertWithProducts[];
+    retirement: ExpertWithProducts[];
   }>({
     realestate: [],
     tax: [],
@@ -30,151 +40,73 @@ const CoachingPage = () => {
     retirement: []
   });
 
-  useEffect(() => {
-    if (allExperts.length > 0) {
-      const categorizedExperts = {
-        realestate: allExperts.filter(expert => expert.expert_type === '부동산'),
-        tax: allExperts.filter(expert => expert.expert_type === '세무'),
-        finance: allExperts.filter(expert => expert.expert_type === '금융'),
-        business: allExperts.filter(expert => expert.expert_type === '사업'),
-        retirement: allExperts.filter(expert => expert.expert_type === '은퇴설계')
-      };
-      setCoachingData(categorizedExperts);
-    }
-  }, [allExperts]);
+  // 전문가별 상품 정보를 가져오는 함수
+  const fetchExpertProducts = async (expertUserId: string) => {
+    let query = supabase
+      .from('expert_products')
+      .select('*');
 
-  // 하드코딩된 더미 데이터 (실제 데이터가 없을 때 사용)
-  const dummyCoachingData = {
-    realestate: [
-      {
-        id: "1",
-        user_id: "expert1",
-        expert_name: "김부동 대표",
-        expert_type: "부동산",
-        introduction: "강남권 아파트 투자부터 지방 수익형 부동산까지, 다양한 부동산 투자 노하우를 보유하고 있습니다. 시장 분석과 입지 선정, 자금 조달 방법까지 종합적인 부동산 투자 전략을 코칭해드립니다.",
-        profile_image_url: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face",
-        experience_years: 15,
-        hourly_rate: 100000,
-        certifications: ["공인중개사", "부동산투자상담사"],
-        contact_email: "kim@expert.com",
-        contact_phone: "010-1234-5678",
-        is_active: true,
-        is_verified: true,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      },
-      {
-        id: "2",
-        user_id: "expert2",
-        expert_name: "박상가 실장",
-        expert_type: "부동산",
-        introduction: "상가 투자의 A부터 Z까지 모든 것을 알려드립니다. 상권 분석, 임차인 선별, 계약서 작성 노하우부터 세무 처리까지 상가 투자 성공을 위한 실전 경험을 공유합니다.",
-        profile_image_url: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face",
-        experience_years: 10,
-        hourly_rate: 120000,
-        certifications: ["공인중개사", "감정평가사"],
-        contact_email: "park@expert.com",
-        contact_phone: "010-2345-6789",
-        is_active: true,
-        is_verified: true,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      }
-    ],
-    tax: [
-      {
-        id: "3",
-        user_id: "expert3",
-        expert_name: "최세무 세무사",
-        expert_type: "세무",
-        introduction: "복잡한 세법을 쉽게 풀어서 설명하고, 개인별 맞춤 절세 전략을 제시합니다. 상속·증여세 최적화부터 부동산 취득·양도소득세 절세까지 모든 세무 문제를 해결해드립니다.",
-        profile_image_url: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150&h=150&fit=crop&crop=face",
-        experience_years: 20,
-        hourly_rate: 150000,
-        certifications: ["세무사", "공인회계사"],
-        contact_email: "choi@expert.com",
-        contact_phone: "010-3456-7890",
-        is_active: true,
-        is_verified: true,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      }
-    ],
-    finance: [
-      {
-        id: "4",
-        user_id: "expert4",
-        expert_name: "강레버 대표",
-        expert_type: "금융",
-        introduction: "적정 레버리지를 활용한 자산 증식 전략을 코칭합니다. 은행별 대출 상품 비교부터 금리 협상, 담보 설정까지 금융 레버리지 활용의 모든 노하우를 제공합니다.",
-        profile_image_url: "https://images.unsplash.com/photo-1556157382-97eda2d62296?w=150&h=150&fit=crop&crop=face",
-        experience_years: 12,
-        hourly_rate: 130000,
-        certifications: ["금융투자분석사", "신용분석사"],
-        contact_email: "kang@expert.com",
-        contact_phone: "010-4567-8901",
-        is_active: true,
-        is_verified: true,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      }
-    ],
-    business: [
-      {
-        id: "5",
-        user_id: "expert5",
-        expert_name: "사업자 김사장",
-        expert_type: "사업",
-        introduction: "창업부터 사업 확장까지 모든 단계의 사업 운영 노하우를 보유하고 있습니다. 사업 아이템 발굴, 사업계획서 작성, 자금 조달, 정부지원사업 활용법까지 종합적인 창업 솔루션을 제공합니다.",
-        profile_image_url: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face",
-        experience_years: 18,
-        hourly_rate: 140000,
-        certifications: ["창업지도사", "중소기업진흥공단 창업컨설턴트"],
-        contact_email: "kim.biz@expert.com",
-        contact_phone: "010-5678-9012",
-        is_active: true,
-        is_verified: true,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      }
-    ],
-    retirement: [
-      {
-        id: "6",
-        user_id: "expert6",
-        expert_name: "연금박사 박교수",
-        expert_type: "은퇴설계",
-        introduction: "체계적인 은퇴 설계와 연금 상품 선택 노하우를 제공합니다. 국민연금, 퇴직연금, 개인연금의 최적 조합과 노후 자금 마련을 위한 단계별 투자 전략을 코칭해드립니다.",
-        profile_image_url: "https://images.unsplash.com/photo-1551836022-deb4988cc6c0?w=150&h=150&fit=crop&crop=face",
-        experience_years: 25,
-        hourly_rate: 160000,
-        certifications: ["은퇴설계전문가", "연금상품전문가"],
-        contact_email: "park.pension@expert.com",
-        contact_phone: "010-6789-0123",
-        is_active: true,
-        is_verified: true,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      }
-    ]
+    query = query.eq('user_id', expertUserId);
+    
+    const { data: products, error } = await query;
+    
+    if (error) {
+      console.error('상품 정보 가져오기 오류:', error);
+      return [];
+    }
+    
+    return products || [];
   };
 
-  // 실제 데이터가 없으면 더미 데이터 사용
-  const displayData = loading || error ? dummyCoachingData : 
-    (Object.values(coachingData).some(arr => arr.length > 0) ? coachingData : dummyCoachingData);
+  useEffect(() => {
+    const loadExpertsWithProducts = async () => {
+      if (allExperts.length > 0) {
+        // 각 전문가의 상품 정보를 가져와서 결합
+        const expertsWithProducts = await Promise.all(
+          allExperts.map(async (expert) => {
+            const products = await fetchExpertProducts(expert.user_id);
+            return {
+              ...expert,
+              products
+            };
+          })
+        );
 
-  const handleCoachingApplication = (expert: Expert) => {
+        // 카테고리별로 분류
+        const categorizedExperts = {
+          realestate: expertsWithProducts.filter(expert => expert.main_field === '부동산'),
+          tax: expertsWithProducts.filter(expert => expert.main_field === '세무절세'),
+          finance: expertsWithProducts.filter(expert => expert.main_field === '금융레버리지'),
+          business: expertsWithProducts.filter(expert => expert.main_field === '사업'),
+          retirement: expertsWithProducts.filter(expert => expert.main_field === '은퇴설계')
+        };
+        
+        setCoachingData(categorizedExperts);
+      }
+    };
+
+    loadExpertsWithProducts();
+  }, [allExperts]);
+
+  // 실제 데이터가 없으면 빈 배열 사용 (더미 데이터 제거)
+  const displayData = coachingData;
+
+  const handleCoachingApplication = (expert: ExpertWithProducts) => {
+    // 기본 상품 정보 (FREE 상품이 있다면 사용, 없으면 첫 번째 상품)
+    const defaultProduct = expert.products?.find(p => p.product_name === 'FREE') || expert.products?.[0];
+    
     navigate('/coaching/apply', { 
       state: { 
         expertName: expert.expert_name, 
-        expertCompany: expert.expert_type,
+        expertCompany: expert.company_name || expert.main_field,
         expertId: expert.user_id,
-        hourlyRate: expert.hourly_rate 
+        hourlyRate: defaultProduct?.price || 0,
+        productName: defaultProduct?.product_name || 'FREE'
       } 
     });
   };
 
-  const TabContent = ({ category, experts }: { category: string, experts: Expert[] }) => (
+  const TabContent = ({ category, experts }: { category: string, experts: ExpertWithProducts[] }) => (
     <div className="space-y-6">
       {experts.length === 0 ? (
         <div className="text-center py-12">
@@ -201,110 +133,179 @@ const CoachingPage = () => {
                         </DialogTrigger>
                         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
                           <DialogHeader>
-                            <DialogTitle className="flex items-center gap-3">
+                            <DialogTitle className="flex items-center gap-2">
                               <Avatar className="w-12 h-12">
                                 <AvatarImage src={expert.profile_image_url} alt={expert.expert_name} />
                                 <AvatarFallback>{expert.expert_name.charAt(0)}</AvatarFallback>
                               </Avatar>
                               <div>
-                                <h3 className="text-xl font-bold">{expert.expert_name}</h3>
-                                <p className="text-gray-600">{expert.expert_type} 전문가</p>
+                                <div className="text-xl font-bold">{expert.expert_name}</div>
+                                <div className="text-sm text-gray-500">{expert.company_name}</div>
                               </div>
                             </DialogTitle>
                           </DialogHeader>
-                          <div className="mt-6 space-y-6">
+                          
+                          <div className="space-y-6">
+                            {/* 기본 정보 */}
                             <div>
-                              <h4 className="font-semibold mb-2">전문가 소개</h4>
-                              <p className="text-gray-700">{expert.introduction}</p>
+                              <h3 className="font-semibold mb-2">기본 정보</h3>
+                              <div className="grid grid-cols-2 gap-4 text-sm">
+                                <div>
+                                  <span className="font-medium">전문 분야:</span> {expert.main_field}
+                                </div>
+                                <div>
+                                  <span className="font-medium">경력:</span> {expert.experience_years}년
+                                </div>
+                                <div>
+                                  <span className="font-medium">이메일:</span> {expert.email}
+                                </div>
+                                <div>
+                                  <span className="font-medium">연락처:</span> {expert.personal_phone || expert.company_phone}
+                                </div>
+                              </div>
                             </div>
-                            
-                            {expert.certifications && expert.certifications.length > 0 && (
+
+                            {/* 소개 */}
+                            {expert.core_intro && (
                               <div>
-                                <h4 className="font-semibold mb-2">보유 자격증</h4>
-                                <div className="flex flex-wrap gap-2">
-                                  {expert.certifications.map((cert, index) => (
-                                    <Badge key={index} variant="secondary">
-                                      {cert}
-                                    </Badge>
+                                <h3 className="font-semibold mb-2">소개</h3>
+                                <p className="text-sm text-gray-700 whitespace-pre-line">{expert.core_intro}</p>
+                              </div>
+                            )}
+
+                            {/* 학력 및 자격 */}
+                            {expert.education_and_certifications && (
+                              <div>
+                                <h3 className="font-semibold mb-2">학력 및 자격</h3>
+                                <p className="text-sm text-gray-700 whitespace-pre-line">{expert.education_and_certifications}</p>
+                              </div>
+                            )}
+
+                            {/* 경력 */}
+                            {expert.career && (
+                              <div>
+                                <h3 className="font-semibold mb-2">경력</h3>
+                                <p className="text-sm text-gray-700 whitespace-pre-line">{expert.career}</p>
+                              </div>
+                            )}
+
+                            {/* 주요 성과 */}
+                            {expert.achievements && (
+                              <div>
+                                <h3 className="font-semibold mb-2">주요 성과</h3>
+                                <p className="text-sm text-gray-700 whitespace-pre-line">{expert.achievements}</p>
+                              </div>
+                            )}
+
+                            {/* 전문 영역 */}
+                            {expert.expertise_detail && (
+                              <div>
+                                <h3 className="font-semibold mb-2">전문 영역</h3>
+                                <p className="text-sm text-gray-700 whitespace-pre-line">{expert.expertise_detail}</p>
+                              </div>
+                            )}
+
+                            {/* 상품 정보 */}
+                            {expert.products && expert.products.length > 0 && (
+                              <div>
+                                <h3 className="font-semibold mb-2">코칭 상품</h3>
+                                <div className="space-y-2">
+                                  {expert.products.map((product) => (
+                                    <div key={product.product_name} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                                      <div>
+                                        <div className="font-medium">{product.product_name}</div>
+                                        <div className="text-sm text-gray-600">{product.duration}분</div>
+                                        {product.description && (
+                                          <div className="text-sm text-gray-500 mt-1">{product.description}</div>
+                                        )}
+                                      </div>
+                                      <div className="text-right">
+                                        <div className="font-bold text-lg">
+                                          {product.price === 0 ? '무료' : `${product.price.toLocaleString()}원`}
+                                        </div>
+                                      </div>
+                                    </div>
                                   ))}
                                 </div>
                               </div>
                             )}
-                            
-                            {expert.education && (
+
+                            {/* 태그 */}
+                            {expert.tags && expert.tags.length > 0 && (
                               <div>
-                                <h4 className="font-semibold mb-2">학력</h4>
-                                <p className="text-gray-700">{expert.education}</p>
+                                <h3 className="font-semibold mb-2">전문 태그</h3>
+                                <div className="flex flex-wrap gap-2">
+                                  {expert.tags.map((tag, index) => (
+                                    <Badge key={index} variant="secondary">{tag}</Badge>
+                                  ))}
+                                </div>
                               </div>
                             )}
-                            
-                            <div className="flex justify-between items-center pt-4 border-t">
-                              <div>
-                                <p className="text-sm text-gray-600">경력: {expert.experience_years || 0}년</p>
-                                {expert.hourly_rate && (
-                                  <p className="text-lg font-semibold text-blue-600">
-                                    {expert.hourly_rate.toLocaleString()}원/시간
-                                  </p>
-                                )}
-                              </div>
-                              <Button onClick={() => handleCoachingApplication(expert)}>
-                                {expert.expert_name} 전문가에게 코칭 신청하기
-                              </Button>
-                            </div>
                           </div>
                         </DialogContent>
                       </Dialog>
                     </div>
-                    <CardDescription className="text-sm text-gray-600 mb-2">
-                      {expert.expert_type}투자연구소
-                    </CardDescription>
+                    <div className="flex items-center gap-4 text-sm text-gray-600">
+                      <div className="flex items-center gap-1">
+                        <Briefcase className="w-4 h-4" />
+                        <span>{expert.main_field}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Calendar className="w-4 h-4" />
+                        <span>{expert.experience_years}년 경력</span>
+                      </div>
+                    </div>
                   </div>
-                  <div className="text-3xl">🏢</div>
                 </div>
-                <Button 
-                  onClick={() => handleCoachingApplication(expert)} 
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2"
-                >
-                  코칭신청
-                </Button>
+                <div className="text-right">
+                  <Button 
+                    onClick={() => handleCoachingApplication(expert)}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    코칭 신청
+                  </Button>
+                </div>
               </div>
             </CardHeader>
+            
             <CardContent>
               <div className="space-y-4">
-                <div className="flex flex-wrap gap-2">
-                  <Badge variant="secondary" className="text-xs">
-                    {expert.experience_years || 15}년 {expert.expert_type} 투자 경력
-                  </Badge>
-                  <Badge variant="secondary" className="text-xs">
-                    {expert.expert_type === '부동산' ? '아파트 부자 전문' : `${expert.expert_type} 전문`}
-                  </Badge>
-                  <Badge variant="secondary" className="text-xs">
-                    수익률 평균 20% 달성
-                  </Badge>
+                {/* 소개 */}
+                <div>
+                  <p className="text-gray-700 line-clamp-3">
+                    {expert.core_intro || '전문가 소개가 준비 중입니다.'}
+                  </p>
                 </div>
-                <p className="text-sm text-gray-700 line-clamp-3">
-                  {expert.introduction}
-                </p>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" asChild>
-                    <a href="https://www.youtube.com/@ntstax" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1">
-                      <Youtube className="w-3 h-3" />
-                      <span className="text-xs">운영 유튜브</span>
-                    </a>
-                  </Button>
-                  <Button variant="outline" size="sm" asChild>
-                    <a href="https://www.youtube.com/watch?v=L0GGqwJdfwA" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1">
-                      <Play className="w-3 h-3" />
-                      <span className="text-xs">소개영상</span>
-                    </a>
-                  </Button>
-                  <Button variant="outline" size="sm" asChild>
-                    <a href="https://www.mk.co.kr/news/business/10894163" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1">
-                      <ExternalLink className="w-3 h-3" />
-                      <span className="text-xs">신문기사</span>
-                    </a>
-                  </Button>
-                </div>
+
+                {/* 상품 정보 */}
+                {expert.products && expert.products.length > 0 && (
+                  <div>
+                    <h4 className="font-medium mb-2">코칭 상품</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                      {expert.products.map((product) => (
+                        <div key={product.product_name} className="text-xs">
+                          {product.product_name}: {product.price === 0 ? '무료' : `${product.price.toLocaleString()}원`}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* 태그 */}
+                {expert.tags && expert.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {expert.tags.slice(0, 3).map((tag, index) => (
+                      <Badge key={index} variant="outline" className="text-xs">
+                        {tag}
+                      </Badge>
+                    ))}
+                    {expert.tags.length > 3 && (
+                      <Badge variant="outline" className="text-xs">
+                        +{expert.tags.length - 3}
+                      </Badge>
+                    )}
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -315,14 +316,12 @@ const CoachingPage = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+      <div className="min-h-screen bg-gray-50">
         <Header />
-        <div className="container mx-auto px-6 py-20">
-          <div className="flex items-center justify-center min-h-[400px]">
-            <div className="text-center">
-              <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-blue-600" />
-              <p className="text-lg text-gray-600">전문가 정보를 불러오는 중...</p>
-            </div>
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="w-8 h-8 animate-spin" />
+            <span className="ml-2">전문가 정보를 불러오는 중...</span>
           </div>
         </div>
       </div>
@@ -331,87 +330,103 @@ const CoachingPage = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+      <div className="min-h-screen bg-gray-50">
         <Header />
-        <div className="container mx-auto px-6 py-20">
-          <div className="flex items-center justify-center min-h-[400px]">
-            <div className="text-center">
-              <p className="text-lg text-red-600 mb-4">{error}</p>
-              <p className="text-gray-600">더미 데이터로 진행합니다.</p>
-            </div>
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center py-12">
+            <p className="text-red-500">전문가 정보를 불러오는데 실패했습니다.</p>
           </div>
         </div>
       </div>
     );
   }
 
-  const categories = [
-    { 
-      id: "realestate", 
-      name: "부동산", 
-      icon: <Building className="w-5 h-5" />,
-      gradient: "from-blue-500 to-indigo-600"
-    },
-    { 
-      id: "tax", 
-      name: "세무절세", 
-      icon: <Target className="w-5 h-5" />,
-      gradient: "from-green-500 to-emerald-600"
-    },
-    { 
-      id: "finance", 
-      name: "금융레버리지", 
-      icon: <LineChart className="w-5 h-5" />,
-      gradient: "from-purple-500 to-violet-600"
-    },
-    { 
-      id: "business", 
-      name: "사업", 
-      icon: <Briefcase className="w-5 h-5" />,
-      gradient: "from-orange-500 to-red-600"
-    },
-    { 
-      id: "retirement", 
-      name: "은퇴설계", 
-      icon: <Shield className="w-5 h-5" />,
-      gradient: "from-teal-500 to-cyan-600"
-    }
-  ];
-
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
       
-      <div className="container mx-auto px-4 py-8">
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            전문가 1:1 맞춤 코칭
-          </h1>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            각 분야의 전문가들과 직접 만나 개인별 맞춤 전략을 수립하세요. 
-            체계적인 분석과 실전 노하우로 당신의 목표 달성을 도와드립니다.
+      {/* Hero Section */}
+      <div className="bg-gradient-to-r from-blue-600 to-purple-700 text-white">
+        <div className="container mx-auto px-4 py-16">
+          <div className="text-center max-w-4xl mx-auto">
+            <h1 className="text-4xl md:text-5xl font-bold mb-6">
+              전문가와 함께하는 <br />
+              <span className="text-yellow-300">맞춤형 부자 코칭</span>
+            </h1>
+            <p className="text-xl md:text-2xl mb-8 text-blue-100">
+              각 분야 최고의 전문가들이 당신의 자산 증식과 부자 되기 여정을 도와드립니다
+            </p>
+            <div className="flex flex-wrap justify-center gap-4 text-sm">
+              <div className="flex items-center gap-2">
+                <Users className="w-5 h-5" />
+                <span>전문가 검증 완료</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Shield className="w-5 h-5" />
+                <span>안전한 코칭 환경</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Award className="w-5 h-5" />
+                <span>실전 경험 기반</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="container mx-auto px-4 py-12">
+        <div className="mb-8">
+          <h2 className="text-3xl font-bold text-center mb-4">전문 분야별 코칭</h2>
+          <p className="text-gray-600 text-center max-w-2xl mx-auto">
+            부동산, 세무절세, 금융레버리지, 사업, 은퇴설계 등 다양한 분야의 전문가들이 
+            당신의 상황에 맞는 최적의 솔루션을 제공합니다.
           </p>
         </div>
 
         <Tabs defaultValue="realestate" className="w-full">
-          <TabsList className="grid w-full grid-cols-5 mb-8 bg-white border border-gray-200 rounded-xl p-1 shadow-sm h-16">
-            {categories.map((category) => (
-              <TabsTrigger 
-                key={category.id} 
-                value={category.id}
-                className="flex items-center justify-center gap-2 px-4 py-4 text-lg font-bold text-gray-700 data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-200 hover:bg-gray-50 rounded-lg h-14"
-              >
-                {category.icon}
-                <span className="hidden sm:inline">{category.name}</span>
-              </TabsTrigger>
-            ))}
+          <TabsList className="grid w-full grid-cols-5 mb-8">
+            <TabsTrigger value="realestate" className="flex items-center gap-2">
+              <Home className="w-4 h-4" />
+              부동산
+            </TabsTrigger>
+            <TabsTrigger value="tax" className="flex items-center gap-2">
+              <Calculator className="w-4 h-4" />
+              세무절세
+            </TabsTrigger>
+            <TabsTrigger value="finance" className="flex items-center gap-2">
+              <TrendingUp className="w-4 h-4" />
+              금융레버리지
+            </TabsTrigger>
+            <TabsTrigger value="business" className="flex items-center gap-2">
+              <Building className="w-4 h-4" />
+              사업
+            </TabsTrigger>
+            <TabsTrigger value="retirement" className="flex items-center gap-2">
+              <PiggyBank className="w-4 h-4" />
+              은퇴설계
+            </TabsTrigger>
           </TabsList>
 
-          {Object.entries(displayData).map(([category, experts]) => (
-            <TabsContent key={category} value={category} className="mt-6">
-              <TabContent category={category} experts={experts} />
-            </TabsContent>
-          ))}
+          <TabsContent value="realestate">
+            <TabContent category="부동산" experts={displayData.realestate} />
+          </TabsContent>
+          
+          <TabsContent value="tax">
+            <TabContent category="세무절세" experts={displayData.tax} />
+          </TabsContent>
+          
+          <TabsContent value="finance">
+            <TabContent category="금융레버리지" experts={displayData.finance} />
+          </TabsContent>
+          
+          <TabsContent value="business">
+            <TabContent category="사업" experts={displayData.business} />
+          </TabsContent>
+          
+          <TabsContent value="retirement">
+            <TabContent category="은퇴설계" experts={displayData.retirement} />
+          </TabsContent>
         </Tabs>
       </div>
     </div>
