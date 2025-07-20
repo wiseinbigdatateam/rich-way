@@ -42,6 +42,19 @@ const ExpertManagement = () => {
     expertise_detail: "",
     experience_years: "",
     status: "대기",
+    // 상세정보 컬럼 추가
+    education_detail: "",
+    certifications_detail: "",
+    experience_detail: "",
+    achievements_detail: "",
+    expertise_areas: []
+  });
+
+  // expert_products 상태 추가
+  const [expertProducts, setExpertProducts] = useState({
+    FREE: { price: 0, duration: 30, description: "" },
+    DELUXE: { price: 250000, duration: 60, description: "" },
+    PREMIUM: { price: 500000, duration: 90, description: "" }
   });
   const [uploading, setUploading] = useState(false);
   const [checkingUserId, setCheckingUserId] = useState(false);
@@ -67,40 +80,67 @@ const ExpertManagement = () => {
   const fetchExpertsAndRatings = async () => {
     setLoading(true);
     setError(null);
-    // 전문가 목록 가져오기
-    const { data: expertsData, error: expertsError } = await supabase.from("experts").select("*");
-    if (expertsError) {
-      setError(expertsError.message);
-      setExperts([]);
+    
+    try {
+      // 1. 전문가 목록 가져오기
+      const { data: expertsData, error: expertsError } = await supabase.from("experts").select("*");
+      if (expertsError) {
+        setError(expertsError.message);
+        setExperts([]);
+        setLoading(false);
+        return;
+      }
+
+      // 2. 전문가별 평균 평점 가져오기
+      const { data: ratingsData, error: ratingsError } = await supabase
+        .from("expert_reviews")
+        .select("expert_user_id, rating");
+      
+      const ratingMap: Record<string, number> = {};
+      if (!ratingsError && ratingsData) {
+        // 전문가별 rating 평균 계산
+        const ratingStats: Record<string, { sum: number; count: number }> = {};
+        ratingsData.forEach((row: any) => {
+          if (!ratingStats[row.expert_user_id]) {
+            ratingStats[row.expert_user_id] = { sum: 0, count: 0 };
+          }
+          ratingStats[row.expert_user_id].sum += row.rating;
+          ratingStats[row.expert_user_id].count += 1;
+        });
+        Object.entries(ratingStats).forEach(([expert_user_id, stat]) => {
+          ratingMap[expert_user_id] = stat.count > 0 ? stat.sum / stat.count : 0;
+        });
+      }
+
+      // 3. 전문가별 상품 정보 가져오기
+      const { data: productsData, error: productsError } = await supabase
+        .from("expert_products")
+        .select("*");
+
+      const productsMap: Record<string, any[]> = {};
+      if (!productsError && productsData) {
+        productsData.forEach((product: any) => {
+          if (!productsMap[product.expert_user_id]) {
+            productsMap[product.expert_user_id] = [];
+          }
+          productsMap[product.expert_user_id].push(product);
+        });
+      }
+
+      // 4. experts에 평균 평점과 상품 정보 매핑
+      const expertsWithRating = (expertsData || []).map((expert: any) => ({
+        ...expert,
+        avg_rating: ratingMap[expert.user_id] ? Math.round(ratingMap[expert.user_id] * 10) / 10 : null,
+        products: productsMap[expert.user_id] || []
+      }));
+      
+      setExperts(expertsWithRating);
+    } catch (error) {
+      console.error('전문가 데이터 로딩 중 오류:', error);
+      setError('데이터를 불러오는 중 오류가 발생했습니다.');
+    } finally {
       setLoading(false);
-      return;
     }
-    // 전문가별 평균 평점 가져오기
-    const { data: ratingsData, error: ratingsError } = await supabase
-      .from("expert_reviews")
-      .select("expert_user_id, rating");
-    const ratingMap: Record<string, number> = {};
-    if (!ratingsError && ratingsData) {
-      // 전문가별 rating 평균 계산
-      const ratingStats: Record<string, { sum: number; count: number }> = {};
-      ratingsData.forEach((row: any) => {
-        if (!ratingStats[row.expert_user_id]) {
-          ratingStats[row.expert_user_id] = { sum: 0, count: 0 };
-        }
-        ratingStats[row.expert_user_id].sum += row.rating;
-        ratingStats[row.expert_user_id].count += 1;
-      });
-      Object.entries(ratingStats).forEach(([expert_user_id, stat]) => {
-        ratingMap[expert_user_id] = stat.count > 0 ? stat.sum / stat.count : 0;
-      });
-    }
-    // experts에 평균 평점 매핑
-    const expertsWithRating = (expertsData || []).map((expert: any) => ({
-      ...expert,
-      avg_rating: ratingMap[expert.user_id] ? Math.round(ratingMap[expert.user_id] * 10) / 10 : null,
-    }));
-    setExperts(expertsWithRating);
-    setLoading(false);
   };
 
   useEffect(() => {
@@ -152,6 +192,7 @@ const ExpertManagement = () => {
   };
 
   const handleEdit = async (expert) => {
+    // 1. experts 테이블에서 전문가 정보 가져오기
     const { data, error } = await (supabase
       .from("experts")
       .select("*")
@@ -160,6 +201,28 @@ const ExpertManagement = () => {
     if (error || !data) {
       toast.error("전문가 정보를 불러오지 못했습니다.");
       return;
+    }
+
+    // 2. expert_products 테이블에서 상품 정보 가져오기
+    const { data: productsData, error: productsError } = await supabase
+      .from("expert_products")
+      .select("*")
+      .eq("expert_user_id", expert.user_id);
+
+    if (!productsError && productsData) {
+      const productsMap: Record<string, { price: number; duration: number; description: string }> = {};
+      productsData.forEach(product => {
+        productsMap[product.product_name] = {
+          price: product.product_price,
+          duration: product.duration_minutes,
+          description: product.description
+        };
+      });
+      setExpertProducts({
+        FREE: productsMap.FREE || { price: 0, duration: 30, description: "" },
+        DELUXE: productsMap.DELUXE || { price: 250000, duration: 60, description: "" },
+        PREMIUM: productsMap.PREMIUM || { price: 500000, duration: 90, description: "" }
+      });
     }
     setEditingExpert(data);
     setIsEditMode(true);
@@ -185,6 +248,12 @@ const ExpertManagement = () => {
       expertise_detail: data.expertise_detail || "",
       experience_years: data.experience_years !== undefined && data.experience_years !== null ? String(data.experience_years) : "",
       status: data.status || "대기",
+      // 상세정보 컬럼 추가
+      education_detail: data.education_detail || "",
+      certifications_detail: data.certifications_detail || "",
+      experience_detail: data.experience_detail || "",
+      achievements_detail: data.achievements_detail || "",
+      expertise_areas: Array.isArray(data.expertise_areas) ? data.expertise_areas : []
     });
     setIsDialogOpen(true);
   };
@@ -216,6 +285,12 @@ const ExpertManagement = () => {
       expertise_detail: "",
       experience_years: "",
       status: "대기",
+      // 상세정보 컬럼 추가
+      education_detail: "",
+      certifications_detail: "",
+      experience_detail: "",
+      achievements_detail: "",
+      expertise_areas: []
     });
     setIsDialogOpen(true);
   };
@@ -433,6 +508,56 @@ const ExpertManagement = () => {
         return;
       }
 
+      // 4. expert_products 테이블에 상품 정보 저장/수정
+      console.log('🔄 전문가 상품 정보 저장 중...');
+      
+      const productEntries = Object.entries(expertProducts);
+      const productPromises = productEntries.map(async ([productName, productData]) => {
+        const productRecord = {
+          expert_user_id: form.user_id,
+          product_name: productName,
+          product_price: productData.price,
+          duration_minutes: productData.duration,
+          description: productData.description,
+          is_active: true
+        };
+
+        if (isEditMode) {
+          // 수정 모드: 기존 상품 업데이트 또는 새로 생성
+          const { data: existingProduct } = await supabase
+            .from('expert_products')
+            .select('id')
+            .eq('expert_user_id', form.user_id)
+            .eq('product_name', productName)
+            .single();
+
+          if (existingProduct) {
+            return supabase
+              .from('expert_products')
+              .update(productRecord)
+              .eq('id', existingProduct.id);
+          } else {
+            return supabase
+              .from('expert_products')
+              .insert([productRecord]);
+          }
+        } else {
+          // 새 등록 모드: 상품 생성
+          return supabase
+            .from('expert_products')
+            .insert([productRecord]);
+        }
+      });
+
+      try {
+        await Promise.all(productPromises);
+        console.log('✅ 전문가 상품 정보 저장 완료');
+      } catch (productError) {
+        console.error('❌ 전문가 상품 정보 저장 오류:', productError);
+        toast.error('전문가 상품 정보 저장에 실패했습니다.');
+        return;
+      }
+
       toast.success(isEditMode ? "전문가 정보가 수정되었습니다." : "전문가가 등록되었습니다.");
       setIsDialogOpen(false);
       setForm({
@@ -456,6 +581,12 @@ const ExpertManagement = () => {
         expertise_detail: "",
         experience_years: "",
         status: "대기",
+        // 상세정보 컬럼 추가
+        education_detail: "",
+        certifications_detail: "",
+        experience_detail: "",
+        achievements_detail: "",
+        expertise_areas: []
       });
       setIsEditMode(false);
       setEditingUserId(null);
@@ -788,24 +919,72 @@ const ExpertManagement = () => {
                     </div>
                   </div>
                 </div>
-                {/* 기타 설정 */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>경력 (년)</Label>
-                    <Input name="experience_years" value={form.experience_years} onChange={handleFormChange} placeholder="15" type="number" />
+                {/* 상세정보 입력 */}
+                <div className="space-y-6">
+                  <h3 className="text-lg font-semibold">상세정보</h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>경력 (년)</Label>
+                      <Input name="experience_years" value={form.experience_years} onChange={handleFormChange} placeholder="15" type="number" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>상태</Label>
+                      <Select value={form.status} onValueChange={val => setForm({ ...form, status: val })}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="활성">활성</SelectItem>
+                          <SelectItem value="대기">대기</SelectItem>
+                          <SelectItem value="비활성">비활성</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
+
                   <div className="space-y-2">
-                    <Label>상태</Label>
-                    <Select value={form.status} onValueChange={val => setForm({ ...form, status: val })}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="활성">활성</SelectItem>
-                        <SelectItem value="대기">대기</SelectItem>
-                        <SelectItem value="비활성">비활성</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <Label>학력 및 자격</Label>
+                    <Textarea 
+                      name="education_detail"
+                      value={form.education_detail}
+                      onChange={handleFormChange}
+                      placeholder="학력 및 자격증 정보를 상세히 입력하세요"
+                      rows={3}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>경력</Label>
+                    <Textarea 
+                      name="experience_detail"
+                      value={form.experience_detail}
+                      onChange={handleFormChange}
+                      placeholder="주요 경력사항을 상세히 입력하세요"
+                      rows={3}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>주요성과</Label>
+                    <Textarea 
+                      name="achievements_detail"
+                      value={form.achievements_detail}
+                      onChange={handleFormChange}
+                      placeholder="주요 성과 및 수상실적을 입력하세요"
+                      rows={3}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>전문영역</Label>
+                    <Textarea 
+                      name="expertise_areas"
+                      value={Array.isArray(form.expertise_areas) ? form.expertise_areas.join(", ") : form.expertise_areas}
+                      onChange={(e) => setForm({ ...form, expertise_areas: e.target.value.split(",").map(area => area.trim()) })}
+                      placeholder="전문영역을 쉼표로 구분하여 입력하세요 (예: 부동산, 투자, 세무)"
+                      rows={2}
+                    />
                   </div>
                 </div>
 
@@ -822,17 +1001,34 @@ const ExpertManagement = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label>가격</Label>
-                        <Input value="0원" disabled className="bg-gray-100" />
+                        <Input 
+                          value="0원" 
+                          disabled 
+                          className="bg-gray-100" 
+                        />
                         <p className="text-xs text-gray-500">FREE 등급은 0원으로 고정됩니다</p>
                       </div>
                       <div className="space-y-2">
-                        <Label>소요시간</Label>
-                        <Input placeholder="30분" />
+                        <Label>소요시간 (분)</Label>
+                        <Input 
+                          type="number"
+                          value={expertProducts.FREE.duration}
+                          onChange={(e) => setExpertProducts({
+                            ...expertProducts,
+                            FREE: { ...expertProducts.FREE, duration: parseInt(e.target.value) || 30 }
+                          })}
+                          placeholder="30"
+                        />
                       </div>
                     </div>
                     <div className="space-y-2 mt-4">
                       <Label>상품 소개</Label>
                       <Textarea 
+                        value={expertProducts.FREE.description}
+                        onChange={(e) => setExpertProducts({
+                          ...expertProducts,
+                          FREE: { ...expertProducts.FREE, description: e.target.value }
+                        })}
                         placeholder="FREE 등급 코칭의 내용과 특징을 입력하세요"
                         rows={3}
                       />
@@ -848,16 +1044,37 @@ const ExpertManagement = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label>가격 (원)</Label>
-                        <Input placeholder="250000" type="number" />
+                        <Input 
+                          type="number"
+                          value={expertProducts.DELUXE.price}
+                          onChange={(e) => setExpertProducts({
+                            ...expertProducts,
+                            DELUXE: { ...expertProducts.DELUXE, price: parseInt(e.target.value) || 250000 }
+                          })}
+                          placeholder="250000"
+                        />
                       </div>
                       <div className="space-y-2">
-                        <Label>소요시간</Label>
-                        <Input placeholder="60분" />
+                        <Label>소요시간 (분)</Label>
+                        <Input 
+                          type="number"
+                          value={expertProducts.DELUXE.duration}
+                          onChange={(e) => setExpertProducts({
+                            ...expertProducts,
+                            DELUXE: { ...expertProducts.DELUXE, duration: parseInt(e.target.value) || 60 }
+                          })}
+                          placeholder="60"
+                        />
                       </div>
                     </div>
                     <div className="space-y-2 mt-4">
                       <Label>상품 소개</Label>
                       <Textarea 
+                        value={expertProducts.DELUXE.description}
+                        onChange={(e) => setExpertProducts({
+                          ...expertProducts,
+                          DELUXE: { ...expertProducts.DELUXE, description: e.target.value }
+                        })}
                         placeholder="DELUXE 등급 코칭의 내용과 특징을 입력하세요"
                         rows={3}
                       />
@@ -873,16 +1090,37 @@ const ExpertManagement = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label>가격 (원)</Label>
-                        <Input placeholder="500000" type="number" />
+                        <Input 
+                          type="number"
+                          value={expertProducts.PREMIUM.price}
+                          onChange={(e) => setExpertProducts({
+                            ...expertProducts,
+                            PREMIUM: { ...expertProducts.PREMIUM, price: parseInt(e.target.value) || 500000 }
+                          })}
+                          placeholder="500000"
+                        />
                       </div>
                       <div className="space-y-2">
-                        <Label>소요시간</Label>
-                        <Input placeholder="90분" />
+                        <Label>소요시간 (분)</Label>
+                        <Input 
+                          type="number"
+                          value={expertProducts.PREMIUM.duration}
+                          onChange={(e) => setExpertProducts({
+                            ...expertProducts,
+                            PREMIUM: { ...expertProducts.PREMIUM, duration: parseInt(e.target.value) || 90 }
+                          })}
+                          placeholder="90"
+                        />
                       </div>
                     </div>
                     <div className="space-y-2 mt-4">
                       <Label>상품 소개</Label>
                       <Textarea 
+                        value={expertProducts.PREMIUM.description}
+                        onChange={(e) => setExpertProducts({
+                          ...expertProducts,
+                          PREMIUM: { ...expertProducts.PREMIUM, description: e.target.value }
+                        })}
                         placeholder="PREMIUM 등급 코칭의 내용과 특징을 입력하세요"
                         rows={3}
                       />
@@ -929,7 +1167,17 @@ const ExpertManagement = () => {
                   <TableCell>{expert.main_field}</TableCell>
                   <TableCell>{expert.experience_years ? `${expert.experience_years}년` : "-"}</TableCell>
                   <TableCell>⭐ {expert.avg_rating !== null && expert.avg_rating !== undefined ? expert.avg_rating.toFixed(1) : "-"}</TableCell>
-                  <TableCell>-</TableCell>
+                  <TableCell>
+                    {expert.products?.length > 0 ? (
+                      <div className="text-sm">
+                        {expert.products.map((product: any) => (
+                          <div key={product.product_name} className="text-xs">
+                            {product.product_name}: {product.product_price.toLocaleString()}원
+                          </div>
+                        ))}
+                      </div>
+                    ) : "-"}
+                  </TableCell>
                   <TableCell>
                     <Badge variant={getBadgeVariant(expert.status)}>{expert.status}</Badge>
                   </TableCell>
