@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Plus, Edit, Trash2, User, Upload, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
-import { uploadImageToS3, generateFileName } from "@/lib/awsS3";
+import { uploadImageToS3, generateFileName, testS3Connection, deleteImageFromS3, extractFileNameFromUrl } from "@/lib/awsS3";
 
 const ExpertManagement = () => {
   const [experts, setExperts] = useState([]);
@@ -105,11 +105,50 @@ const ExpertManagement = () => {
 
   useEffect(() => {
     fetchExpertsAndRatings();
+    
+    // S3 연결 테스트 (개발 모드에서만)
+    if (import.meta.env.DEV) {
+      testS3Connection().then(isConnected => {
+        if (isConnected) {
+          console.log('✅ AWS S3 연결이 정상입니다.');
+        } else {
+          console.warn('⚠️ AWS S3 연결에 문제가 있습니다.');
+        }
+      });
+    }
   }, []);
 
-  const handleDelete = (id: number) => {
-    setExperts(experts.filter(expert => expert.id !== id));
-    toast.success("전문가가 삭제되었습니다.");
+  const handleDelete = async (expert: any) => {
+    try {
+      // S3에서 프로필 이미지 삭제
+      if (expert.profile_image_url && expert.profile_image_url.includes('s3.amazonaws.com')) {
+        try {
+          const fileName = extractFileNameFromUrl(expert.profile_image_url);
+          await deleteImageFromS3(fileName);
+          console.log('🗑️ 전문가 삭제 시 이미지 삭제 완료:', fileName);
+        } catch (deleteError) {
+          console.warn('이미지 삭제 실패 (무시됨):', deleteError);
+        }
+      }
+      
+      // 데이터베이스에서 전문가 삭제
+      const { error } = await supabase
+        .from("experts")
+        .delete()
+        .eq("user_id", expert.user_id);
+      
+      if (error) {
+        console.error("전문가 삭제 오류:", error);
+        toast.error("전문가 삭제에 실패했습니다.");
+        return;
+      }
+      
+      setExperts(experts.filter(e => e.user_id !== expert.user_id));
+      toast.success("전문가가 삭제되었습니다.");
+    } catch (error) {
+      console.error('전문가 삭제 중 예외 발생:', error);
+      toast.error("전문가 삭제 중 오류가 발생했습니다.");
+    }
   };
 
   const handleEdit = async (expert) => {
@@ -356,6 +395,19 @@ const ExpertManagement = () => {
 
       let error;
       if (isEditMode && editingUserId) {
+        // 수정 모드: 기존 이미지가 있고 새 이미지로 변경된 경우 기존 이미지 삭제
+        if (editingExpert?.profile_image_url && 
+            editingExpert.profile_image_url !== form.profile_image_url && 
+            editingExpert.profile_image_url.includes('s3.amazonaws.com')) {
+          try {
+            const oldFileName = extractFileNameFromUrl(editingExpert.profile_image_url);
+            await deleteImageFromS3(oldFileName);
+            console.log('🗑️ 기존 이미지 삭제 완료:', oldFileName);
+          } catch (deleteError) {
+            console.warn('기존 이미지 삭제 실패 (무시됨):', deleteError);
+          }
+        }
+        
         // 수정 모드: 비밀번호 입력이 없으면 password 필드 제외
         const updateForm = { ...insertForm };
         if (!form.password) {
@@ -420,10 +472,16 @@ const ExpertManagement = () => {
     const file = e.target.files?.[0];
     if (!file) return;
     
+    // 파일 선택 후 input 초기화 (같은 파일 재선택 가능)
+    e.target.value = '';
+    
     setUploading(true);
     try {
-      // 파일명 생성
-      const fileName = generateFileName(form.user_id || 'expert', file.name);
+      // 아이디가 없으면 임시 아이디 사용
+      const userId = form.user_id || `temp_${Date.now()}`;
+      const fileName = generateFileName(userId, file.name);
+      
+      console.log('🔄 이미지 업로드 시작:', { fileName, fileSize: file.size, fileType: file.type });
       
       // S3에 업로드
       const publicUrl = await uploadImageToS3(file, fileName);
@@ -431,9 +489,29 @@ const ExpertManagement = () => {
       // 폼에 URL 저장
       setForm({ ...form, profile_image_url: publicUrl });
       toast.success('프로필 이미지가 업로드되었습니다.');
+      
+      console.log('✅ 이미지 업로드 완료:', publicUrl);
     } catch (error) {
-      console.error('이미지 업로드 오류:', error);
-      toast.error(error instanceof Error ? error.message : '이미지 업로드에 실패했습니다.');
+      console.error('❌ 이미지 업로드 오류:', error);
+      
+      // 사용자 친화적 오류 메시지
+      let errorMessage = '이미지 업로드에 실패했습니다.';
+      
+      if (error instanceof Error) {
+        if (error.message.includes('S3 버킷')) {
+          errorMessage = 'AWS S3 설정을 확인해주세요.';
+        } else if (error.message.includes('파일 크기')) {
+          errorMessage = '파일 크기는 5MB 이하여야 합니다.';
+        } else if (error.message.includes('이미지 형식')) {
+          errorMessage = 'JPG, PNG, GIF, WebP 형식만 지원합니다.';
+        } else if (error.message.includes('접근 권한') || error.message.includes('인증')) {
+          errorMessage = 'AWS 인증 정보를 확인해주세요.';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
+      toast.error(errorMessage);
     } finally {
       setUploading(false);
     }
@@ -484,14 +562,14 @@ const ExpertManagement = () => {
                 <div className="space-y-2">
                   <Label>프로필 이미지</Label>
                   <div className="flex items-center gap-4">
-                    <div className="relative w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center overflow-hidden">
+                    <div className="relative w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center overflow-hidden border-2 border-gray-200">
                       {form.profile_image_url ? (
                         <>
                           <img src={form.profile_image_url} alt="프로필" className="object-cover w-20 h-20" />
                           <button
                             type="button"
                             onClick={() => setForm({ ...form, profile_image_url: "" })}
-                            className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600 transition-colors"
+                            className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600 transition-colors"
                             aria-label="이미지 삭제"
                           >
                             ×
@@ -502,13 +580,18 @@ const ExpertManagement = () => {
                       )}
                     </div>
                     <div className="flex flex-col gap-2">
-                      <Button variant="outline" className="flex items-center gap-2" onClick={handleUploadButtonClick} disabled={uploading}>
+                      <Button 
+                        variant="outline" 
+                        className="flex items-center gap-2" 
+                        onClick={handleUploadButtonClick} 
+                        disabled={uploading}
+                      >
                         <Upload className="h-4 w-4" />
                         {uploading ? '업로드 중...' : '사진 업로드'}
                       </Button>
-                      {form.profile_image_url && (
-                        <p className="text-xs text-gray-500">이미지가 업로드되었습니다</p>
-                      )}
+                      <p className="text-xs text-gray-500">
+                        JPG, PNG, GIF (최대 5MB)
+                      </p>
                     </div>
                     <input
                       type="file"
@@ -519,7 +602,9 @@ const ExpertManagement = () => {
                       aria-label="프로필 이미지 업로드"
                     />
                   </div>
-                  <p className="text-xs text-gray-500">지원 형식: JPG, PNG, GIF (최대 5MB)</p>
+                  {form.profile_image_url && (
+                    <p className="text-sm text-green-600">✓ 프로필 이미지가 업로드되었습니다</p>
+                  )}
                 </div>
                 {/* user_id, password 입력 필드 */}
                 <div className="flex gap-4">
@@ -860,7 +945,7 @@ const ExpertManagement = () => {
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => handleDelete(expert.id)}
+                        onClick={() => handleDelete(expert)}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
