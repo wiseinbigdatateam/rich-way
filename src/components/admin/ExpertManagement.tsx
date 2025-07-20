@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Plus, Edit, Trash2, User, Upload, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
+import { uploadImageToS3, generateFileName } from "@/lib/awsS3";
 
 const ExpertManagement = () => {
   const [experts, setExperts] = useState([]);
@@ -43,6 +44,10 @@ const ExpertManagement = () => {
     status: "대기",
   });
   const [uploading, setUploading] = useState(false);
+  const [checkingUserId, setCheckingUserId] = useState(false);
+  const [checkingEmail, setCheckingEmail] = useState(false);
+  const [userIdAvailable, setUserIdAvailable] = useState<boolean | null>(null);
+  const [emailAvailable, setEmailAvailable] = useState<boolean | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -149,6 +154,8 @@ const ExpertManagement = () => {
     setEditingExpert(null);
     setIsEditMode(false);
     setEditingUserId(null);
+    setUserIdAvailable(null);
+    setEmailAvailable(null);
     setForm({
       user_id: "",
       password: "",
@@ -183,8 +190,97 @@ const ExpertManagement = () => {
         toast.error("아이디에는 한글을 사용할 수 없습니다.");
       }
       setForm({ ...form, [name]: onlyAscii });
+      // 아이디 변경 시 중복 확인 상태 초기화
+      setUserIdAvailable(null);
+    } else if (name === "email") {
+      setForm({ ...form, [name]: value });
+      // 이메일 변경 시 중복 확인 상태 초기화
+      setEmailAvailable(null);
     } else {
       setForm({ ...form, [name]: value });
+    }
+  };
+
+  // 아이디 중복 확인
+  const handleCheckUserId = async () => {
+    if (!form.user_id.trim()) {
+      toast.error("아이디를 입력해주세요.");
+      return;
+    }
+
+    setCheckingUserId(true);
+    try {
+      const { data, error } = await (supabase as any)
+        .from('experts')
+        .select('user_id')
+        .eq('user_id', form.user_id.trim())
+        .single();
+
+      if (error && error.code !== 'PGRST116') { // PGRST116는 결과가 없을 때의 오류
+        console.error('아이디 확인 오류:', error);
+        toast.error('아이디 확인 중 오류가 발생했습니다.');
+        setUserIdAvailable(null);
+        return;
+      }
+
+      if (data) {
+        setUserIdAvailable(false);
+        toast.error('이미 사용 중인 아이디입니다.');
+      } else {
+        setUserIdAvailable(true);
+        toast.success('사용 가능한 아이디입니다.');
+      }
+    } catch (error) {
+      console.error('아이디 확인 중 예외 발생:', error);
+      toast.error('아이디 확인 중 오류가 발생했습니다.');
+      setUserIdAvailable(null);
+    } finally {
+      setCheckingUserId(false);
+    }
+  };
+
+  // 이메일 중복 확인
+  const handleCheckEmail = async () => {
+    if (!form.email.trim()) {
+      toast.error("이메일을 입력해주세요.");
+      return;
+    }
+
+    // 이메일 형식 검증
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(form.email.trim())) {
+      toast.error("올바른 이메일 형식을 입력해주세요.");
+      return;
+    }
+
+    setCheckingEmail(true);
+    try {
+      const { data, error } = await (supabase as any)
+        .from('experts')
+        .select('email')
+        .eq('email', form.email.trim())
+        .single();
+
+      if (error && error.code !== 'PGRST116') { // PGRST116는 결과가 없을 때의 오류
+        console.error('이메일 확인 오류:', error);
+        toast.error('이메일 확인 중 오류가 발생했습니다.');
+        setEmailAvailable(null);
+        return;
+      }
+
+      if (data) {
+        setEmailAvailable(false);
+        toast.error('이미 사용 중인 이메일입니다.');
+      } else {
+        setEmailAvailable(true);
+        toast.success('사용 가능한 이메일입니다.');
+      }
+    } catch (error) {
+      console.error('이메일 확인 중 예외 발생:', error);
+      toast.error('이메일 확인 중 오류가 발생했습니다.');
+      setEmailAvailable(null);
+    } finally {
+      setCheckingEmail(false);
     }
   };
 
@@ -192,6 +288,26 @@ const ExpertManagement = () => {
     if (!form.user_id || (!isEditMode && !form.password) || !form.expert_name || !form.email || !form.main_field) {
       toast.error("필수 항목을 입력하세요.");
       return;
+    }
+
+    // 새 등록 시 중복 확인 상태 체크
+    if (!isEditMode) {
+      if (userIdAvailable === null) {
+        toast.error("아이디 중복 확인을 해주세요.");
+        return;
+      }
+      if (userIdAvailable === false) {
+        toast.error("이미 사용 중인 아이디입니다.");
+        return;
+      }
+      if (emailAvailable === null) {
+        toast.error("이메일 중복 확인을 해주세요.");
+        return;
+      }
+      if (emailAvailable === false) {
+        toast.error("이미 사용 중인 이메일입니다.");
+        return;
+      }
     }
 
     try {
@@ -299,24 +415,28 @@ const ExpertManagement = () => {
     }
   };
 
-  // 프로필 이미지 업로드
+  // 프로필 이미지 업로드 (AWS S3)
   const handleProfileImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    
     setUploading(true);
-    const fileExt = file.name.split('.').pop();
-    const fileName = `expert_${form.user_id || Date.now()}.${fileExt}`;
-    const { data, error } = await supabase.storage.from('profile-images').upload(fileName, file, { upsert: true });
-    if (error) {
-      toast.error('이미지 업로드에 실패했습니다.');
+    try {
+      // 파일명 생성
+      const fileName = generateFileName(form.user_id || 'expert', file.name);
+      
+      // S3에 업로드
+      const publicUrl = await uploadImageToS3(file, fileName);
+      
+      // 폼에 URL 저장
+      setForm({ ...form, profile_image_url: publicUrl });
+      toast.success('프로필 이미지가 업로드되었습니다.');
+    } catch (error) {
+      console.error('이미지 업로드 오류:', error);
+      toast.error(error instanceof Error ? error.message : '이미지 업로드에 실패했습니다.');
+    } finally {
       setUploading(false);
-      return;
     }
-    // public URL 얻기
-    const { data: publicUrlData } = supabase.storage.from('profile-images').getPublicUrl(fileName);
-    setForm({ ...form, profile_image_url: publicUrlData.publicUrl });
-    setUploading(false);
-    toast.success('프로필 이미지가 업로드되었습니다.');
   };
 
   // 사진 업로드 버튼 클릭 시 파일 input 트리거
@@ -364,17 +484,32 @@ const ExpertManagement = () => {
                 <div className="space-y-2">
                   <Label>프로필 이미지</Label>
                   <div className="flex items-center gap-4">
-                    <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center overflow-hidden">
+                    <div className="relative w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center overflow-hidden">
                       {form.profile_image_url ? (
-                        <img src={form.profile_image_url} alt="프로필" className="object-cover w-20 h-20" />
+                        <>
+                          <img src={form.profile_image_url} alt="프로필" className="object-cover w-20 h-20" />
+                          <button
+                            type="button"
+                            onClick={() => setForm({ ...form, profile_image_url: "" })}
+                            className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600 transition-colors"
+                            aria-label="이미지 삭제"
+                          >
+                            ×
+                          </button>
+                        </>
                       ) : (
                         <User className="h-8 w-8 text-gray-400" />
                       )}
                     </div>
-                    <Button variant="outline" className="flex items-center gap-2" onClick={handleUploadButtonClick} disabled={uploading}>
-                      <Upload className="h-4 w-4" />
-                      {uploading ? '업로드 중...' : '사진 업로드'}
-                    </Button>
+                    <div className="flex flex-col gap-2">
+                      <Button variant="outline" className="flex items-center gap-2" onClick={handleUploadButtonClick} disabled={uploading}>
+                        <Upload className="h-4 w-4" />
+                        {uploading ? '업로드 중...' : '사진 업로드'}
+                      </Button>
+                      {form.profile_image_url && (
+                        <p className="text-xs text-gray-500">이미지가 업로드되었습니다</p>
+                      )}
+                    </div>
                     <input
                       type="file"
                       accept="image/*"
@@ -384,13 +519,40 @@ const ExpertManagement = () => {
                       aria-label="프로필 이미지 업로드"
                     />
                   </div>
+                  <p className="text-xs text-gray-500">지원 형식: JPG, PNG, GIF (최대 5MB)</p>
                 </div>
                 {/* user_id, password 입력 필드 */}
                 <div className="flex gap-4">
                   {/* 아이디 */}
                   <div className="flex-1 space-y-2">
                     <Label htmlFor="user_id">아이디 *</Label>
-                    <Input name="user_id" placeholder="아이디" value={form.user_id} onChange={handleFormChange} autoComplete="username" />
+                    <div className="flex gap-2">
+                      <Input 
+                        name="user_id" 
+                        placeholder="아이디" 
+                        value={form.user_id} 
+                        onChange={handleFormChange} 
+                        autoComplete="username"
+                        className={userIdAvailable === true ? "border-green-500" : userIdAvailable === false ? "border-red-500" : ""}
+                      />
+                      {!isEditMode && (
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          onClick={handleCheckUserId}
+                          disabled={checkingUserId || !form.user_id.trim()}
+                          className="whitespace-nowrap"
+                        >
+                          {checkingUserId ? "확인 중..." : "중복 확인"}
+                        </Button>
+                      )}
+                    </div>
+                    {userIdAvailable === true && (
+                      <p className="text-sm text-green-600">✓ 사용 가능한 아이디입니다</p>
+                    )}
+                    {userIdAvailable === false && (
+                      <p className="text-sm text-red-600">✗ 이미 사용 중인 아이디입니다</p>
+                    )}
                   </div>
                   {/* 비밀번호 */}
                   <div className="flex-1 space-y-2">
@@ -435,7 +597,33 @@ const ExpertManagement = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>이메일 *</Label>
-                    <Input name="email" value={form.email} onChange={handleFormChange} type="email" placeholder="email@example.com" />
+                    <div className="flex gap-2">
+                      <Input 
+                        name="email" 
+                        value={form.email} 
+                        onChange={handleFormChange} 
+                        type="email" 
+                        placeholder="email@example.com"
+                        className={emailAvailable === true ? "border-green-500" : emailAvailable === false ? "border-red-500" : ""}
+                      />
+                      {!isEditMode && (
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          onClick={handleCheckEmail}
+                          disabled={checkingEmail || !form.email.trim()}
+                          className="whitespace-nowrap"
+                        >
+                          {checkingEmail ? "확인 중..." : "중복 확인"}
+                        </Button>
+                      )}
+                    </div>
+                    {emailAvailable === true && (
+                      <p className="text-sm text-green-600">✓ 사용 가능한 이메일입니다</p>
+                    )}
+                    {emailAvailable === false && (
+                      <p className="text-sm text-red-600">✗ 이미 사용 중인 이메일입니다</p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label>대표분야 *</Label>
