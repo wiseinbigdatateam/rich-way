@@ -199,49 +199,62 @@ const ExpertManagement = () => {
       if (!isEditMode) {
         console.log('🔄 새 전문가 등록 - members 테이블 확인/생성 중...');
         
-        // 1. members 테이블에 해당 user_id가 있는지 확인
-        const { data: existingMember, error: checkError } = await (supabase as any)
+        // 1. members 테이블에 해당 user_id나 email이 있는지 확인
+        const { data: existingMembers, error: checkError } = await (supabase as any)
           .from('members')
-          .select('user_id')
-          .eq('user_id', form.user_id)
-          .single();
+          .select('user_id, email')
+          .or(`user_id.eq.${form.user_id},email.eq.${form.email}`);
 
-        if (checkError && checkError.code !== 'PGRST116') { // PGRST116은 결과가 없는 경우
+        if (checkError) {
           console.error('Members 확인 오류:', checkError);
           toast.error('사용자 정보 확인 중 오류가 발생했습니다.');
           return;
         }
 
-        // 2. members 테이블에 없으면 새로 생성
-        if (!existingMember) {
-          console.log('📝 Members 테이블에 새 레코드 생성 중...');
-          const { error: memberError } = await supabase
-            .from('members')
-            .insert([{
-              user_id: form.user_id,
-              name: form.expert_name,
-              email: form.email,
-              password: form.password,
-              phone: form.personal_phone || form.company_phone || '',
-              signup_type: 'email', // 임시로 'email'로 변경 (데이터베이스 제약조건 때문)
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-            }]);
-
-          if (memberError) {
-            console.error('Members 생성 오류:', memberError);
-            if ((memberError as any).code === '23505') { // unique_violation
-              toast.error('이미 존재하는 아이디입니다. 다른 아이디를 사용해주세요.');
-            } else {
-              toast.error('사용자 계정 생성에 실패했습니다.');
-            }
+        // 2. 중복 확인
+        if (existingMembers && existingMembers.length > 0) {
+          const existingUser = existingMembers.find((m: any) => m.user_id === form.user_id);
+          const existingEmail = existingMembers.find((m: any) => m.email === form.email);
+          
+          if (existingUser) {
+            toast.error('이미 존재하는 아이디입니다. 다른 아이디를 사용해주세요.');
             return;
           }
-          console.log('✅ Members 테이블 레코드 생성 완료');
+          
+          if (existingEmail) {
+            toast.error('이미 사용 중인 이메일입니다. 다른 이메일을 사용해주세요.');
+            return;
+          }
         }
+
+        // 3. members 테이블에 새로 생성
+        console.log('📝 Members 테이블에 새 레코드 생성 중...');
+        const { error: memberError } = await supabase
+          .from('members')
+          .insert([{
+            user_id: form.user_id,
+            name: form.expert_name,
+            email: form.email,
+            password: form.password,
+            phone: form.personal_phone || form.company_phone || '',
+            signup_type: 'email', // 임시로 'email'로 변경 (데이터베이스 제약조건 때문)
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          }]);
+
+        if (memberError) {
+          console.error('Members 생성 오류:', memberError);
+          if ((memberError as any).code === '23505') { // unique_violation
+            toast.error('이미 존재하는 아이디 또는 이메일입니다. 다른 값을 사용해주세요.');
+          } else {
+            toast.error('사용자 계정 생성에 실패했습니다.');
+          }
+          return;
+        }
+        console.log('✅ Members 테이블 레코드 생성 완료');
       }
 
-      // 3. experts 테이블에 전문가 정보 저장/수정
+      // 4. experts 테이블에 전문가 정보 저장/수정
       const insertForm = {
         ...form,
         experience_years: form.experience_years ? Number(form.experience_years) : null,
