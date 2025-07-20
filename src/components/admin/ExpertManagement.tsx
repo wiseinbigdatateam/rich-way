@@ -223,7 +223,7 @@ const ExpertManagement = () => {
               email: form.email,
               password: form.password,
               phone: form.personal_phone || form.company_phone || '',
-              signup_type: 'expert',
+              signup_type: 'email', // 임시로 'email'로 변경 (데이터베이스 제약조건 때문)
               created_at: new Date().toISOString(),
               updated_at: new Date().toISOString(),
             }]);
