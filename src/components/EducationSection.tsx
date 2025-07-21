@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Star } from "lucide-react";
+import { Star, ChevronLeft, ChevronRight } from "lucide-react";
 import { useScrollAnimation } from "@/hooks/useScrollAnimation";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
@@ -32,6 +32,80 @@ const EducationSection = () => {
   const [lectures, setLectures] = useState<Lecture[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // 자동 스크롤 상태
+  const [isAutoScrolling, setIsAutoScrolling] = useState(true);
+  const autoScrollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // 자동 스크롤 함수
+  const startAutoScroll = useCallback(() => {
+    if (autoScrollIntervalRef.current) {
+      clearInterval(autoScrollIntervalRef.current);
+    }
+
+    autoScrollIntervalRef.current = setInterval(() => {
+      if (scrollContainerRef.current) {
+        const container = scrollContainerRef.current;
+        const scrollAmount = 320; // 카드 너비 + gap
+        
+        // 현재 스크롤 위치가 컨테이너 너비를 초과하면 처음으로 리셋
+        if (container.scrollLeft >= container.scrollWidth - container.clientWidth) {
+          container.scrollTo({ left: 0, behavior: 'auto' });
+        } else {
+          // 계속 스크롤
+          container.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+        }
+      }
+    }, 3000); // 3초마다 스크롤
+  }, []);
+
+  // 자동 스크롤 중지
+  const stopAutoScroll = useCallback(() => {
+    if (autoScrollIntervalRef.current) {
+      clearInterval(autoScrollIntervalRef.current);
+      autoScrollIntervalRef.current = null;
+    }
+  }, []);
+
+  // 마우스 호버 시 자동 스크롤 일시 중지
+  const handleMouseEnter = useCallback(() => {
+    if (isAutoScrolling) {
+      stopAutoScroll();
+    }
+  }, [isAutoScrolling, stopAutoScroll]);
+
+  // 마우스가 벗어나면 자동 스크롤 재시작
+  const handleMouseLeave = useCallback(() => {
+    if (isAutoScrolling) {
+      startAutoScroll();
+    }
+  }, [isAutoScrolling, startAutoScroll]);
+
+  // 자동 스크롤 시작/중지 토글
+  const toggleAutoScroll = useCallback(() => {
+    if (isAutoScrolling) {
+      stopAutoScroll();
+      setIsAutoScrolling(false);
+    } else {
+      startAutoScroll();
+      setIsAutoScrolling(true);
+    }
+  }, [isAutoScrolling, startAutoScroll, stopAutoScroll]);
+
+  // 스크롤 핸들러 (수동 스크롤용)
+  const handleScroll = useCallback((direction: 'left' | 'right') => {
+    if (scrollContainerRef.current) {
+      const container = scrollContainerRef.current;
+      const scrollAmount = 320; // 카드 너비 + gap
+      
+      if (direction === 'left') {
+        container.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
+      } else {
+        container.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+      }
+    }
+  }, []);
 
   useEffect(() => {
     const fetchLectures = async () => {
@@ -81,6 +155,18 @@ const EducationSection = () => {
     fetchLectures();
   }, []);
 
+  // 컴포넌트 마운트 시 자동 스크롤 시작
+  useEffect(() => {
+    if (lectures.length > 0 && isAutoScrolling) {
+      startAutoScroll();
+    }
+
+    // 컴포넌트 언마운트 시 정리
+    return () => {
+      stopAutoScroll();
+    };
+  }, [lectures, isAutoScrolling, startAutoScroll, stopAutoScroll]);
+
   // 강의 시간 포맷팅
   const formatDuration = (minutes: number | null) => {
     if (!minutes) return "시간 미정";
@@ -123,82 +209,123 @@ const EducationSection = () => {
         </div>
 
         {/* Course Grid */}
-        <div 
-          ref={coursesRef}
-          className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12"
-        >
-          {loading ? (
-            <div className="col-span-3 text-center text-gray-400">강의 정보를 불러오는 중...</div>
-          ) : lectures.length === 0 ? (
-            <div className="col-span-3 text-center text-gray-400">등록된 강의가 없습니다.</div>
-          ) : (
-            lectures.map((lecture, index) => (
-              <Card 
-                key={lecture.id} 
-                className={`hover:shadow-lg transition-shadow duration-300 border border-gray-200 hover:border-blue-300 overflow-hidden cursor-pointer ${
-                  coursesVisible 
-                    ? 'opacity-100 translate-y-0' 
-                    : 'opacity-0 translate-y-20'
-                }`}
-                style={{ transitionDelay: coursesVisible ? `${index * 150}ms` : '0ms' }}
-                onClick={() => handleLectureClick(lecture.id)}
+        {loading ? (
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-lg text-slate-600">강의 정보를 불러오는 중...</p>
+          </div>
+        ) : lectures.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-slate-600 mb-4">등록된 강의가 없습니다.</p>
+            <Button onClick={() => navigate('/education')}>강의 등록하기</Button>
+          </div>
+        ) : (
+          <div className="relative max-w-7xl mx-auto">
+            {/* 자동 스크롤 제어 버튼 */}
+            <div className="absolute top-4 right-4 z-20">
+              <Button
+                onClick={toggleAutoScroll}
+                variant="outline"
+                size="sm"
+                className={`rounded-full ${isAutoScrolling ? 'bg-blue-100 border-blue-300' : 'bg-gray-100 border-gray-300'}`}
               >
-                <div className="relative overflow-hidden">
-                  <img 
-                    src={lecture.thumbnail_url} 
-                    alt={lecture.title}
-                    className="w-full h-36 object-cover transition-transform duration-300 hover:scale-110"
-                    onError={(e) => {
-                      e.currentTarget.src = "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=400&h=200&fit=crop";
-                    }}
-                  />
-                  <Badge 
-                    className="absolute top-3 left-3 bg-blue-600 text-white font-semibold px-2 py-1 text-xs"
-                  >
-                    {lecture.duration ? formatDuration(lecture.duration) : "시간 미정"}
-                  </Badge>
-                  {lecture.discount_price && (
+                {isAutoScrolling ? '⏸️ 자동정지' : '▶️ 자동재생'}
+              </Button>
+            </div>
+
+            {/* 좌측 스크롤 버튼 */}
+            <button
+              onClick={() => handleScroll('left')}
+              className="absolute left-0 top-1/2 transform -translate-y-1/2 z-10 bg-white rounded-full p-3 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110"
+              aria-label="왼쪽으로 스크롤"
+            >
+              <ChevronLeft className="w-6 h-6 text-slate-600" />
+            </button>
+
+            {/* 우측 스크롤 버튼 */}
+            <button
+              onClick={() => handleScroll('right')}
+              className="absolute right-0 top-1/2 transform -translate-y-1/2 z-10 bg-white rounded-full p-3 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110"
+              aria-label="오른쪽으로 스크롤"
+            >
+              <ChevronRight className="w-6 h-6 text-slate-600" />
+            </button>
+
+            {/* 카드 스크롤 컨테이너 */}
+            <div 
+              ref={scrollContainerRef}
+              className="flex gap-6 overflow-x-auto pb-4 px-4"
+              style={{ 
+                scrollbarWidth: 'none', 
+                msOverflowStyle: 'none',
+                WebkitOverflowScrolling: 'touch'
+              }}
+              onMouseEnter={handleMouseEnter}
+              onMouseLeave={handleMouseLeave}
+            >
+              {lectures.map((lecture, index) => (
+                <Card 
+                  key={lecture.id} 
+                  className="flex-shrink-0 w-80 hover:shadow-lg transition-all duration-300 border border-gray-200 hover:border-blue-300 overflow-hidden cursor-pointer"
+                  onClick={() => handleLectureClick(lecture.id)}
+                >
+                  <div className="relative overflow-hidden">
+                    <img 
+                      src={lecture.thumbnail_url} 
+                      alt={lecture.title}
+                      className="w-full h-36 object-cover transition-transform duration-300 hover:scale-110"
+                      onError={(e) => {
+                        e.currentTarget.src = "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=400&h=200&fit=crop";
+                      }}
+                    />
                     <Badge 
-                      className="absolute top-3 right-3 bg-red-500 text-white font-semibold px-2 py-1 text-xs"
+                      className="absolute top-3 left-3 bg-blue-600 text-white font-semibold px-2 py-1 text-xs"
                     >
-                      {getDiscountRate(lecture.price, lecture.discount_price)}% 할인
+                      {lecture.duration ? formatDuration(lecture.duration) : "시간 미정"}
                     </Badge>
-                  )}
-                </div>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-lg leading-tight line-clamp-2 cursor-pointer">
-                    {lecture.title}
-                  </CardTitle>
-                  <div className="text-sm text-gray-600">
-                    {lecture.instructor_intro ? lecture.instructor_intro.split('은')[0] + '은' : '전문가'}
-                  </div>
-                </CardHeader>
-                <CardContent className="pt-0 pb-3">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                    <span className="font-semibold">{lecture.averageRating ?? 0}</span>
-                    <span className="text-gray-500">({lecture.reviewCount ?? 0})</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-blue-600 font-bold text-lg">
-                      {lecture.discount_price ? lecture.discount_price.toLocaleString() : lecture.price.toLocaleString()}원
-                    </span>
                     {lecture.discount_price && (
-                      <span className="text-gray-400 line-through text-sm">
-                        {lecture.price.toLocaleString()}원
-                      </span>
+                      <Badge 
+                        className="absolute top-3 right-3 bg-red-500 text-white font-semibold px-2 py-1 text-xs"
+                      >
+                        {getDiscountRate(lecture.price, lecture.discount_price)}% 할인
+                      </Badge>
                     )}
                   </div>
-                </CardContent>
-              </Card>
-            ))
-          )}
-        </div>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg leading-tight line-clamp-2 cursor-pointer">
+                      {lecture.title}
+                    </CardTitle>
+                    <div className="text-sm text-gray-600">
+                      {lecture.instructor_intro ? lecture.instructor_intro.split('은')[0] + '은' : '전문가'}
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pt-0 pb-3">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                      <span className="font-semibold">{lecture.averageRating ?? 0}</span>
+                      <span className="text-gray-500">({lecture.reviewCount ?? 0})</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-blue-600 font-bold text-lg">
+                        {lecture.discount_price ? lecture.discount_price.toLocaleString() : lecture.price.toLocaleString()}원
+                      </span>
+                      {lecture.discount_price && (
+                        <span className="text-gray-400 line-through text-sm">
+                          {lecture.price.toLocaleString()}원
+                        </span>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* CTA Section */}
         <div 
           ref={buttonRef}
-          className={`text-center transition-all duration-1000 ${
+          className={`text-center mt-12 transition-all duration-1000 ${
             buttonVisible 
               ? 'opacity-100 translate-y-0 scale-100' 
               : 'opacity-0 translate-y-10 scale-95'
@@ -212,6 +339,13 @@ const EducationSection = () => {
           </Button>
         </div>
       </div>
+
+      {/* 스크롤바 숨김 스타일 */}
+      <style>{`
+        .scrollbar-hide::-webkit-scrollbar {
+          display: none;
+        }
+      `}</style>
     </section>
   );
 };

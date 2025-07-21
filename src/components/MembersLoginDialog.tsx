@@ -6,7 +6,7 @@ import { Label } from "./ui/label";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { useToast } from "./ui/use-toast";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
-import KakaoLoginButton from "./KakaoLoginButton";
+// import KakaoLoginButton from "./KakaoLoginButton";
 
 interface MembersLoginDialogProps {
   open?: boolean;
@@ -219,16 +219,20 @@ export default function MembersLoginDialog({ open, onOpenChange, onLoginSuccess 
           <div className="absolute inset-0 flex items-center">
             <span className="w-full border-t" />
           </div>
+          {/*
           <div className="relative flex justify-center text-xs uppercase">
             <span className="bg-white px-2 text-gray-500">또는</span>
           </div>
+          */}
         </div>
 
         {/* 카카오 로그인 버튼 */}
+        {/*
         <KakaoLoginButton
           onLoginSuccess={onLoginSuccess}
           className="w-full"
         />
+        */}
 
         {/* 추가 옵션 */}
         <div className="text-center space-y-2">

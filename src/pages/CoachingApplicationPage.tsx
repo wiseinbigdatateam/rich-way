@@ -445,14 +445,14 @@ const CoachingApplicationPage = () => {
                       </div>
                     )}
                     {/* 기본 기능 표시 */}
-                    {product.product_name === 'FREE' && (
+                    {/* {product.product_name === 'FREE' && (
                       <ul className="text-sm text-gray-600 space-y-1">
                         <li>• 기본 상담 ({product.duration}분)</li>
                         <li>• 간단한 재무 진단</li>
                         <li>• 기본 조언 제공</li>
                       </ul>
-                    )}
-                    {product.product_name === 'DELUXE' && (
+                    )} */}
+                    {/* {product.product_name === 'DELUXE' && (
                       <ul className="text-sm text-gray-600 space-y-1">
                         <li>• 심화 상담 ({product.duration}분)</li>
                         <li>• 상세 재무 분석</li>
@@ -460,8 +460,8 @@ const CoachingApplicationPage = () => {
                         <li>• 3개월 후속 관리</li>
                         <li>• 전문 자료 제공</li>
                       </ul>
-                    )}
-                    {product.product_name === 'PREMIUM' && (
+                    )} */}
+                    {/* {product.product_name === 'PREMIUM' && (
                       <ul className="text-sm text-gray-600 space-y-1">
                         <li>• 프리미엄 상담 ({product.duration}분)</li>
                         <li>• 종합 재무 설계</li>
@@ -470,7 +470,7 @@ const CoachingApplicationPage = () => {
                         <li>• 전문가 직접 연결</li>
                         <li>• 우선 지원 서비스</li>
                       </ul>
-                    )}
+                    )} */}
                   </div>
                 </div>
               ))

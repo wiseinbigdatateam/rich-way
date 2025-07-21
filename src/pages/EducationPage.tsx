@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { Badge } from "@/components/ui/badge";
 import { Star, Users, Clock, BookOpen, TrendingUp, Building, Calculator, Briefcase, PiggyBank, Grid } from "lucide-react";
 import Header from "@/components/Header";
@@ -45,6 +46,10 @@ const EducationPage = () => {
   const [lectures, setLectures] = useState<LectureWithReviews[]>([]);
   const [loading, setLoading] = useState(true);
   
+  // 페이징 상태
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 9; // 페이지당 표시할 강의 수
+  
   // URL 파라미터에서 카테고리 가져오기, 기본값은 "전체"
   const [selectedCategory, setSelectedCategory] = useState<string>(() => {
     const categoryFromUrl = searchParams.get('category');
@@ -66,6 +71,7 @@ const EducationPage = () => {
   const handleCategoryChange = (category: string) => {
     setSelectedCategory(category);
     updateCategoryInUrl(category);
+    setCurrentPage(1); // 카테고리 변경 시 페이지 리셋
   };
 
   // 강의 데이터와 리뷰 데이터 가져오기
@@ -253,9 +259,22 @@ const EducationPage = () => {
       );
     }
 
+    // 페이징 계산
+    const totalPages = Math.ceil(filteredLectures.length / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const currentLectures = filteredLectures.slice(startIndex, endIndex);
+
+    // 페이지 변경 핸들러
+    const handlePageChange = (page: number) => {
+      setCurrentPage(page);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredLectures.map((lecture) => (
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {currentLectures.map((lecture) => (
           <Card 
             key={lecture.id} 
             className="hover:shadow-lg transition-shadow duration-300 border border-gray-200 hover:border-blue-300 overflow-hidden"
@@ -331,6 +350,42 @@ const EducationPage = () => {
             </CardContent>
           </Card>
         ))}
+        </div>
+
+        {/* 페이징 */}
+        {totalPages > 1 && (
+          <div className="flex justify-center mt-8">
+            <Pagination>
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious 
+                    onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
+                    className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                  />
+                </PaginationItem>
+                
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                  <PaginationItem key={page}>
+                    <PaginationLink
+                      onClick={() => handlePageChange(page)}
+                      isActive={currentPage === page}
+                      className="cursor-pointer"
+                    >
+                      {page}
+                    </PaginationLink>
+                  </PaginationItem>
+                ))}
+                
+                <PaginationItem>
+                  <PaginationNext 
+                    onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
+                    className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          </div>
+        )}
       </div>
     );
   };
