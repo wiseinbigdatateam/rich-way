@@ -56,7 +56,7 @@ const ExpertLoginPage = () => {
         name: expert.expert_name,
         specialty: expert.main_field,
         company: expert.company_name,
-        avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face"
+        avatar: expert.profile_image_url || null
       }));
       
       navigate("/expert");

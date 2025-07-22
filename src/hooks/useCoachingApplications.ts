@@ -2,30 +2,29 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 
 export interface CoachingApplication {
-  id: number;
-  expert_id: string;
-  member_id: string;
-  member_name: string;
-  member_phone: string;
-  member_email: string;
-  consultation_title: string;
-  consultation_content: string;
-  consultation_method: '전화' | '화상' | '방문' | '메시지';
-  field: string;
-  experience: string;
-  goals: string;
-  expectations: string;
-  attachment_file?: string;
+  id: string; // uuid
+  expert_user_id: string;
+  member_user_id: string;
+  title: string;
+  content: string;
+  method: '전화' | '화상' | '방문' | '메시지';
+  name: string;
+  contact: string;
+  email: string;
+  attachment_url?: string;
+  product_name: string;
+  product_price: number;
+  applied_at: string;
+  paid_at?: string;
   status: '접수' | '진행중' | '진행완료';
-  price_type: '무료' | '디럭스' | '프리미엄';
   created_at: string;
   updated_at: string;
-  application_count: number;
+  expert_profile_image_url?: string; // 전문가 프로필 이미지 URL 추가
 }
 
 export interface CoachingHistory {
-  id: number;
-  application_id: number;
+  id: string; // uuid
+  application_id: string; // uuid
   title: string;
   content: string;
   status: '접수' | '진행중' | '진행완료';
@@ -44,7 +43,12 @@ export const useCoachingApplications = (expertId?: string) => {
 
       const { data, error } = await supabase
         .from('coaching_applications')
-        .select('*');
+        .select(`
+          *,
+          experts!fk_coaching_applications_expert_user_id (
+            profile_image_url
+          )
+        `);
 
       if (error) {
         console.error('코칭 신청 데이터 조회 오류:', error);
@@ -52,21 +56,27 @@ export const useCoachingApplications = (expertId?: string) => {
         return;
       }
 
-      // 클라이언트 사이드에서 필터링
+      // 클라이언트 사이드에서 필터링 및 데이터 처리
       let filteredData = data || [];
       
       if (expertId && filteredData.length > 0) {
         filteredData = filteredData.filter((app: any) => 
-          app.expert_id === expertId
+          app.expert_user_id === expertId
         );
       }
 
+      // 조인된 데이터 처리
+      const processedData = filteredData.map((app: any) => ({
+        ...app,
+        expert_profile_image_url: app.experts?.profile_image_url || null
+      }));
+
       // 신청일 기준 정렬
-      filteredData.sort((a: any, b: any) => 
+      processedData.sort((a: any, b: any) => 
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       );
 
-      setApplications(filteredData);
+      setApplications(processedData);
     } catch (err) {
       console.error('코칭 신청 데이터 조회 중 예외 발생:', err);
       setError('코칭 신청 데이터 조회 중 오류가 발생했습니다.');
@@ -75,9 +85,23 @@ export const useCoachingApplications = (expertId?: string) => {
     }
   };
 
-  const updateApplicationStatus = async (applicationId: number, status: '접수' | '진행중' | '진행완료') => {
+  const updateApplicationStatus = async (applicationId: string, status: '접수' | '진행중' | '진행완료') => {
     try {
-      // 로컬 상태 업데이트 (실제 DB 업데이트는 나중에 구현)
+      // 실제 DB 업데이트
+      const { error } = await supabase
+        .from('coaching_applications')
+        .update({ 
+          status, 
+          updated_at: new Date().toISOString() 
+        })
+        .eq('id', applicationId);
+
+      if (error) {
+        console.error('상태 업데이트 오류:', error);
+        throw new Error('상태 업데이트에 실패했습니다.');
+      }
+
+      // 로컬 상태 업데이트
       setApplications(prev =>
         prev.map(app =>
           app.id === applicationId
@@ -93,7 +117,7 @@ export const useCoachingApplications = (expertId?: string) => {
     }
   };
 
-  const addCoachingHistory = async (applicationId: number, title: string, content: string, status: '접수' | '진행중' | '진행완료') => {
+  const addCoachingHistory = async (applicationId: string, title: string, content: string, status: '접수' | '진행중' | '진행완료') => {
     try {
       const { error } = await supabase
         .from('coaching_history')
@@ -117,7 +141,7 @@ export const useCoachingApplications = (expertId?: string) => {
     }
   };
 
-  const getCoachingHistory = async (applicationId: number): Promise<CoachingHistory[]> => {
+  const getCoachingHistory = async (applicationId: string): Promise<CoachingHistory[]> => {
     try {
       const { data, error } = await supabase
         .from('coaching_history')
@@ -157,12 +181,8 @@ export const useCoachingApplications = (expertId?: string) => {
     const 내수익 = applications
       .filter(app => app.status === '진행완료')
       .reduce((total, app) => {
-        switch (app.price_type) {
-          case '무료': return total + 0;
-          case '디럭스': return total + 150000;
-          case '프리미엄': return total + 300000;
-          default: return total;
-        }
+        // product_price 필드를 직접 사용
+        return total + (app.product_price || 0);
       }, 0);
 
     return { 접수, 진행중, 진행완료, 내수익 };

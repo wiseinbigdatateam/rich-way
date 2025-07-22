@@ -59,7 +59,15 @@ const CoachingPage = () => {
       return [];
     }
     
-    return products || [];
+    // FREE, DELUXE, PREMIUM 순으로 정렬
+    const sortedProducts = (products || []).sort((a, b) => {
+      const order = { 'FREE': 1, 'DELUXE': 2, 'PREMIUM': 3 };
+      const aOrder = order[a.product_name as keyof typeof order] || 999;
+      const bOrder = order[b.product_name as keyof typeof order] || 999;
+      return aOrder - bOrder;
+    });
+    
+    return sortedProducts;
   };
 
   useEffect(() => {

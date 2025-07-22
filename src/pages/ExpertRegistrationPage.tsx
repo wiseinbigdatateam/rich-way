@@ -176,6 +176,21 @@ const ExpertRegistrationPage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // 숫자 필드 처리: 빈 문자열이면 null, 값이 있으면 Number로 변환
+    const submitForm = {
+      ...form,
+      experience_years:
+        form.experience_years && !isNaN(Number(form.experience_years))
+          ? Number(form.experience_years)
+          : null,
+      tags:
+        !form.tags || form.tags.trim() === ""
+          ? null
+          : Array.isArray(form.tags)
+            ? form.tags
+            : form.tags.split(",").map((tag: string) => tag.trim()).filter(Boolean),
+    };
+
     if (!form.user_id || !form.password || !form.expert_name || !form.email || !form.main_field) {
       toast.error("필수 항목을 모두 입력해주세요.");
       return;
@@ -196,7 +211,7 @@ const ExpertRegistrationPage = () => {
       // 1. 전문가 정보 저장
       const { data: expertData, error: expertError } = await supabase
         .from("experts")
-        .insert([form]);
+        .insert([submitForm]);
 
       if (expertError) {
         console.error("전문가 등록 오류:", expertError);
@@ -206,10 +221,11 @@ const ExpertRegistrationPage = () => {
 
       // 2. 전문가 상품 정보 저장
       const productsToInsert = Object.entries(expertProducts).map(([type, product]) => ({
-        expert_user_id: expertData.user_id,
-        product_type: type,
+        user_id: submitForm.user_id,
+        product_name: type,
+        regular_price: product.price,
         price: product.price,
-        duration_minutes: product.duration,
+        duration: product.duration,
         description: product.description
       }));
 
@@ -390,17 +406,6 @@ const ExpertRegistrationPage = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="company_phone">회사 연락처</Label>
-                  <Input
-                    id="company_phone"
-                    name="company_phone"
-                    value={form.company_phone}
-                    onChange={handleFormChange}
-                    placeholder="회사 전화번호"
-                  />
-                </div>
-
-                <div className="space-y-2">
                   <Label htmlFor="personal_phone">개인 연락처</Label>
                   <Input
                     id="personal_phone"
@@ -410,6 +415,8 @@ const ExpertRegistrationPage = () => {
                     placeholder="개인 전화번호"
                   />
                 </div>
+
+
 
                 <div className="space-y-2">
                   <Label htmlFor="experience_years">경력 연차</Label>
@@ -463,13 +470,13 @@ const ExpertRegistrationPage = () => {
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-2">
-                <Label htmlFor="tags">태그</Label>
+                <Label htmlFor="education_and_certifications">학력 및 자격증</Label>
                 <Input
-                  id="tags"
-                  name="tags"
-                  value={form.tags}
+                  id="education_and_certifications"
+                  name="education_and_certifications"
+                  value={form.education_and_certifications}
                   onChange={handleFormChange}
-                  placeholder="예: 부동산투자, 세무절세, 재무설계"
+                  placeholder="학력 및 자격증 정보"
                 />
               </div>
 
@@ -485,98 +492,11 @@ const ExpertRegistrationPage = () => {
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="career">경력 사항</Label>
-                <Textarea
-                  id="career"
-                  name="career"
-                  value={form.career}
-                  onChange={handleFormChange}
-                  placeholder="주요 경력 사항을 작성해주세요"
-                  rows={4}
-                />
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="achievements">주요 성과</Label>
-                <Textarea
-                  id="achievements"
-                  name="achievements"
-                  value={form.achievements}
-                  onChange={handleFormChange}
-                  placeholder="주요 성과나 수상 내역을 작성해주세요"
-                  rows={4}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="expertise_detail">전문성 상세</Label>
-                <Textarea
-                  id="expertise_detail"
-                  name="expertise_detail"
-                  value={form.expertise_detail}
-                  onChange={handleFormChange}
-                  placeholder="전문 분야에 대한 상세한 설명을 작성해주세요"
-                  rows={4}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="education_and_certifications">학력 및 자격증</Label>
-                <Textarea
-                  id="education_and_certifications"
-                  name="education_and_certifications"
-                  value={form.education_and_certifications}
-                  onChange={handleFormChange}
-                  placeholder="학력 및 관련 자격증을 작성해주세요"
-                  rows={3}
-                />
-              </div>
             </CardContent>
           </Card>
 
-          {/* 링크 정보 */}
-          <Card>
-            <CardHeader>
-              <CardTitle>링크 정보</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="youtube_channel_url">유튜브 채널</Label>
-                  <Input
-                    id="youtube_channel_url"
-                    name="youtube_channel_url"
-                    value={form.youtube_channel_url}
-                    onChange={handleFormChange}
-                    placeholder="유튜브 채널 URL"
-                  />
-                </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="intro_video_url">소개 영상</Label>
-                  <Input
-                    id="intro_video_url"
-                    name="intro_video_url"
-                    value={form.intro_video_url}
-                    onChange={handleFormChange}
-                    placeholder="소개 영상 URL"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="press_url">언론 보도</Label>
-                  <Input
-                    id="press_url"
-                    name="press_url"
-                    value={form.press_url}
-                    onChange={handleFormChange}
-                    placeholder="언론 보도 URL"
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
 
           {/* 상품 정보 */}
           <Card>

@@ -45,11 +45,25 @@ const ExpertManagement = () => {
     is_featured: false
   });
 
-  // expert_products 상태 추가
-  const [expertProducts, setExpertProducts] = useState({
-    FREE: { price: 0, duration: 30, description: "" },
-    DELUXE: { price: 250000, duration: 60, description: "" },
-    PREMIUM: { price: 500000, duration: 90, description: "" }
+  // expert_products 상태 추가 (FREE, DELUXE, PREMIUM 순으로 정렬된 객체)
+  const [expertProducts, setExpertProducts] = useState(() => {
+    const products = {
+      FREE: { price: 0, duration: 30, description: "" },
+      DELUXE: { price: 250000, duration: 60, description: "" },
+      PREMIUM: { price: 500000, duration: 90, description: "" }
+    };
+    
+    // FREE, DELUXE, PREMIUM 순으로 정렬된 새로운 객체 생성
+    const sortedProducts = Object.fromEntries(
+      Object.entries(products).sort(([a], [b]) => {
+        const order = { 'FREE': 1, 'DELUXE': 2, 'PREMIUM': 3 };
+        const aOrder = order[a as keyof typeof order] || 999;
+        const bOrder = order[b as keyof typeof order] || 999;
+        return aOrder - bOrder;
+      })
+    );
+    
+    return sortedProducts;
   });
   const [uploading, setUploading] = useState(false);
   const [checkingUserId, setCheckingUserId] = useState(false);
@@ -227,19 +241,39 @@ const ExpertManagement = () => {
       .eq("user_id", expert.user_id);
 
     if (!productsError && productsData) {
+      // FREE, DELUXE, PREMIUM 순으로 정렬
+      const sortedProducts = productsData.sort((a, b) => {
+        const order = { 'FREE': 1, 'DELUXE': 2, 'PREMIUM': 3 };
+        const aOrder = order[a.product_name as keyof typeof order] || 999;
+        const bOrder = order[b.product_name as keyof typeof order] || 999;
+        return aOrder - bOrder;
+      });
+
       const productsMap: Record<string, { price: number; duration: number; description: string }> = {};
-      productsData.forEach(product => {
+      sortedProducts.forEach(product => {
         productsMap[product.product_name] = {
           price: product.price || product.regular_price, // regular_price도 고려
           duration: product.duration,
           description: product.description
         };
       });
-      setExpertProducts({
+      const defaultProducts = {
         FREE: productsMap.FREE || { price: 0, duration: 30, description: "" },
         DELUXE: productsMap.DELUXE || { price: 250000, duration: 60, description: "" },
         PREMIUM: productsMap.PREMIUM || { price: 500000, duration: 90, description: "" }
-      });
+      };
+      
+      // FREE, DELUXE, PREMIUM 순으로 정렬된 객체 생성
+      const sortedEditProducts = Object.fromEntries(
+        Object.entries(defaultProducts).sort(([a], [b]) => {
+          const order = { 'FREE': 1, 'DELUXE': 2, 'PREMIUM': 3 };
+          const aOrder = order[a as keyof typeof order] || 999;
+          const bOrder = order[b as keyof typeof order] || 999;
+          return aOrder - bOrder;
+        })
+      );
+      
+      setExpertProducts(sortedEditProducts);
     }
     setEditingExpert(data);
     setIsEditMode(true);
@@ -275,12 +309,23 @@ const ExpertManagement = () => {
     setEditingUserId(null);
     setUserIdAvailable(null);
     setEmailAvailable(null);
-    // expertProducts 초기화
-    setExpertProducts({
+    // expertProducts 초기화 (FREE, DELUXE, PREMIUM 순으로 정렬)
+    const defaultProducts = {
       FREE: { price: 0, duration: 30, description: "" },
       DELUXE: { price: 250000, duration: 60, description: "" },
       PREMIUM: { price: 500000, duration: 90, description: "" }
-    });
+    };
+    
+    const sortedProducts = Object.fromEntries(
+      Object.entries(defaultProducts).sort(([a], [b]) => {
+        const order = { 'FREE': 1, 'DELUXE': 2, 'PREMIUM': 3 };
+        const aOrder = order[a as keyof typeof order] || 999;
+        const bOrder = order[b as keyof typeof order] || 999;
+        return aOrder - bOrder;
+      })
+    );
+    
+    setExpertProducts(sortedProducts);
     setForm({
       user_id: "",
       password: "",
@@ -522,7 +567,14 @@ const ExpertManagement = () => {
       // 4. expert_products 테이블에 상품 정보 저장/수정
       console.log('🔄 전문가 상품 정보 저장 중...');
       
-      const productEntries = Object.entries(expertProducts);
+      // FREE, DELUXE, PREMIUM 순으로 정렬
+      const productEntries = Object.entries(expertProducts).sort(([a], [b]) => {
+        const order = { 'FREE': 1, 'DELUXE': 2, 'PREMIUM': 3 };
+        const aOrder = order[a as keyof typeof order] || 999;
+        const bOrder = order[b as keyof typeof order] || 999;
+        return aOrder - bOrder;
+      });
+      
       const productPromises = productEntries.map(async ([productName, productData]) => {
         const productRecord = {
           user_id: form.user_id,
@@ -949,140 +1001,110 @@ const ExpertManagement = () => {
                 <div className="space-y-6">
                   <h3 className="text-lg font-semibold">코칭 상품 등급</h3>
                   
-                  {/* FREE 등급 */}
-                  <div className="border rounded-lg p-4 bg-gray-50">
-                    <div className="flex items-center gap-2 mb-4">
-                      <Badge variant="secondary">FREE</Badge>
-                      <span className="text-sm text-gray-600">무료 코칭</span>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label>가격</Label>
-                        <Input 
-                          value="0원" 
-                          disabled 
-                          className="bg-gray-100" 
-                        />
-                        <p className="text-xs text-gray-500">FREE 등급은 0원으로 고정됩니다</p>
-                      </div>
-                      <div className="space-y-2">
-                        <Label>소요시간 (분)</Label>
-                        <Input 
-                          type="number"
-                          value={expertProducts.FREE.duration}
-                          onChange={(e) => setExpertProducts({
-                            ...expertProducts,
-                            FREE: { ...expertProducts.FREE, duration: parseInt(e.target.value) || 30 }
-                          })}
-                          placeholder="30"
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-2 mt-4">
-                      <Label>상품 소개</Label>
-                      <Textarea 
-                        value={expertProducts.FREE.description}
-                        onChange={(e) => setExpertProducts({
-                          ...expertProducts,
-                          FREE: { ...expertProducts.FREE, description: e.target.value }
-                        })}
-                        placeholder="FREE 등급 코칭의 내용과 특징을 입력하세요"
-                        rows={3}
-                      />
-                    </div>
-                  </div>
+                  {/* FREE, DELUXE, PREMIUM 순으로 하드코딩된 순서로 렌더링 */}
+                  {(() => {
+                    // 하드코딩된 순서로 상품 렌더링
+                    const productOrder = ['FREE', 'DELUXE', 'PREMIUM'];
+                    
+                    return productOrder.map((productName) => {
+                      const productData = expertProducts[productName as keyof typeof expertProducts];
+                      if (!productData) return null;
+                      const getProductConfig = (name: string) => {
+                        switch (name) {
+                          case 'FREE':
+                            return {
+                              badge: <Badge variant="secondary">FREE</Badge>,
+                              title: '무료 코칭',
+                              bgColor: 'bg-gray-50',
+                              priceDisabled: true,
+                              priceValue: '0원',
+                              placeholder: 'FREE 등급 코칭의 내용과 특징을 입력하세요'
+                            };
+                          case 'DELUXE':
+                            return {
+                              badge: <Badge variant="default">DELUXE</Badge>,
+                              title: '스탠다드 코칭',
+                              bgColor: 'bg-blue-50',
+                              priceDisabled: false,
+                              priceValue: productData.price,
+                              placeholder: 'DELUXE 등급 코칭의 내용과 특징을 입력하세요'
+                            };
+                          case 'PREMIUM':
+                            return {
+                              badge: <Badge variant="destructive">PREMIUM</Badge>,
+                              title: '프리미엄 코칭',
+                              bgColor: 'bg-yellow-50',
+                              priceDisabled: false,
+                              priceValue: productData.price,
+                              placeholder: 'PREMIUM 등급 코칭의 내용과 특징을 입력하세요'
+                            };
+                          default:
+                            return {
+                              badge: <Badge variant="outline">{productName}</Badge>,
+                              title: `${productName} 코칭`,
+                              bgColor: 'bg-gray-50',
+                              priceDisabled: false,
+                              priceValue: productData.price,
+                              placeholder: `${productName} 등급 코칭의 내용과 특징을 입력하세요`
+                            };
+                        }
+                      };
 
-                  {/* DELUXE 등급 */}
-                  <div className="border rounded-lg p-4 bg-blue-50">
-                    <div className="flex items-center gap-2 mb-4">
-                      <Badge variant="default">DELUXE</Badge>
-                      <span className="text-sm text-gray-600">스탠다드 코칭</span>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label>가격 (원)</Label>
-                        <Input 
-                          type="number"
-                          value={expertProducts.DELUXE.price}
-                          onChange={(e) => setExpertProducts({
-                            ...expertProducts,
-                            DELUXE: { ...expertProducts.DELUXE, price: parseInt(e.target.value) || 250000 }
-                          })}
-                          placeholder="250000"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>소요시간 (분)</Label>
-                        <Input 
-                          type="number"
-                          value={expertProducts.DELUXE.duration}
-                          onChange={(e) => setExpertProducts({
-                            ...expertProducts,
-                            DELUXE: { ...expertProducts.DELUXE, duration: parseInt(e.target.value) || 60 }
-                          })}
-                          placeholder="60"
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-2 mt-4">
-                      <Label>상품 소개</Label>
-                      <Textarea 
-                        value={expertProducts.DELUXE.description}
-                        onChange={(e) => setExpertProducts({
-                          ...expertProducts,
-                          DELUXE: { ...expertProducts.DELUXE, description: e.target.value }
-                        })}
-                        placeholder="DELUXE 등급 코칭의 내용과 특징을 입력하세요"
-                        rows={3}
-                      />
-                    </div>
-                  </div>
+                      const config = getProductConfig(productName);
 
-                  {/* PREMIUM 등급 */}
-                  <div className="border rounded-lg p-4 bg-yellow-50">
-                    <div className="flex items-center gap-2 mb-4">
-                      <Badge variant="destructive">PREMIUM</Badge>
-                      <span className="text-sm text-gray-600">프리미엄 코칭</span>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label>가격 (원)</Label>
-                        <Input 
-                          type="number"
-                          value={expertProducts.PREMIUM.price}
-                          onChange={(e) => setExpertProducts({
-                            ...expertProducts,
-                            PREMIUM: { ...expertProducts.PREMIUM, price: parseInt(e.target.value) || 500000 }
-                          })}
-                          placeholder="500000"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>소요시간 (분)</Label>
-                        <Input 
-                          type="number"
-                          value={expertProducts.PREMIUM.duration}
-                          onChange={(e) => setExpertProducts({
-                            ...expertProducts,
-                            PREMIUM: { ...expertProducts.PREMIUM, duration: parseInt(e.target.value) || 90 }
-                          })}
-                          placeholder="90"
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-2 mt-4">
-                      <Label>상품 소개</Label>
-                      <Textarea 
-                        value={expertProducts.PREMIUM.description}
-                        onChange={(e) => setExpertProducts({
-                          ...expertProducts,
-                          PREMIUM: { ...expertProducts.PREMIUM, description: e.target.value }
-                        })}
-                        placeholder="PREMIUM 등급 코칭의 내용과 특징을 입력하세요"
-                        rows={3}
-                      />
-                    </div>
-                  </div>
+                      return (
+                        <div key={productName} className={`border rounded-lg p-4 ${config.bgColor}`}>
+                          <div className="flex items-center gap-2 mb-4">
+                            {config.badge}
+                            <span className="text-sm text-gray-600">{config.title}</span>
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label>가격 {productName === 'FREE' ? '' : '(원)'}</Label>
+                              <Input 
+                                type={productName === 'FREE' ? 'text' : 'number'}
+                                value={config.priceValue}
+                                disabled={config.priceDisabled}
+                                className={config.priceDisabled ? 'bg-gray-100' : ''}
+                                onChange={productName === 'FREE' ? undefined : (e) => setExpertProducts({
+                                  ...expertProducts,
+                                  [productName]: { ...expertProducts[productName as keyof typeof expertProducts], price: parseInt(e.target.value) || 0 }
+                                })}
+                                placeholder={productName === 'FREE' ? undefined : '0'}
+                              />
+                              {productName === 'FREE' && (
+                                <p className="text-xs text-gray-500">FREE 등급은 0원으로 고정됩니다</p>
+                              )}
+                            </div>
+                            <div className="space-y-2">
+                              <Label>소요시간 (분)</Label>
+                              <Input 
+                                type="number"
+                                value={productData.duration}
+                                onChange={(e) => setExpertProducts({
+                                  ...expertProducts,
+                                  [productName]: { ...expertProducts[productName as keyof typeof expertProducts], duration: parseInt(e.target.value) || 30 }
+                                })}
+                                placeholder="30"
+                              />
+                            </div>
+                          </div>
+                          <div className="space-y-2 mt-4">
+                            <Label>상품 소개</Label>
+                            <Textarea 
+                              value={productData.description}
+                              onChange={(e) => setExpertProducts({
+                                ...expertProducts,
+                                [productName]: { ...expertProducts[productName as keyof typeof expertProducts], description: e.target.value }
+                              })}
+                              placeholder={config.placeholder}
+                              rows={3}
+                            />
+                          </div>
+                        </div>
+                      );
+                    });
+                  })()}
                 </div>
 
                 <div className="flex gap-2 pt-4">
@@ -1128,11 +1150,18 @@ const ExpertManagement = () => {
                   <TableCell>
                     {expert.products?.length > 0 ? (
                       <div className="text-sm">
-                        {expert.products.map((product: any) => (
-                          <div key={product.product_name} className="text-xs">
-                            {product.product_name}: {(product.price || 0).toLocaleString()}원
-                          </div>
-                        ))}
+                        {expert.products
+                          .sort((a: any, b: any) => {
+                            const order = { 'FREE': 1, 'DELUXE': 2, 'PREMIUM': 3 };
+                            const aOrder = order[a.product_name as keyof typeof order] || 999;
+                            const bOrder = order[b.product_name as keyof typeof order] || 999;
+                            return aOrder - bOrder;
+                          })
+                          .map((product: any) => (
+                            <div key={product.product_name} className="text-xs">
+                              {product.product_name}: {(product.price || 0).toLocaleString()}원
+                            </div>
+                          ))}
                       </div>
                     ) : "-"}
                   </TableCell>

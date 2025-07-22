@@ -225,15 +225,40 @@ const CoachingApplicationPage = () => {
         status: "접수",
       },
     ]);
-    setLoading(false);
+    
     if (error) {
+      setLoading(false);
       alert("신청 실패: " + error.message);
       return;
     }
+
+    // 코칭 신청 완료 시 전문가에게 알림 생성
+    const applicationId = data?.[0]?.id;
+    if (applicationId) {
+      try {
+        await supabase.from("expert_notifications").insert([
+          {
+            expert_user_id: expertId,
+            title: "새로운 코칭 신청",
+            message: `${form.name}님께 새로운 코칭 신청이 접수되었습니다.\n\n📋 상담 제목: ${form.title}\n💰 상품: ${selectedProduct.product_name} (${selectedProduct.price === 0 ? '무료' : `${selectedProduct.price.toLocaleString()}원`})\n📞 연락처: ${form.phone}\n📧 이메일: ${form.email}\n\n상담 신청 관리 페이지에서 자세한 내용을 확인하실 수 있습니다.`,
+            type: "info",
+            related_application_id: applicationId,
+            is_read: false,
+            created_at: new Date().toISOString()
+          }
+        ]);
+        console.log("전문가 알림 생성 완료");
+      } catch (notificationError) {
+        console.error("전문가 알림 생성 실패:", notificationError);
+        // 알림 생성 실패해도 코칭 신청은 성공으로 처리
+      }
+    }
+
+    setLoading(false);
     alert("신청이 완료되었습니다!");
     navigate("/coaching/success", {
       state: {
-        applicationId: data?.[0]?.id || '',
+        applicationId: applicationId || '',
         expertName,
         expertCompany,
         planName: selectedProduct.product_name,
