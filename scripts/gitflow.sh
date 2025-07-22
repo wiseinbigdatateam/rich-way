@@ -319,6 +319,9 @@ translate_feature_name() {
         "코칭신청관리"|"코칭관리")
             echo "coaching-application-management"
             ;;
+        "전문가코칭신청관리"|"전문가코칭관리")
+            echo "expert-coaching-application-management"
+            ;;
         "전문가관리"|"전문가")
             echo "expert-management"
             ;;
