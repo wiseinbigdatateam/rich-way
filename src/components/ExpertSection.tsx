@@ -240,7 +240,7 @@ const ExpertSection = () => {
                     </div>
                     <div className="absolute bottom-3 left-3 right-3">
                       <h3 className="text-lg font-bold text-white mb-1">{expert.expert_name}</h3>
-                      <p className="text-white/90 text-xs">{expert.company_name || expert.main_field} 전문가</p>
+                      <p className="text-white/90 text-xs">{expert.company_name || expert.main_field}</p>
                     </div>
                   </div>
                   
