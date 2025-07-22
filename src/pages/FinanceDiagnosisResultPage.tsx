@@ -569,7 +569,24 @@ const FinanceDiagnosisResultPage = () => {
     }));
   }, [report]);
 
-  const handlePrint = () => window.print();
+  // 출력 버튼 핸들러
+  const handlePrintWithAuth = () => {
+    if (!user) {
+      setShowAuthPrompt(true);
+      return;
+    }
+    window.print();
+  };
+
+  // 공유 버튼 핸들러
+  const handleShareWithAuth = () => {
+    if (!user) {
+      setShowAuthPrompt(true);
+      return;
+    }
+    setShowShare(v => !v);
+  };
+
   const handleCopy = () => {
     navigator.clipboard.writeText(shareUrl);
     setCopied(true);
@@ -642,9 +659,8 @@ const FinanceDiagnosisResultPage = () => {
   // 로그인/회원가입 성공 시 후처리
   // 로그인 성공 시 user 상태가 반영된 뒤에만 저장 (최대 1초까지 재시도)
   const handleLoginSuccess = async (userData: any) => {
-    // 로그인 모달 닫기
     setShowLogin(false);
-    
+    setShowAuthPrompt(false);
     await login(userData);
     // user 상태가 null이 아니게 된 뒤에만 저장 (최대 1초까지 재시도)
     let tries = 0;
@@ -712,11 +728,11 @@ const FinanceDiagnosisResultPage = () => {
                 </p>
               </div>
               <div className="flex justify-end items-center gap-4 mb-6">
-                <button onClick={handlePrint} title="인쇄하기" className="p-3 rounded-full bg-white shadow hover:bg-navy-100 transition flex items-center justify-center">
+                <button onClick={handlePrintWithAuth} title="인쇄하기" className="p-3 rounded-full bg-white shadow hover:bg-navy-100 transition flex items-center justify-center">
                   <Printer className="w-7 h-7 text-navy-600" />
                 </button>
                 <div className="relative">
-                  <button onClick={() => setShowShare(v => !v)} title="공유하기" className="p-3 rounded-full bg-white shadow hover:bg-blue-100 transition flex items-center justify-center">
+                  <button onClick={handleShareWithAuth} title="공유하기" className="p-3 rounded-full bg-white shadow hover:bg-blue-100 transition flex items-center justify-center">
                     <Share2 className="w-7 h-7 text-blue-600" />
                   </button>
                   {showShare && (

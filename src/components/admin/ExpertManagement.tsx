@@ -41,7 +41,8 @@ const ExpertManagement = () => {
     achievements: "",
     expertise_detail: "",
     experience_years: "",
-    status: "대기"
+    status: "대기",
+    is_featured: false
   });
 
   // expert_products 상태 추가
@@ -171,6 +172,39 @@ const ExpertManagement = () => {
     } catch (error) {
       console.error('전문가 삭제 중 예외 발생:', error);
       toast.error("전문가 삭제 중 오류가 발생했습니다.");
+    }
+  };
+
+  const handleToggleFeatured = async (expert: any) => {
+    try {
+      const newFeaturedStatus = !expert.is_featured;
+      
+      const { error } = await supabase
+        .from("experts")
+        .update({ is_featured: newFeaturedStatus })
+        .eq("user_id", expert.user_id);
+      
+      if (error) {
+        console.error("메인페이지 노출 상태 변경 오류:", error);
+        toast.error("메인페이지 노출 상태 변경에 실패했습니다.");
+        return;
+      }
+      
+      // 로컬 상태 업데이트
+      setExperts(experts.map(e => 
+        e.user_id === expert.user_id 
+          ? { ...e, is_featured: newFeaturedStatus }
+          : e
+      ));
+      
+      toast.success(
+        newFeaturedStatus 
+          ? "메인페이지에 노출되도록 설정되었습니다." 
+          : "메인페이지에서 숨겨졌습니다."
+      );
+    } catch (error) {
+      console.error('메인페이지 노출 상태 변경 중 예외 발생:', error);
+      toast.error("메인페이지 노출 상태 변경 중 오류가 발생했습니다.");
     }
   };
 
@@ -1076,6 +1110,7 @@ const ExpertManagement = () => {
                 <TableHead>평점</TableHead>
                 <TableHead>가격</TableHead>
                 <TableHead>상태</TableHead>
+                <TableHead>메인노출</TableHead>
                 <TableHead>작업</TableHead>
               </TableRow>
             </TableHeader>
@@ -1103,6 +1138,16 @@ const ExpertManagement = () => {
                   </TableCell>
                   <TableCell>
                     <Badge variant={getBadgeVariant(expert.status)}>{expert.status}</Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      size="sm"
+                      variant={expert.is_featured ? "default" : "outline"}
+                      onClick={() => handleToggleFeatured(expert)}
+                      className="w-16"
+                    >
+                      {expert.is_featured ? "노출" : "숨김"}
+                    </Button>
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-2">

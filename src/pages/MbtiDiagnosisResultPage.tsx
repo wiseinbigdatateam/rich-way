@@ -451,7 +451,23 @@ const MbtiDiagnosisResultPage = () => {
   const [showLogin, setShowLogin] = useState(false);
   const [showSignup, setShowSignup] = useState(false);
 
-  const handlePrint = () => window.print();
+  // 출력 버튼 핸들러
+  const handlePrintWithAuth = () => {
+    if (!user) {
+      setShowAuthPrompt(true);
+      return;
+    }
+    window.print();
+  };
+
+  // 공유 버튼 핸들러
+  const handleShareWithAuth = () => {
+    if (!user) {
+      setShowAuthPrompt(true);
+      return;
+    }
+    setShowShare(v => !v);
+  };
   // MBTI 진단 결과 저장 함수
   const saveMbtiDiagnosis = async () => {
     try {
@@ -488,8 +504,10 @@ const MbtiDiagnosisResultPage = () => {
   };
 
   // 로그인/회원가입 성공 시 후처리
-  // 로그인 성공 시 user 상태가 반영된 뒤에만 저장 (최대 1초까지 재시도)
   const handleLoginSuccess = async (userData: any) => {
+    setShowLogin(false);
+    setShowSignup(false);
+    setShowAuthPrompt(false);
     await login(userData);
     // user 상태가 null이 아니게 된 뒤에만 저장 (최대 1초까지 재시도)
     let tries = 0;
@@ -680,11 +698,11 @@ const MbtiDiagnosisResultPage = () => {
       >
         {/* 리포트 상단 인쇄/공유/저장 버튼 */}
         <div className="flex justify-end items-center gap-4 mb-6">
-          <button onClick={handlePrint} title="인쇄하기" className="p-3 rounded-full bg-white shadow hover:bg-purple-100 transition flex items-center justify-center">
+          <button onClick={handlePrintWithAuth} title="인쇄하기" className="p-3 rounded-full bg-white shadow hover:bg-purple-100 transition flex items-center justify-center">
             <Printer className="w-7 h-7 text-purple-600" />
           </button>
           <div className="relative">
-            <button onClick={() => setShowShare(v => !v)} title="공유하기" className="p-3 rounded-full bg-white shadow hover:bg-blue-100 transition flex items-center justify-center">
+            <button onClick={handleShareWithAuth} title="공유하기" className="p-3 rounded-full bg-white shadow hover:bg-blue-100 transition flex items-center justify-center">
               <Share2 className="w-7 h-7 text-blue-600" />
             </button>
             {showShare && (

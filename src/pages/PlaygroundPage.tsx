@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { MessageSquare, Heart, Eye, Search, PlusCircle, TrendingUp, Clock, User, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -34,6 +35,13 @@ const PlaygroundPage = () => {
   const [filteredPosts, setFilteredPosts] = useState<CommunityPost[]>([]);
   const { user: currentUser } = useAuth();
   const { toast } = useToast();
+  
+  // 페이징 상태
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10; // 페이지당 표시할 게시글 수
+
+  // 카테고리 목록
+  const categories = ["전체", "투자정보", "부동산", "주식", "암호화폐", "창업", "질문답변", "성공사례", "자유게시판"];
 
   // 게시글 데이터 가져오기
   const fetchPosts = async () => {
@@ -101,36 +109,35 @@ const PlaygroundPage = () => {
           .order('created_at', { ascending: false })
           .limit(20);
         
-        data = result.data;
-        error = result.error;
+        if (result.data) {
+          data = result.data;
+        }
       }
 
       if (error) {
-        console.error('게시글 조회 오류:', error);
+        console.error('Error fetching posts:', error);
         toast({
+          title: "오류",
+          description: "게시글을 불러오는데 실패했습니다.",
           variant: "destructive",
-          title: "데이터 로드 실패",
-          description: "게시글을 불러오는 중 오류가 발생했습니다.",
         });
         return;
       }
 
       setPosts(data || []);
-      console.log('🟢 실제 데이터 로드 완료:', data?.length, '개');
-
     } catch (error) {
-      console.error('게시글 조회 오류:', error);
+      console.error('Error:', error);
       toast({
+        title: "오류",
+        description: "게시글을 불러오는데 실패했습니다.",
         variant: "destructive",
-        title: "데이터 로드 실패",
-        description: "게시글을 불러오는 중 오류가 발생했습니다.",
       });
     } finally {
       setLoading(false);
     }
   };
 
-  // 검색 및 필터링 함수
+  // 게시글 필터링
   const filterPosts = () => {
     let filtered = posts;
 
@@ -150,30 +157,29 @@ const PlaygroundPage = () => {
     }
 
     setFilteredPosts(filtered);
+    setCurrentPage(1); // 필터링 시 페이지 리셋
   };
 
-  // 컴포넌트 마운트 시 데이터 로드
-  useEffect(() => {
-    fetchPosts();
-  }, [selectedCategory]);
-
-  // 검색어나 카테고리 변경 시 필터링
-  useEffect(() => {
-    filterPosts();
-  }, [posts, selectedCategory, searchQuery]);
-
-  // 글쓰기 성공 시 처리
+  // 게시글 작성 성공 핸들러
   const handlePostSuccess = (newPost: any) => {
     setPosts(prev => [newPost, ...prev]);
+    setIsWriteDialogOpen(false);
     toast({
-      title: "글 작성 완료!",
-      description: "새로운 게시글이 작성되었습니다.",
+      title: "성공",
+      description: "게시글이 성공적으로 작성되었습니다.",
     });
-    console.log('새 게시글 작성됨:', newPost);
   };
 
   // 글쓰기 버튼 클릭 핸들러
   const handleWriteClick = () => {
+    if (!currentUser) {
+      toast({
+        title: "로그인 필요",
+        description: "게시글을 작성하려면 로그인이 필요합니다.",
+        variant: "destructive",
+      });
+      return;
+    }
     setIsWriteDialogOpen(true);
   };
 
@@ -181,19 +187,16 @@ const PlaygroundPage = () => {
   const formatTimeAgo = (dateString: string) => {
     const now = new Date();
     const postDate = new Date(dateString);
-    const diffInMinutes = Math.floor((now.getTime() - postDate.getTime()) / (1000 * 60));
+    const diffInSeconds = Math.floor((now.getTime() - postDate.getTime()) / 1000);
 
-    if (diffInMinutes < 60) {
-      return `${diffInMinutes}분 전`;
-    } else if (diffInMinutes < 1440) {
-      return `${Math.floor(diffInMinutes / 60)}시간 전`;
-    } else {
-      return `${Math.floor(diffInMinutes / 1440)}일 전`;
-    }
+    if (diffInSeconds < 60) return '방금 전';
+    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}분 전`;
+    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}시간 전`;
+    if (diffInSeconds < 2592000) return `${Math.floor(diffInSeconds / 86400)}일 전`;
+    return `${Math.floor(diffInSeconds / 2592000)}개월 전`;
   };
 
-  const categories = ["전체", "자유게시판", "투자정보", "부동산", "주식", "암호화폐", "창업", "질문답변", "성공사례"];
-
+  // 카테고리 색상 함수
   const getCategoryColor = (category: string) => {
     const colors: { [key: string]: string } = {
       "투자정보": "bg-blue-100 text-blue-800",
@@ -223,6 +226,15 @@ const PlaygroundPage = () => {
       ) : part
     );
   };
+
+  // 데이터 로드 및 필터링
+  useEffect(() => {
+    fetchPosts();
+  }, [selectedCategory]);
+
+  useEffect(() => {
+    filterPosts();
+  }, [posts, selectedCategory, searchQuery]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
@@ -319,61 +331,118 @@ const PlaygroundPage = () => {
               {searchQuery ? `"${searchQuery}"에 대한 검색 결과가 없습니다.` : "게시글이 없습니다."}
             </div>
           ) : (
-            filteredPosts.map((post) => (
-              <Card key={post.id} className="hover:shadow-lg transition-shadow">
-                <CardContent className="p-6">
-                  <Link to={`/playground/post/${post.id}`} className="block">
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          {post.ishot && (
-                            <Badge className="bg-red-100 text-red-800">
-                              <TrendingUp className="w-3 h-3 mr-1" />
-                              HOT
-                            </Badge>
-                          )}
-                          <Badge className={getCategoryColor(post.category)}>
-                            {post.category}
-                          </Badge>
-                        </div>
-                        <h3 className="text-lg font-semibold text-slate-900 mb-2 hover:text-blue-600 transition-colors">
-                          {highlightSearchTerm(post.title, searchQuery)}
-                        </h3>
-                        <p className="text-slate-600 text-sm line-clamp-2 mb-3">
-                          {highlightSearchTerm(post.content, searchQuery)}
-                        </p>
-                        <div className="flex items-center justify-between text-sm text-slate-500">
-                          <div className="flex items-center gap-4">
-                            <div className="flex items-center gap-1">
-                              <User className="w-4 h-4" />
-                              {post.member_user_id}
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <Clock className="w-4 h-4" />
-                              {formatTimeAgo(post.created_at)}
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-4">
-                            <div className="flex items-center gap-1">
-                              <Eye className="w-4 h-4" />
-                              {post.views.toLocaleString()}
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <Heart className="w-4 h-4" />
-                              {post.likes}
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <MessageSquare className="w-4 h-4" />
-                              {post.answers_count}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
+            <>
+              {/* 페이징 계산 */}
+              {(() => {
+                const totalPages = Math.ceil(filteredPosts.length / itemsPerPage);
+                const startIndex = (currentPage - 1) * itemsPerPage;
+                const endIndex = startIndex + itemsPerPage;
+                const currentPosts = filteredPosts.slice(startIndex, endIndex);
+
+                // 페이지 변경 핸들러
+                const handlePageChange = (page: number) => {
+                  setCurrentPage(page);
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                };
+
+                return (
+                  <>
+                    <div className="space-y-4">
+                      {currentPosts.map((post) => (
+                        <Card key={post.id} className="hover:shadow-lg transition-shadow">
+                          <CardContent className="p-6">
+                            <Link to={`/playground/post/${post.id}`} className="block">
+                              <div className="flex items-start justify-between mb-3">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    {post.ishot && (
+                                      <Badge className="bg-red-100 text-red-800">
+                                        <TrendingUp className="w-3 h-3 mr-1" />
+                                        HOT
+                                      </Badge>
+                                    )}
+                                    <Badge className={getCategoryColor(post.category)}>
+                                      {post.category}
+                                    </Badge>
+                                  </div>
+                                  <h3 className="text-lg font-semibold text-slate-900 mb-2 hover:text-blue-600 transition-colors">
+                                    {highlightSearchTerm(post.title, searchQuery)}
+                                  </h3>
+                                  <p className="text-slate-600 text-sm line-clamp-2 mb-3">
+                                    {highlightSearchTerm(post.content, searchQuery)}
+                                  </p>
+                                  <div className="flex items-center justify-between text-sm text-slate-500">
+                                    <div className="flex items-center gap-4">
+                                      <div className="flex items-center gap-1">
+                                        <User className="w-4 h-4" />
+                                        {post.member_user_id}
+                                      </div>
+                                      <div className="flex items-center gap-1">
+                                        <Clock className="w-4 h-4" />
+                                        {formatTimeAgo(post.created_at)}
+                                      </div>
+                                    </div>
+                                    <div className="flex items-center gap-4">
+                                      <div className="flex items-center gap-1">
+                                        <Eye className="w-4 h-4" />
+                                        {post.views.toLocaleString()}
+                                      </div>
+                                      <div className="flex items-center gap-1">
+                                        <Heart className="w-4 h-4" />
+                                        {post.likes}
+                                      </div>
+                                      <div className="flex items-center gap-1">
+                                        <MessageSquare className="w-4 h-4" />
+                                        {post.answers_count}
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </Link>
+                          </CardContent>
+                        </Card>
+                      ))}
                     </div>
-                  </Link>
-                </CardContent>
-              </Card>
-            ))
+
+                    {/* 페이징 */}
+                    {totalPages > 1 && (
+                      <div className="flex justify-center mt-8">
+                        <Pagination>
+                          <PaginationContent>
+                            <PaginationItem>
+                              <PaginationPrevious 
+                                onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
+                                className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                              />
+                            </PaginationItem>
+                            
+                            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                              <PaginationItem key={page}>
+                                <PaginationLink
+                                  onClick={() => handlePageChange(page)}
+                                  isActive={currentPage === page}
+                                  className="cursor-pointer"
+                                >
+                                  {page}
+                                </PaginationLink>
+                              </PaginationItem>
+                            ))}
+                            
+                            <PaginationItem>
+                              <PaginationNext 
+                                onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
+                                className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                              />
+                            </PaginationItem>
+                          </PaginationContent>
+                        </Pagination>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
+            </>
           )}
         </div>
 
@@ -416,6 +485,7 @@ const PlaygroundPage = () => {
           </Card>
         </div>
       </div>
+      
       <Footer />
       
       {/* 글쓰기 모달 */}
