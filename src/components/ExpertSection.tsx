@@ -14,8 +14,11 @@ const ExpertSection = () => {
   const navigate = useNavigate();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   
-  // 실제 experts 테이블에서 데이터 가져오기
-  const { experts, loading, error } = useExperts();
+  // 실제 experts 테이블에서 데이터 가져오기 (메인페이지용 전문가만)
+  const { experts: allExperts, loading, error } = useExperts();
+  
+  // 메인페이지에 노출할 전문가만 필터링 (is_featured가 true인 전문가들)
+  const experts = allExperts.filter(expert => expert.is_featured === true);
 
   // 자동 스크롤 상태
   const [isAutoScrolling, setIsAutoScrolling] = useState(true);
@@ -263,7 +266,7 @@ const ExpertSection = () => {
                     {/* 코칭 신청 버튼 */}
                     <Button 
                       className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-semibold py-2 rounded-lg transition-all duration-300 hover:scale-105 text-sm"
-                      onClick={() => navigate('/coaching/application', { 
+                      onClick={() => navigate('/coaching/apply', { 
                         state: { 
                           expertId: expert.user_id, 
                           expertName: expert.expert_name, 

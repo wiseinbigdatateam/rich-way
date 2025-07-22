@@ -37,12 +37,14 @@ const CoachingPage = () => {
     finance: ExpertWithProducts[];
     business: ExpertWithProducts[];
     retirement: ExpertWithProducts[];
+    insurance: ExpertWithProducts[];
   }>({
     realestate: [],
     tax: [],
     finance: [],
     business: [],
-    retirement: []
+    retirement: [],
+    insurance: []
   });
 
   // 전문가별 상품 정보를 가져오는 함수
@@ -80,7 +82,8 @@ const CoachingPage = () => {
           tax: expertsWithProducts.filter(expert => expert.main_field === '세무절세'),
           finance: expertsWithProducts.filter(expert => expert.main_field === '금융레버리지'),
           business: expertsWithProducts.filter(expert => expert.main_field === '사업'),
-          retirement: expertsWithProducts.filter(expert => expert.main_field === '은퇴설계')
+          retirement: expertsWithProducts.filter(expert => expert.main_field === '은퇴설계'),
+          insurance: expertsWithProducts.filter(expert => expert.main_field === '보험')
         };
         
         setCoachingData(categorizedExperts);
@@ -436,13 +439,13 @@ const CoachingPage = () => {
         <div className="mb-8">
           <h2 className="text-3xl font-bold text-center mb-4">전문 분야별 코칭</h2>
           <p className="text-gray-600 text-center max-w-2xl mx-auto">
-            부동산, 세무절세, 금융레버리지, 사업, 은퇴설계 등 다양한 분야의 전문가들이 
+            부동산, 세무절세, 금융레버리지, 사업, 은퇴설계, 보험 등 다양한 분야의 전문가들이 
             당신의 상황에 맞는 최적의 솔루션을 제공합니다.
           </p>
         </div>
 
         <Tabs defaultValue="all" className="w-full" onValueChange={() => setCurrentPage(1)}>
-          <TabsList className="grid w-full grid-cols-6 mb-8">
+          <TabsList className="grid w-full grid-cols-7 mb-8">
             <TabsTrigger value="all" className="flex items-center gap-2">
               <Users className="w-4 h-4" />
               전체
@@ -467,6 +470,10 @@ const CoachingPage = () => {
               <PiggyBank className="w-4 h-4" />
               은퇴설계
             </TabsTrigger>
+            <TabsTrigger value="insurance" className="flex items-center gap-2">
+              <Shield className="w-4 h-4" />
+              보험
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="all">
@@ -475,7 +482,8 @@ const CoachingPage = () => {
               ...displayData.tax,
               ...displayData.finance,
               ...displayData.business,
-              ...displayData.retirement
+              ...displayData.retirement,
+              ...displayData.insurance
             ]} />
           </TabsContent>
           
@@ -497,6 +505,10 @@ const CoachingPage = () => {
           
           <TabsContent value="retirement">
             <TabContent category="은퇴설계" experts={displayData.retirement} />
+          </TabsContent>
+          
+          <TabsContent value="insurance">
+            <TabContent category="보험" experts={displayData.insurance} />
           </TabsContent>
         </Tabs>
       </div>

@@ -22,11 +22,12 @@ export interface Expert {
   expertise_detail?: string;
   experience_years?: number;
   status: string;
+  is_featured?: boolean;
   created_at: string;
   updated_at: string;
 }
 
-export const useExperts = (expertType?: string) => {
+export const useExperts = (expertType?: string, featuredOnly: boolean = false) => {
   const [experts, setExperts] = useState<Expert[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -37,14 +38,10 @@ export const useExperts = (expertType?: string) => {
       setError(null);
 
       // 활성 상태인 전문가만 조회
-      let query = supabase
+      const { data, error } = await supabase
         .from('experts')
-        .select('*');
-
-      // 상태 필터링
-      query = query.eq('status', '활성');
-
-      const { data, error } = await query;
+        .select('*')
+        .eq('status', '활성');
 
       if (error) {
         console.error('전문가 데이터 조회 오류:', error);
@@ -56,6 +53,13 @@ export const useExperts = (expertType?: string) => {
       let filteredData = data || [];
       
       if (filteredData.length > 0) {
+        // 메인페이지용 필터링 (featuredOnly가 true인 경우)
+        if (featuredOnly) {
+          filteredData = filteredData.filter((expert: any) => 
+            expert.is_featured === true
+          );
+        }
+
         // 전문 분야별 필터링 (expertType이 main_field와 일치하는 경우)
         if (expertType) {
           filteredData = filteredData.filter((expert: any) => 
@@ -80,7 +84,7 @@ export const useExperts = (expertType?: string) => {
 
   useEffect(() => {
     fetchExperts();
-  }, [expertType]);
+  }, [expertType, featuredOnly]);
 
   return {
     experts,

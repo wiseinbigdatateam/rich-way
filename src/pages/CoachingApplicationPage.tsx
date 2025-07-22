@@ -72,6 +72,11 @@ const CoachingApplicationPage = () => {
   const [fileUploading, setFileUploading] = useState(false);
   const [fileUrl, setFileUrl] = useState("");
 
+  // 페이지 로드 시 스크롤을 맨 위로 이동
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   // 전문가별 상품 정보 가져오기
   useEffect(() => {
     const fetchExpertProducts = async () => {

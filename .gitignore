@@ -28,6 +28,7 @@ dist-ssr
 scripts/local-check.sh
 scripts/deploy-aws.sh
 scripts/deploy-dev.sh
+scripts/deploy-prod.sh
 scripts/build-production.sh
 
 # 메모리 분석 파일
