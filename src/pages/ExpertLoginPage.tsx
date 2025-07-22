@@ -1,6 +1,7 @@
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/lib/supabase";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,21 +24,48 @@ const ExpertLoginPage = () => {
     setError("");
     setIsLoading(true);
 
-    // 임시 로그인 검증
-    if (formData.username === "expert" && formData.password === "1111") {
+    try {
+      // 실제 데이터베이스에서 전문가 계정 확인
+      const { data, error } = await supabase
+        .from('experts')
+        .select('*');
+
+      if (error) {
+        setError("데이터베이스 연결 오류가 발생했습니다.");
+        setIsLoading(false);
+        return;
+      }
+
+      // 클라이언트 사이드에서 로그인 검증
+      const expert = data?.find((expert: any) => 
+        expert.user_id === formData.username && 
+        expert.password === formData.password && 
+        expert.status === '활성'
+      );
+
+      if (!expert) {
+        setError("아이디 또는 비밀번호가 올바르지 않습니다.");
+        setIsLoading(false);
+        return;
+      }
+
       // 전문가 로그인 성공
       localStorage.setItem("expertAuth", "true");
       localStorage.setItem("expertInfo", JSON.stringify({
-        name: "김전문가",
-        specialty: "부동산 투자 전문가",
+        user_id: expert.user_id,
+        name: expert.expert_name,
+        specialty: expert.main_field,
+        company: expert.company_name,
         avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face"
       }));
+      
       navigate("/expert");
-    } else {
-      setError("아이디 또는 비밀번호가 올바르지 않습니다.");
+    } catch (err) {
+      console.error('로그인 중 오류:', err);
+      setError("로그인 중 오류가 발생했습니다.");
+    } finally {
+      setIsLoading(false);
     }
-    
-    setIsLoading(false);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -125,6 +153,12 @@ const ExpertLoginPage = () => {
                 전문가 등록 신청
               </Button>
             </p>
+            <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+              <p className="text-xs text-gray-500 mb-2">테스트 계정:</p>
+              <p className="text-xs text-gray-600">아이디: expert14 / 비밀번호: expert14</p>
+              <p className="text-xs text-gray-600">아이디: expert13 / 비밀번호: expert13</p>
+              <p className="text-xs text-gray-600">아이디: expert12 / 비밀번호: expert12</p>
+            </div>
           </div>
         </CardContent>
       </Card>
