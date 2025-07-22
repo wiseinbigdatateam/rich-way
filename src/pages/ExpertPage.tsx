@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { useCoachingApplications } from "@/hooks/useCoachingApplications";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -45,12 +46,12 @@ type SortOrder = "asc" | "desc";
 const ExpertPage = () => {
   const navigate = useNavigate();
   const [expertInfo, setExpertInfo] = useState<any>(null);
-  const [consultations, setConsultations] = useState<ConsultationRequest[]>([]);
   const [newNotifications, setNewNotifications] = useState(3);
   const [searchTerm, setSearchTerm] = useState("");
   const [searchType, setSearchType] = useState("전체");
   const [sortField, setSortField] = useState<SortField>("id");
   const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
+  const [consultations, setConsultations] = useState<ConsultationRequest[]>([]);
 
   useEffect(() => {
     // 전문가 인증 확인
@@ -321,20 +322,68 @@ const ExpertPage = () => {
     setConsultations(mockConsultations);
   }, [navigate]);
 
-  const handleStatusChange = (id: number, newStatus: "접수" | "진행중" | "진행완료") => {
-    setConsultations(prev =>
-      prev.map(consultation =>
-        consultation.id === id
-          ? { ...consultation, status: newStatus }
-          : consultation
-      )
-    );
+  const handleStatusChange = async (id: number, newStatus: "접수" | "진행중" | "진행완료") => {
+    try {
+      // 로컬 상태 업데이트
+      setConsultations(prev =>
+        prev.map(consultation =>
+          consultation.id === id
+            ? { ...consultation, status: newStatus }
+            : consultation
+        )
+      );
+      
+      // 히스토리에 상태 변경 기록 추가
+      const consultation = consultations.find(c => c.id === id);
+      if (consultation) {
+        const historyItem = {
+          id: Date.now(),
+          date: new Date().toISOString().split('T')[0],
+          title: `상태 변경: ${newStatus}`,
+          content: `${consultation.applicant}님의 상담 상태가 ${newStatus}로 변경되었습니다.`,
+          status: newStatus
+        };
+        
+        setConsultations(prev =>
+          prev.map(c =>
+            c.id === id
+              ? { ...c, history: [...c.history, historyItem] }
+              : c
+          )
+        );
+      }
+    } catch (error) {
+      console.error('상태 변경 중 오류:', error);
+    }
   };
 
   const handleLogout = () => {
     localStorage.removeItem("expertAuth");
     localStorage.removeItem("expertInfo");
     navigate("/expert/login");
+  };
+
+  const handleAddHistory = (consultationId: number) => {
+    const title = prompt("히스토리 제목을 입력하세요:");
+    const content = prompt("히스토리 내용을 입력하세요:");
+    
+    if (title && content) {
+      const historyItem = {
+        id: Date.now(),
+        date: new Date().toISOString().split('T')[0],
+        title,
+        content,
+        status: "진행중" as const
+      };
+      
+      setConsultations(prev =>
+        prev.map(c =>
+          c.id === consultationId
+            ? { ...c, history: [...c.history, historyItem] }
+            : c
+        )
+      );
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -770,6 +819,15 @@ const ExpertPage = () => {
                               {consultation.applicant}님의 이전 상담 내역입니다.
                             </DialogDescription>
                           </DialogHeader>
+                          <div className="flex justify-end mb-4">
+                            <Button 
+                              size="sm" 
+                              onClick={() => handleAddHistory(consultation.id)}
+                              className="bg-blue-600 hover:bg-blue-700"
+                            >
+                              히스토리 추가
+                            </Button>
+                          </div>
                           <div className="space-y-4">
                             {consultation.history.length > 0 ? (
                               consultation.history.map((historyItem) => (
