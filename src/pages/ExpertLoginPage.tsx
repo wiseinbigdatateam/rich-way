@@ -149,7 +149,11 @@ const ExpertLoginPage = () => {
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600">
               계정이 없으신가요?{" "}
-              <Button variant="link" className="p-0 h-auto">
+              <Button 
+                variant="link" 
+                className="p-0 h-auto"
+                onClick={() => navigate("/expert/register")}
+              >
                 전문가 등록 신청
               </Button>
             </p>
