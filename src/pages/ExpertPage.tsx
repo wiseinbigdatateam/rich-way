@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { useCoachingApplications } from "@/hooks/useCoachingApplications";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -8,10 +9,12 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Bell, Eye, LogOut, User, History, ArrowUpDown, Download, FileText, CheckCircle, Clock, DollarSign } from "lucide-react";
+import { Bell, Eye, LogOut, User, History, ArrowUpDown, Download, FileText, CheckCircle, Clock, Banknote, X, Info, AlertTriangle, CheckCircle2, AlertCircle, Home } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/lib/supabase";
 
 interface ConsultationHistory {
-  id: number;
+  id: string; // uuid
   date: string;
   title: string;
   content: string;
@@ -36,7 +39,18 @@ interface ConsultationRequest {
   status: "접수" | "진행중" | "진행완료";
   applicationCount: number;
   priceType: "무료" | "디럭스" | "프리미엄";
+  productPrice: number; // 실제 product_price 추가
   history: ConsultationHistory[];
+  expertProfileImageUrl?: string; // 전문가 프로필 이미지 URL 추가
+}
+
+interface Notification {
+  id: string;
+  title: string;
+  message: string;
+  type: 'info' | 'warning' | 'success' | 'error';
+  is_read: boolean;
+  created_at: string;
 }
 
 type SortField = "id" | "date" | "applicant" | "applicationCount" | "priceType" | "field" | "status";
@@ -44,13 +58,16 @@ type SortOrder = "asc" | "desc";
 
 const ExpertPage = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [expertInfo, setExpertInfo] = useState<any>(null);
-  const [consultations, setConsultations] = useState<ConsultationRequest[]>([]);
-  const [newNotifications, setNewNotifications] = useState(3);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [showNotifications, setShowNotifications] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [searchType, setSearchType] = useState("전체");
   const [sortField, setSortField] = useState<SortField>("id");
   const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
+  // 실제 데이터베이스에서 코칭 신청 데이터 가져오기
+  const { applications, loading, error, updateApplicationStatus, addCoachingHistory, getCoachingHistory } = useCoachingApplications(expertInfo?.user_id);
 
   useEffect(() => {
     // 전문가 인증 확인
@@ -62,279 +79,345 @@ const ExpertPage = () => {
 
     const expertData = localStorage.getItem("expertInfo");
     if (expertData) {
-      setExpertInfo(JSON.parse(expertData));
+      const parsedData = JSON.parse(expertData);
+      console.log('전문가 정보:', parsedData); // 디버깅 로그 추가
+      
+      // localStorage의 데이터를 최신 데이터베이스 정보로 업데이트
+      const updateExpertInfo = async () => {
+        try {
+          const { data, error } = await supabase
+            .from('experts')
+            .select('*')
+            .eq('user_id', parsedData.user_id);
+
+          if (error) {
+            console.error('전문가 정보 업데이트 오류:', error);
+            setExpertInfo(parsedData); // 기존 데이터 사용
+            return;
+          }
+
+          if (data && data.length > 0) {
+            const expert = data[0];
+            // 최신 데이터로 localStorage 업데이트
+            const updatedExpertInfo = {
+              user_id: expert.user_id,
+              name: expert.expert_name,
+              specialty: expert.main_field,
+              company: expert.company_name,
+              avatar: expert.profile_image_url || null
+            };
+            
+            localStorage.setItem("expertInfo", JSON.stringify(updatedExpertInfo));
+            setExpertInfo(updatedExpertInfo);
+            console.log('업데이트된 전문가 정보:', updatedExpertInfo);
+          } else {
+            setExpertInfo(parsedData); // 기존 데이터 사용
+          }
+        } catch (err) {
+          console.error('전문가 정보 업데이트 중 오류:', err);
+          setExpertInfo(parsedData); // 기존 데이터 사용
+        }
+      };
+
+      updateExpertInfo();
     }
-
-    // Enhanced mock consultation data with new fields
-    const mockConsultations: ConsultationRequest[] = [
-      {
-        id: 1,
-        date: "2024-12-18",
-        applicant: "홍길동",
-        name: "홍길동",
-        phone: "010-1234-5678",
-        email: "hong@example.com",
-        consultationTitle: "부동산 투자 시작하기",
-        consultationContent: "서울 지역 아파트 투자에 대한 전반적인 상담을 원합니다. 투자 금액은 5억 정도를 생각하고 있으며, 안정적인 수익을 기대합니다.",
-        consultationMethod: "화상",
-        field: "부동산 투자",
-        experience: "부동산 투자 경험이 전혀 없는 초보자입니다.",
-        goals: "서울에 내 집 마련이 목표이며, 추후 투자도 고려하고 있습니다.",
-        expectations: "실무 경험이 풍부한 전문가로부터 실질적인 조언을 얻고 싶습니다.",
-        attachmentFile: "부동산_관심지역.pdf",
-        status: "접수",
-        applicationCount: 1,
-        priceType: "무료",
-        history: []
-      },
-      {
-        id: 2,
-        date: "2024-12-17",
-        applicant: "김영희",
-        name: "김영희",
-        phone: "010-2345-6789",
-        email: "kim@example.com",
-        consultationTitle: "개인사업자 세무 최적화",
-        consultationContent: "프리랜서에서 개인사업자로 전환하면서 세무 관리가 복잡해졌습니다. 효율적인 절세 방안을 찾고 싶습니다.",
-        consultationMethod: "전화",
-        field: "세무/절세",
-        experience: "개인사업자로 3년차이며, 세무 관리에 어려움을 겪고 있습니다.",
-        goals: "효율적인 세무 관리와 절세 방안을 찾고 싶습니다.",
-        expectations: "실무적인 절세 팁과 체계적인 세무 관리 방법을 배우고 싶습니다.",
-        status: "진행중",
-        applicationCount: 2,
-        priceType: "디럭스",
-        history: [
-          {
-            id: 1,
-            date: "2024-11-15",
-            title: "세무 기초 상담",
-            content: "개인사업자 세무 신고 방법에 대한 기본 상담",
-            status: "진행완료"
-          }
-        ]
-      },
-      {
-        id: 3,
-        date: "2024-12-16",
-        applicant: "박민수",
-        name: "박민수",
-        phone: "010-3456-7890",
-        email: "park@example.com",
-        consultationTitle: "노후 자금 마련 전략",
-        consultationContent: "40대 중반으로 본격적인 노후 준비를 시작하고 싶습니다. 현재 자산 상황을 점검하고 체계적인 계획을 세우고 싶습니다.",
-        consultationMethod: "방문",
-        field: "자산관리/재무설계",
-        experience: "직장인 5년차로 자산 관리를 체계적으로 시작하고 싶습니다.",
-        goals: "은퇴 후 안정적인 노후 자금 마련이 목표입니다.",
-        expectations: "개인 상황에 맞는 맞춤형 재무 설계를 받고 싶습니다.",
-        attachmentFile: "현재자산현황.xlsx",
-        status: "진행완료",
-        applicationCount: 3,
-        priceType: "프리미엄",
-        history: [
-          {
-            id: 1,
-            date: "2024-10-20",
-            title: "재무 진단 상담",
-            content: "현재 자산 상황 분석 및 기본 재무 계획 수립",
-            status: "진행완료"
-          },
-          {
-            id: 2,
-            date: "2024-11-25",
-            title: "투자 포트폴리오 구성",
-            content: "위험도별 투자 상품 추천 및 포트폴리오 구성 방안",
-            status: "진행완료"
-          }
-        ]
-      },
-      {
-        id: 4,
-        date: "2024-12-15",
-        applicant: "이수진",
-        name: "이수진",
-        phone: "010-4567-8901",
-        email: "lee@example.com",
-        consultationTitle: "상속세 절세 전략",
-        consultationContent: "부모님 소유 부동산 상속 준비 과정에서 상속세 부담을 최소화할 수 있는 방안을 찾고 있습니다.",
-        consultationMethod: "화상",
-        field: "상속/증여 설계",
-        experience: "부모님께서 부동산을 소유하고 계시며, 상속 준비가 필요합니다.",
-        goals: "상속세 부담을 최소화하면서 원활한 상속을 진행하고 싶습니다.",
-        expectations: "상속세 절세 방안과 증여 시기에 대한 조언을 받고 싶습니다.",
-        status: "접수",
-        applicationCount: 1,
-        priceType: "프리미엄",
-        history: []
-      },
-      {
-        id: 5,
-        date: "2024-12-14",
-        applicant: "정하늘",
-        name: "정하늘",
-        phone: "010-5678-9012",
-        email: "jung@example.com",
-        consultationTitle: "최적 주택담보대출 상담",
-        consultationContent: "신혼부부로 첫 주택 구매를 위한 대출 상담이 필요합니다. 다양한 대출 상품 비교와 최적 조건을 찾고 싶습니다.",
-        consultationMethod: "전화",
-        field: "대출 구조/실행",
-        experience: "첫 주택 구매를 위해 대출을 알아보고 있습니다.",
-        goals: "최적의 대출 조건으로 내집마련을 하고 싶습니다.",
-        expectations: "대출 상품 비교와 최적 조건 선택에 대한 조언을 받고 싶습니다.",
-        attachmentFile: "대출상품_비교표.pdf",
-        status: "진행중",
-        applicationCount: 2,
-        priceType: "디럭스",
-        history: [
-          {
-            id: 1,
-            date: "2024-11-10",
-            title: "주택담보대출 기초 상담",
-            content: "주택담보대출 종류와 금리 비교 상담",
-            status: "진행완료"
-          }
-        ]
-      },
-      {
-        id: 6,
-        date: "2024-12-13",
-        applicant: "최강호",
-        name: "최강호",
-        phone: "010-6789-0123",
-        email: "choi@example.com",
-        consultationTitle: "보험 포트폴리오 재구성",
-        consultationContent: "기존에 가입한 여러 보험을 점검하고 불필요한 중복을 제거하여 효율적인 보험 포트폴리오를 만들고 싶습니다.",
-        consultationMethod: "메시지",
-        field: "보험 리빌딩",
-        experience: "여러 보험에 가입되어 있지만 중복이나 과다 가입이 걱정됩니다.",
-        goals: "꼭 필요한 보장만 유지하며 보험료를 절약하고 싶습니다.",
-        expectations: "기존 보험 점검과 최적화 방안을 제시받고 싶습니다.",
-        status: "진행완료",
-        applicationCount: 1,
-        priceType: "무료",
-        history: []
-      },
-      {
-        id: 7,
-        date: "2024-12-12",
-        applicant: "강민지",
-        name: "강민지",
-        phone: "010-7890-1234",
-        email: "kang@example.com",
-        consultationTitle: "프리랜서 세무 전략",
-        consultationContent: "프리랜서 활동이 늘어나면서 복잡해진 세무 관리를 체계적으로 정리하고 절세 전략을 수립하고 싶습니다.",
-        consultationMethod: "화상",
-        field: "사업자/프리랜서 세무",
-        experience: "프리랜서로 활동 중이며 세무 관리가 복잡합니다.",
-        goals: "체계적인 세무 관리와 절세 방안을 찾고 싶습니다.",
-        expectations: "프리랜서에게 맞는 세무 전략과 절세 팁을 배우고 싶습니다.",
-        attachmentFile: "프리랜서_소득내역.xlsx",
-        status: "접수",
-        applicationCount: 3,
-        priceType: "프리미엄",
-        history: [
-          {
-            id: 1,
-            date: "2024-09-15",
-            title: "프리랜서 세무 기초",
-            content: "프리랜서 세무 신고 방법과 필요 서류 안내",
-            status: "진행완료"
-          },
-          {
-            id: 2,
-            date: "2024-10-30",
-            title: "부가세 신고 상담",
-            content: "부가세 신고 절차와 절세 방안 상담",
-            status: "진행완료"
-          }
-        ]
-      },
-      {
-        id: 8,
-        date: "2024-12-11",
-        applicant: "윤태현",
-        name: "윤태현",
-        phone: "010-8901-2345",
-        email: "yoon@example.com",
-        consultationTitle: "개인연금 최적화",
-        consultationContent: "현재 가입된 개인연금과 퇴직연금을 점검하고 더 나은 수익률을 위한 최적화 방안을 찾고 싶습니다.",
-        consultationMethod: "방문",
-        field: "노후/연금 준비",
-        experience: "40대 중반으로 노후 준비를 본격적으로 시작하려고 합니다.",
-        goals: "안정적인 노후 자금 마련과 연금 관리 방법을 알고 싶습니다.",
-        expectations: "개인연금과 퇴직연금 최적화 방안을 제시받고 싶습니다.",
-        status: "진행중",
-        applicationCount: 1,
-        priceType: "디럭스",
-        history: []
-      },
-      {
-        id: 9,
-        date: "2024-12-10",
-        applicant: "임소영",
-        name: "임소영",
-        phone: "010-9012-3456",
-        email: "lim@example.com",
-        consultationTitle: "소액 부동산 투자 가이드",
-        consultationContent: "적은 자본으로 시작할 수 있는 안전한 부동산 투자 방법을 알고 싶습니다. 리스크 관리가 중요합니다.",
-        consultationMethod: "전화",
-        field: "부동산 투자",
-        experience: "소액으로 부동산 투자를 시작하고 싶은 초보 투자자입니다.",
-        goals: "안전하면서도 수익성 있는 부동산 투자를 하고 싶습니다.",
-        expectations: "초보자에게 적합한 투자 전략과 위험 관리 방법을 배우고 싶습니다.",
-        status: "진행완료",
-        applicationCount: 2,
-        priceType: "무료",
-        history: [
-          {
-            id: 1,
-            date: "2024-11-05",
-            title: "부동산 투자 입문",
-            content: "부동산 투자 기초 지식과 시장 분석 방법",
-            status: "진행완료"
-          }
-        ]
-      },
-      {
-        id: 10,
-        date: "2024-12-09",
-        applicant: "송준호",
-        name: "송준호",
-        phone: "010-0123-4567",
-        email: "song@example.com",
-        consultationTitle: "신혼부부 재무계획",
-        consultationContent: "결혼 후 체계적인 재정 관리 방법과 내집마련, 자녀 교육비까지 고려한 장기 재무 계획을 세우고 싶습니다.",
-        consultationMethod: "화상",
-        field: "자산관리/재무설계",
-        experience: "신혼부부로 체계적인 재정 관리를 시작하려고 합니다.",
-        goals: "내집마련과 자녀 교육비 준비를 동시에 하고 싶습니다.",
-        expectations: "신혼부부에게 맞는 단계별 재무 계획을 세우고 싶습니다.",
-        attachmentFile: "가계부_3개월.xlsx",
-        status: "접수",
-        applicationCount: 1,
-        priceType: "디럭스",
-        history: []
-      }
-    ];
-
-    setConsultations(mockConsultations);
   }, [navigate]);
 
-  const handleStatusChange = (id: number, newStatus: "접수" | "진행중" | "진행완료") => {
-    setConsultations(prev =>
-      prev.map(consultation =>
-        consultation.id === id
-          ? { ...consultation, status: newStatus }
-          : consultation
-      )
-    );
+  // 알림 데이터 가져오기
+  useEffect(() => {
+    console.log('알림 데이터 가져오기 useEffect 실행:', { expertInfo });
+    if (expertInfo?.user_id) {
+      console.log('전문가 user_id 확인:', expertInfo.user_id);
+      fetchNotifications();
+    } else {
+      console.log('expertInfo.user_id가 없음');
+    }
+  }, [expertInfo?.user_id]);
+
+  // 데이터베이스에서 가져온 코칭 신청 데이터를 화면에 맞는 형태로 변환
+  const consultations = useMemo(() => {
+    return applications.map((app: any) => ({
+      id: app.id,
+      date: app.created_at?.split('T')[0] || new Date().toISOString().split('T')[0],
+      applicant: app.name || '알 수 없음',
+      name: app.name || '알 수 없음',
+      phone: app.contact || '알 수 없음',
+      email: app.email || '알 수 없음',
+      consultationTitle: app.title || '코칭 신청',
+      consultationContent: app.content || '상담 내용 없음',
+      consultationMethod: app.method || '전화',
+      field: '일반', // 실제 데이터베이스에 field 컬럼이 없으므로 기본값
+      experience: '경험 정보 없음', // 실제 데이터베이스에 experience 컬럼이 없으므로 기본값
+      goals: '목표 정보 없음', // 실제 데이터베이스에 goals 컬럼이 없으므로 기본값
+      expectations: '기대사항 정보 없음', // 실제 데이터베이스에 expectations 컬럼이 없으므로 기본값
+      attachmentFile: app.attachment_url || undefined,
+      status: app.status || '접수',
+      applicationCount: 1,
+      priceType: app.product_name === 'FREE' ? '무료' : app.product_name === 'DELUXE' ? '디럭스' : '프리미엄',
+      productPrice: app.product_price || 0, // 실제 product_price 추가
+      history: app.history || [],
+      expertProfileImageUrl: app.expert_profile_image_url || null // 전문가 프로필 이미지 URL 추가
+    }));
+  }, [applications]);
+
+  const handleStatusChange = async (id: string, newStatus: "접수" | "진행중" | "진행완료") => {
+    try {
+      // 데이터베이스에서 상태 업데이트
+      await updateApplicationStatus(id, newStatus);
+      
+      // 히스토리에 상태 변경 기록 추가
+      const consultation = consultations.find(c => c.id === id);
+      if (consultation) {
+        await addCoachingHistory(id, `상태 변경: ${newStatus}`, `${consultation.applicant}님의 상담 상태가 ${newStatus}로 변경되었습니다.`, newStatus);
+        
+        // 상태 변경 시 자동 알림 생성
+        const statusText = newStatus === '접수' ? '접수' : newStatus === '진행중' ? '진행중' : '완료';
+        await createNotification(
+          `상담 상태 변경`,
+          `${consultation.applicant}님의 상담이 ${statusText}로 변경되었습니다.`,
+          'success',
+          id
+        );
+      }
+      
+      toast({
+        title: "상태 변경 완료",
+        description: "상담 상태가 변경되었습니다.",
+      });
+    } catch (error) {
+      console.error('상담 상태 변경 중 오류 발생:', error);
+      toast({
+        title: "상태 변경 실패",
+        description: "상담 상태 변경에 실패했습니다.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleLogout = () => {
     localStorage.removeItem("expertAuth");
     localStorage.removeItem("expertInfo");
     navigate("/expert/login");
+  };
+
+  // 알림 관련 함수들
+  const fetchNotifications = async () => {
+    console.log('fetchNotifications 실행, expertInfo.user_id:', expertInfo?.user_id);
+    if (!expertInfo?.user_id) {
+      console.log('expertInfo.user_id가 없어서 fetchNotifications 중단');
+      return;
+    }
+
+    try {
+      console.log('Supabase에서 알림 데이터 조회 시작...');
+      console.log('조회할 expert_user_id:', expertInfo.user_id);
+      
+      const { data, error } = await supabase
+        .from('expert_notifications')
+        .select('*')
+        .eq('expert_user_id', expertInfo.user_id)
+        .order('created_at', { ascending: false });
+
+      console.log('Supabase 응답 - data:', data);
+      console.log('Supabase 응답 - error:', error);
+
+      if (error) {
+        console.error('알림 데이터 조회 오류:', error);
+        return;
+      }
+
+      console.log('알림 데이터 조회 결과:', data);
+      setNotifications(data || []);
+    } catch (err) {
+      console.error('알림 데이터 조회 중 예외 발생:', err);
+    }
+  };
+
+  const markNotificationAsRead = async (notificationId: string) => {
+    try {
+      const { error } = await supabase
+        .from('expert_notifications')
+        .update({ is_read: true })
+        .eq('id', notificationId);
+
+      if (error) {
+        console.error('알림 읽음 처리 오류:', error);
+        return;
+      }
+
+      setNotifications(prev => 
+        prev.map(notification => 
+          notification.id === notificationId 
+            ? { ...notification, is_read: true }
+            : notification
+        )
+      );
+    } catch (err) {
+      console.error('알림 읽음 처리 중 예외 발생:', err);
+    }
+  };
+
+  const markAllNotificationsAsRead = async () => {
+    if (!expertInfo?.user_id) return;
+
+    try {
+      const { error } = await supabase
+        .from('expert_notifications')
+        .update({ is_read: true })
+        .eq('expert_user_id', expertInfo.user_id)
+        .eq('is_read', false);
+
+      if (error) {
+        console.error('모든 알림 읽음 처리 오류:', error);
+        return;
+      }
+
+      setNotifications(prev => 
+        prev.map(notification => ({ ...notification, is_read: true }))
+      );
+
+      toast({
+        title: "알림 읽음 처리 완료",
+        description: "모든 알림을 읽음 처리했습니다.",
+      });
+    } catch (err) {
+      console.error('모든 알림 읽음 처리 중 예외 발생:', err);
+    }
+  };
+
+  const deleteNotification = async (notificationId: string) => {
+    try {
+      const { error } = await supabase
+        .from('expert_notifications')
+        .delete()
+        .eq('id', notificationId);
+
+      if (error) {
+        console.error('알림 삭제 오류:', error);
+        return;
+      }
+
+      setNotifications(prev => 
+        prev.filter(notification => notification.id !== notificationId)
+      );
+
+      toast({
+        title: "알림 삭제 완료",
+        description: "알림을 삭제했습니다.",
+      });
+    } catch (err) {
+      console.error('알림 삭제 중 예외 발생:', err);
+    }
+  };
+
+  // 새로운 알림 생성 함수
+  const createNotification = async (title: string, message: string, type: 'info' | 'warning' | 'success' | 'error' = 'info', relatedApplicationId?: string) => {
+    if (!expertInfo?.user_id) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('expert_notifications')
+        .insert({
+          expert_user_id: expertInfo.user_id,
+          title,
+          message,
+          type,
+          related_application_id: relatedApplicationId,
+          is_read: false,
+          created_at: new Date().toISOString()
+        })
+        .select();
+
+      if (error) {
+        console.error('알림 생성 오류:', error);
+        return;
+      }
+
+      // 새 알림을 목록 맨 위에 추가
+      if (data && data.length > 0) {
+        setNotifications(prev => [data[0], ...prev]);
+      }
+
+      console.log('새 알림 생성됨:', data);
+    } catch (err) {
+      console.error('알림 생성 중 예외 발생:', err);
+    }
+  };
+
+  // 읽지 않은 알림 개수
+  const unreadCount = notifications.filter(n => !n.is_read).length;
+  console.log('알림 상태:', { 
+    totalNotifications: notifications.length, 
+    unreadCount, 
+    notifications: notifications.map(n => ({ id: n.id, title: n.title, is_read: n.is_read }))
+  });
+
+  // 알림 타입별 아이콘
+  const getNotificationIcon = (type: string) => {
+    switch (type) {
+      case 'info': return <Info className="w-4 h-4 text-blue-500" />;
+      case 'warning': return <AlertTriangle className="w-4 h-4 text-yellow-500" />;
+      case 'success': return <CheckCircle2 className="w-4 h-4 text-green-500" />;
+      case 'error': return <AlertCircle className="w-4 h-4 text-red-500" />;
+      default: return <Info className="w-4 h-4 text-blue-500" />;
+    }
+  };
+
+  // 알림 타입별 배경색
+  const getNotificationBgColor = (type: string) => {
+    switch (type) {
+      case 'info': return 'bg-blue-50 border-blue-200';
+      case 'warning': return 'bg-yellow-50 border-yellow-200';
+      case 'success': return 'bg-green-50 border-green-200';
+      case 'error': return 'bg-red-50 border-red-200';
+      default: return 'bg-blue-50 border-blue-200';
+    }
+  };
+
+  const [showHistoryDialog, setShowHistoryDialog] = useState(false);
+  const [selectedConsultationId, setSelectedConsultationId] = useState<string>("");
+  const [newHistoryTitle, setNewHistoryTitle] = useState("");
+  const [newHistoryContent, setNewHistoryContent] = useState("");
+  const [newHistoryStatus, setNewHistoryStatus] = useState<"접수" | "진행중" | "진행완료">("진행중");
+
+  const handleAddHistory = async (consultationId: string) => {
+    setSelectedConsultationId(consultationId);
+    setNewHistoryTitle("");
+    setNewHistoryContent("");
+    setNewHistoryStatus("진행중");
+    setShowHistoryDialog(true);
+  };
+
+  const handleSaveHistory = async () => {
+    if (!newHistoryTitle.trim() || !newHistoryContent.trim()) {
+      toast({
+        title: "입력 오류",
+        description: "제목과 내용을 모두 입력해주세요.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      await addCoachingHistory(selectedConsultationId, newHistoryTitle, newHistoryContent, newHistoryStatus);
+      
+      toast({
+        title: "히스토리 추가 완료",
+        description: "히스토리가 성공적으로 추가되었습니다.",
+      });
+      
+      setShowHistoryDialog(false);
+      setNewHistoryTitle("");
+      setNewHistoryContent("");
+      setNewHistoryStatus("진행중");
+    } catch (error) {
+      console.error('히스토리 추가 중 오류 발생:', error);
+      toast({
+        title: "히스토리 추가 실패",
+        description: "히스토리 추가에 실패했습니다.",
+        variant: "destructive",
+      });
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -461,16 +544,11 @@ const ExpertPage = () => {
     const 진행중 = consultations.filter(c => c.status === "진행중").length;
     const 진행완료 = consultations.filter(c => c.status === "진행완료").length;
     
-    // Calculate revenue based on completed consultations and price types
+    // Calculate revenue based on actual product_price from database
     const 내수익 = consultations
       .filter(c => c.status === "진행완료")
       .reduce((total, c) => {
-        switch (c.priceType) {
-          case "무료": return total + 0;
-          case "디럭스": return total + 150000;
-          case "프리미엄": return total + 300000;
-          default: return total;
-        }
+        return total + (c.productPrice || 0);
       }, 0);
 
     return { 접수, 진행중, 진행완료, 내수익 };
@@ -499,14 +577,30 @@ const ExpertPage = () => {
               </div>
             </div>
             
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => window.open('/', '_blank')}
+                className="bg-blue-50 hover:bg-blue-100 border-blue-200 text-blue-700"
+                title="홈으로 (새창)"
+              >
+                <Home className="w-4 h-4" />
+              </Button>
+            </div>
+            
             <div className="flex items-center gap-4">
               <div className="relative">
-                <Button variant="outline" size="sm">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setShowNotifications(!showNotifications)}
+                >
                   <Bell className="w-4 h-4" />
                 </Button>
-                {newNotifications > 0 && (
+                {unreadCount > 0 && (
                   <Badge className="absolute -top-2 -right-2 bg-red-500 text-white text-xs px-1 min-w-[20px] h-5 flex items-center justify-center">
-                    {newNotifications}
+                    {unreadCount}
                   </Badge>
                 )}
               </div>
@@ -520,10 +614,156 @@ const ExpertPage = () => {
         </div>
       </div>
 
+      {/* 알림 패널 */}
+      {showNotifications && (
+        <div className="absolute top-16 right-4 z-50 w-80 bg-white border border-gray-200 rounded-lg shadow-lg max-h-96 overflow-hidden">
+          <div className="p-4 border-b border-gray-200 bg-gray-50">
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold text-gray-900">알림</h3>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const title = prompt("알림 제목을 입력하세요:");
+                    const message = prompt("알림 내용을 입력하세요:");
+                    if (title && message) {
+                      createNotification(title, message, 'info');
+                    }
+                  }}
+                  className="text-xs"
+                >
+                  새 알림
+                </Button>
+                {unreadCount > 0 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={markAllNotificationsAsRead}
+                    className="text-xs"
+                  >
+                    모두 읽음
+                  </Button>
+                )}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowNotifications(false)}
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+          
+          <div className="max-h-80 overflow-y-auto">
+            {notifications.length === 0 ? (
+              <div className="p-4 text-center text-gray-500">
+                <Bell className="w-8 h-8 mx-auto mb-2 text-gray-300" />
+                <p>알림이 없습니다</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-gray-100">
+                {notifications.map((notification) => (
+                  <div
+                    key={notification.id}
+                    className={`p-4 hover:bg-gray-50 transition-colors ${
+                      !notification.is_read ? 'bg-blue-50' : ''
+                    }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="flex-shrink-0 mt-1">
+                        {getNotificationIcon(notification.type)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <p className={`text-sm font-medium ${
+                            !notification.is_read ? 'text-gray-900' : 'text-gray-600'
+                          }`}>
+                            {notification.title}
+                          </p>
+                          <div className="flex items-center gap-1">
+                            {!notification.is_read && (
+                              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => deleteNotification(notification.id)}
+                              className="h-6 w-6 p-0 text-gray-400 hover:text-red-500"
+                            >
+                              <X className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        </div>
+                        <p className="text-sm text-gray-600 mt-1 line-clamp-2">
+                          {notification.message}
+                        </p>
+                        <p className="text-xs text-gray-400 mt-2">
+                          {new Date(notification.created_at).toLocaleString('ko-KR')}
+                        </p>
+                        {!notification.is_read && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => markNotificationAsRead(notification.id)}
+                            className="mt-2 h-6 text-xs text-blue-600 hover:text-blue-800"
+                          >
+                            읽음 처리
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Main content */}
       <div className="container mx-auto px-4 py-8">
         {/* Dashboard Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          {/* 테스트용 알림 생성 버튼 */}
+          <div className="md:col-span-4 mb-4">
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold">알림 관리</h3>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const title = prompt("알림 제목을 입력하세요:");
+                        const message = prompt("알림 내용을 입력하세요:");
+                        if (title && message) {
+                          createNotification(title, message, 'info');
+                        }
+                      }}
+                    >
+                      새 알림 생성
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        createNotification(
+                          "시스템 점검 안내",
+                          "오늘 밤 12시부터 2시간 동안 시스템 점검이 예정되어 있습니다.",
+                          'warning'
+                        );
+                      }}
+                    >
+                      테스트 알림
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
@@ -576,7 +816,7 @@ const ExpertPage = () => {
                   </p>
                 </div>
                 <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-                  <DollarSign className="w-6 h-6 text-purple-600" />
+                  <Banknote className="w-6 h-6 text-purple-600" />
                 </div>
               </div>
             </CardContent>
@@ -659,11 +899,24 @@ const ExpertPage = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredAndSortedConsultations.map((consultation) => (
+                {filteredAndSortedConsultations.map((consultation, index) => (
                   <TableRow key={consultation.id}>
-                    <TableCell className="font-medium">{consultation.id}</TableCell>
+                    <TableCell className="font-medium">{index + 1}</TableCell>
                     <TableCell>{consultation.date}</TableCell>
-                    <TableCell>{consultation.applicant}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Avatar className="w-6 h-6">
+                          <AvatarImage 
+                            src={consultation.expertProfileImageUrl || undefined} 
+                            alt={consultation.applicant}
+                          />
+                          <AvatarFallback className="text-xs">
+                            {consultation.applicant.charAt(0)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span>{consultation.applicant}</span>
+                      </div>
+                    </TableCell>
                     <TableCell>
                       <Badge variant="outline">
                         {getApplicationCountText(consultation.applicationCount)}
@@ -758,9 +1011,9 @@ const ExpertPage = () => {
                     <TableCell>
                       <Dialog>
                         <DialogTrigger asChild>
-                          <Button variant="outline" size="sm" disabled={consultation.history.length === 0}>
+                          <Button variant="outline" size="sm">
                             <History className="w-4 h-4 mr-1" />
-                            히스토리
+                            히스토리 ({consultation.history.length})
                           </Button>
                         </DialogTrigger>
                         <DialogContent className="max-w-2xl">
@@ -770,22 +1023,53 @@ const ExpertPage = () => {
                               {consultation.applicant}님의 이전 상담 내역입니다.
                             </DialogDescription>
                           </DialogHeader>
+                          <div className="flex justify-end mb-4">
+                            <Button 
+                              size="sm" 
+                              onClick={() => handleAddHistory(consultation.id)}
+                              className="bg-blue-600 hover:bg-blue-700"
+                            >
+                              히스토리 추가
+                            </Button>
+                          </div>
                           <div className="space-y-4">
                             {consultation.history.length > 0 ? (
-                              consultation.history.map((historyItem) => (
-                                <div key={historyItem.id} className="border rounded-lg p-4">
-                                  <div className="flex justify-between items-start mb-2">
-                                    <h4 className="font-semibold">{historyItem.title}</h4>
-                                    <Badge className={getStatusColor(historyItem.status)}>
-                                      {historyItem.status}
-                                    </Badge>
+                              consultation.history
+                                .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                                .map((historyItem, index) => (
+                                  <div key={historyItem.id} className="border rounded-lg p-4 bg-white shadow-sm">
+                                    <div className="flex justify-between items-start mb-3">
+                                      <div className="flex items-center gap-2">
+                                        <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                                          <span className="text-sm font-semibold text-blue-600">{index + 1}</span>
+                                        </div>
+                                        <h4 className="font-semibold text-lg">{historyItem.title}</h4>
+                                      </div>
+                                      <Badge className={getStatusColor(historyItem.status)}>
+                                        {historyItem.status}
+                                      </Badge>
+                                    </div>
+                                    <div className="flex items-center gap-2 mb-3 text-sm text-gray-500">
+                                      <Clock className="w-4 h-4" />
+                                      <span>{new Date(historyItem.date).toLocaleDateString('ko-KR', {
+                                        year: 'numeric',
+                                        month: 'long',
+                                        day: 'numeric',
+                                        hour: '2-digit',
+                                        minute: '2-digit'
+                                      })}</span>
+                                    </div>
+                                    <div className="bg-gray-50 p-4 rounded-lg">
+                                      <p className="text-sm leading-relaxed whitespace-pre-wrap">{historyItem.content}</p>
+                                    </div>
                                   </div>
-                                  <p className="text-sm text-gray-600 mb-2">{historyItem.date}</p>
-                                  <p className="text-sm bg-gray-50 p-3 rounded">{historyItem.content}</p>
-                                </div>
-                              ))
+                                ))
                             ) : (
-                              <p className="text-center text-gray-500">이전 상담 내역이 없습니다.</p>
+                              <div className="text-center py-8">
+                                <History className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                                <p className="text-gray-500">이전 상담 내역이 없습니다.</p>
+                                <p className="text-sm text-gray-400 mt-1">히스토리 추가 버튼을 클릭하여 첫 번째 기록을 추가해보세요.</p>
+                              </div>
                             )}
                           </div>
                         </DialogContent>
@@ -814,6 +1098,59 @@ const ExpertPage = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* 히스토리 추가 다이얼로그 */}
+      <Dialog open={showHistoryDialog} onOpenChange={setShowHistoryDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>히스토리 추가</DialogTitle>
+            <DialogDescription>
+              새로운 코칭 히스토리를 추가합니다.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium">제목</label>
+              <Input
+                value={newHistoryTitle}
+                onChange={(e) => setNewHistoryTitle(e.target.value)}
+                placeholder="히스토리 제목을 입력하세요"
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium">상태</label>
+              <Select value={newHistoryStatus} onValueChange={(value: any) => setNewHistoryStatus(value)}>
+                <SelectTrigger className="mt-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="접수">접수</SelectItem>
+                  <SelectItem value="진행중">진행중</SelectItem>
+                  <SelectItem value="진행완료">진행완료</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-sm font-medium">내용</label>
+              <textarea
+                value={newHistoryContent}
+                onChange={(e) => setNewHistoryContent(e.target.value)}
+                placeholder="히스토리 내용을 입력하세요"
+                className="mt-1 w-full h-32 p-3 border border-gray-300 rounded-md resize-none"
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 mt-6">
+            <Button variant="outline" onClick={() => setShowHistoryDialog(false)}>
+              취소
+            </Button>
+            <Button onClick={handleSaveHistory}>
+              저장
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

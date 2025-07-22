@@ -28,6 +28,7 @@ const AdminLoginPage = lazy(() => import("./pages/AdminLoginPage"));
 const AdminPage = lazy(() => import("./pages/AdminPage"));
 const ExpertLoginPage = lazy(() => import("./pages/ExpertLoginPage"));
 const ExpertPage = lazy(() => import("./pages/ExpertPage"));
+const ExpertRegistrationPage = lazy(() => import("./pages/ExpertRegistrationPage"));
 const MyPage = lazy(() => import("./pages/MyPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const FinanceDiagnosisResultPage = lazy(() => import("./pages/FinanceDiagnosisResultPage"));
@@ -66,6 +67,7 @@ const App = () => (
             <Route path="/admin/login" element={<AdminLoginPage />} />
             <Route path="/admin" element={<AdminPage />} />
             <Route path="/expert/login" element={<ExpertLoginPage />} />
+            <Route path="/expert/register" element={<ExpertRegistrationPage />} />
             <Route path="/expert" element={<ExpertPage />} />
             <Route path="/mypage" element={<MyPage />} />
             <Route path="/terms" element={<TermsPage />} />

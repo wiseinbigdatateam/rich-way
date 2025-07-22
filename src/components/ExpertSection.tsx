@@ -105,18 +105,6 @@ const ExpertSection = () => {
     }
   };
 
-  // 기본 이미지 (profile_image_url이 없을 때 사용)
-  const getDefaultImage = (index: number) => {
-    const defaultImages = [
-      "/lovable-uploads/07086823-4f54-40cb-8cfb-5548fc641a12.png",
-      "/lovable-uploads/22739721-bbfa-4113-9b7d-c01dd26627c0.png",
-      "/lovable-uploads/07086823-4f54-40cb-8cfb-5548fc641a12.png",
-      "/lovable-uploads/22739721-bbfa-4113-9b7d-c01dd26627c0.png",
-      "/lovable-uploads/07086823-4f54-40cb-8cfb-5548fc641a12.png"
-    ];
-    return defaultImages[index % defaultImages.length];
-  };
-
   // 전문 분야별 색상 매핑
   const getFieldColor = (field: string) => {
     const colorMap: { [key: string]: string } = {
@@ -220,15 +208,29 @@ const ExpertSection = () => {
                 >
                   {/* 전문가 이미지 */}
                   <div className="relative h-64 overflow-hidden">
-                    <img 
-                      src={expert.profile_image_url || getDefaultImage(index)} 
-                      alt={expert.expert_name}
-                      className="w-full h-full object-cover object-top"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.src = getDefaultImage(index);
-                      }}
-                    />
+                    {expert.profile_image_url ? (
+                      <img 
+                        src={expert.profile_image_url} 
+                        alt={expert.expert_name}
+                        className="w-full h-full object-cover object-top"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                          target.nextElementSibling?.classList.remove('hidden');
+                        }}
+                      />
+                    ) : null}
+                    {/* 기본 placeholder (이미지가 없거나 로드 실패 시) */}
+                    <div className={`w-full h-full bg-gradient-to-br from-slate-200 to-slate-300 flex items-center justify-center ${expert.profile_image_url ? 'hidden' : ''}`}>
+                      <div className="text-center">
+                        <div className="w-16 h-16 bg-slate-400 rounded-full mx-auto mb-2 flex items-center justify-center">
+                          <span className="text-2xl font-bold text-white">
+                            {expert.expert_name?.charAt(0) || '?'}
+                          </span>
+                        </div>
+                        <p className="text-slate-600 text-sm font-medium">프로필 이미지</p>
+                      </div>
+                    </div>
                     <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
                     <div className={`absolute top-3 left-3 ${getFieldColor(expert.main_field)} text-white px-2 py-1 rounded-full text-xs font-semibold`}>
                       {expert.main_field}
