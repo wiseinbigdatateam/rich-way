@@ -2,12 +2,12 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 
 export interface CoachingApplication {
-  id: string;
+  id: string; // uuid
   expert_user_id: string;
   member_user_id: string;
   title: string;
   content: string;
-  method?: string;
+  method: '전화' | '화상' | '방문' | '메시지';
   name: string;
   contact: string;
   email: string;
@@ -16,26 +16,22 @@ export interface CoachingApplication {
   product_price: number;
   applied_at: string;
   paid_at?: string;
-  status: 'pending' | 'approved' | 'rejected' | 'completed' | 'cancelled';
+  status: '접수' | '진행중' | '진행완료';
   created_at: string;
   updated_at: string;
+  expert_profile_image_url?: string; // 전문가 프로필 이미지 URL 추가
 }
 
-export interface CoachingApplicationInput {
-  expert_user_id: string;
-  member_user_id: string;
+export interface CoachingHistory {
+  id: string; // uuid
+  application_id: string; // uuid
   title: string;
   content: string;
-  method?: string;
-  name: string;
-  contact: string;
-  email: string;
-  attachment_url?: string;
-  product_name: string;
-  product_price: number;
+  status: '접수' | '진행중' | '진행완료';
+  created_at: string;
 }
 
-export const useCoachingApplications = (userId?: string) => {
+export const useCoachingApplications = (expertId?: string) => {
   const [applications, setApplications] = useState<CoachingApplication[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -47,7 +43,12 @@ export const useCoachingApplications = (userId?: string) => {
 
       const { data, error } = await supabase
         .from('coaching_applications')
-        .select('*');
+        .select(`
+          *,
+          experts!fk_coaching_applications_expert_user_id (
+            profile_image_url
+          )
+        `);
 
       if (error) {
         console.error('코칭 신청 데이터 조회 오류:', error);
@@ -55,97 +56,150 @@ export const useCoachingApplications = (userId?: string) => {
         return;
       }
 
-      // 필터링을 클라이언트 사이드에서 처리
+      // 클라이언트 사이드에서 필터링 및 데이터 처리
       let filteredData = data || [];
       
-      if (userId && filteredData.length > 0) {
+      if (expertId && filteredData.length > 0) {
         filteredData = filteredData.filter((app: any) => 
-          app.member_user_id === userId || app.expert_user_id === userId
+          app.expert_user_id === expertId
         );
       }
-      
+
+      // 조인된 데이터 처리
+      const processedData = filteredData.map((app: any) => ({
+        ...app,
+        expert_profile_image_url: app.experts?.profile_image_url || null
+      }));
+
       // 신청일 기준 정렬
-      filteredData.sort((a: any, b: any) => 
-        new Date(b.applied_at).getTime() - new Date(a.applied_at).getTime()
+      processedData.sort((a: any, b: any) => 
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       );
 
-      setApplications(filteredData);
+      setApplications(processedData);
     } catch (err) {
-      console.error('코칭 신청 데이터 조회 중 오류:', err);
-      setError('코칭 신청 데이터를 불러오는데 실패했습니다.');
+      console.error('코칭 신청 데이터 조회 중 예외 발생:', err);
+      setError('코칭 신청 데이터 조회 중 오류가 발생했습니다.');
     } finally {
       setLoading(false);
     }
   };
 
-  const createApplication = async (applicationData: CoachingApplicationInput) => {
+  const updateApplicationStatus = async (applicationId: string, status: '접수' | '진행중' | '진행완료') => {
     try {
-      setError(null);
-
-      const { data, error } = await supabase
+      // 실제 DB 업데이트
+      const { error } = await supabase
         .from('coaching_applications')
-        .insert([applicationData])
-        .select()
-        .single();
+        .update({ 
+          status, 
+          updated_at: new Date().toISOString() 
+        })
+        .eq('id', applicationId);
 
       if (error) {
-        console.error('코칭 신청 생성 오류:', error);
-        setError('코칭 신청에 실패했습니다.');
-        return null;
+        console.error('상태 업데이트 오류:', error);
+        throw new Error('상태 업데이트에 실패했습니다.');
       }
 
-      // 새 신청이 생성되면 목록 새로고침
-      await fetchApplications();
-      
-      return data;
+      // 로컬 상태 업데이트
+      setApplications(prev =>
+        prev.map(app =>
+          app.id === applicationId
+            ? { ...app, status, updated_at: new Date().toISOString() }
+            : app
+        )
+      );
+
+      return true;
     } catch (err) {
-      console.error('코칭 신청 생성 중 오류:', err);
-      setError('코칭 신청에 실패했습니다.');
-      return null;
+      console.error('상태 업데이트 중 예외 발생:', err);
+      throw err;
     }
   };
 
-  const updateApplicationStatus = async (id: string, status: CoachingApplication['status']) => {
+  const addCoachingHistory = async (applicationId: string, title: string, content: string, status: '접수' | '진행중' | '진행완료') => {
     try {
-      setError(null);
-
-      const updateData: any = { status };
-      if (status === 'approved') {
-        updateData.paid_at = new Date().toISOString();
-      }
-
       const { error } = await supabase
-        .from('coaching_applications')
-        .update(updateData)
-        .eq('id', id);
+        .from('coaching_history')
+        .insert({
+          application_id: applicationId,
+          title,
+          content,
+          status,
+          created_at: new Date().toISOString()
+        });
 
       if (error) {
-        console.error('코칭 신청 상태 업데이트 오류:', error);
-        setError('상태 업데이트에 실패했습니다.');
-        return false;
+        console.error('히스토리 추가 오류:', error);
+        throw new Error('히스토리 추가에 실패했습니다.');
       }
 
-      // 상태가 업데이트되면 목록 새로고침
-      await fetchApplications();
-      
       return true;
     } catch (err) {
-      console.error('코칭 신청 상태 업데이트 중 오류:', err);
-      setError('상태 업데이트에 실패했습니다.');
-      return false;
+      console.error('히스토리 추가 중 예외 발생:', err);
+      throw err;
     }
+  };
+
+  const getCoachingHistory = async (applicationId: string): Promise<CoachingHistory[]> => {
+    try {
+      const { data, error } = await supabase
+        .from('coaching_history')
+        .select('*');
+
+      if (error) {
+        console.error('히스토리 조회 오류:', error);
+        throw new Error('히스토리 조회에 실패했습니다.');
+      }
+
+      // 클라이언트 사이드에서 필터링
+      let filteredData = data || [];
+      
+      if (filteredData.length > 0) {
+        filteredData = filteredData.filter((history: any) => 
+          history.application_id === applicationId
+        );
+      }
+
+      // 날짜 기준 정렬
+      filteredData.sort((a: any, b: any) => 
+        new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      );
+
+      return filteredData;
+    } catch (err) {
+      console.error('히스토리 조회 중 예외 발생:', err);
+      throw err;
+    }
+  };
+
+  const getApplicationStats = () => {
+    const 접수 = applications.filter(app => app.status === '접수').length;
+    const 진행중 = applications.filter(app => app.status === '진행중').length;
+    const 진행완료 = applications.filter(app => app.status === '진행완료').length;
+    
+    const 내수익 = applications
+      .filter(app => app.status === '진행완료')
+      .reduce((total, app) => {
+        // product_price 필드를 직접 사용
+        return total + (app.product_price || 0);
+      }, 0);
+
+    return { 접수, 진행중, 진행완료, 내수익 };
   };
 
   useEffect(() => {
     fetchApplications();
-  }, [userId]);
+  }, [expertId]);
 
   return {
     applications,
     loading,
     error,
-    createApplication,
+    fetchApplications,
     updateApplicationStatus,
-    refresh: fetchApplications
+    addCoachingHistory,
+    getCoachingHistory,
+    getApplicationStats
   };
 }; 
