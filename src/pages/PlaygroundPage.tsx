@@ -110,7 +110,7 @@ const PlaygroundPage = () => {
           .limit(20);
         
         if (result.data) {
-          data = result.data;
+        data = result.data;
         }
       }
 
@@ -349,59 +349,59 @@ const PlaygroundPage = () => {
                   <>
                     <div className="space-y-4">
                       {currentPosts.map((post) => (
-                        <Card key={post.id} className="hover:shadow-lg transition-shadow">
-                          <CardContent className="p-6">
-                            <Link to={`/playground/post/${post.id}`} className="block">
-                              <div className="flex items-start justify-between mb-3">
-                                <div className="flex-1">
-                                  <div className="flex items-center gap-2 mb-2">
-                                    {post.ishot && (
-                                      <Badge className="bg-red-100 text-red-800">
-                                        <TrendingUp className="w-3 h-3 mr-1" />
-                                        HOT
-                                      </Badge>
-                                    )}
-                                    <Badge className={getCategoryColor(post.category)}>
-                                      {post.category}
-                                    </Badge>
-                                  </div>
-                                  <h3 className="text-lg font-semibold text-slate-900 mb-2 hover:text-blue-600 transition-colors">
-                                    {highlightSearchTerm(post.title, searchQuery)}
-                                  </h3>
-                                  <p className="text-slate-600 text-sm line-clamp-2 mb-3">
-                                    {highlightSearchTerm(post.content, searchQuery)}
-                                  </p>
-                                  <div className="flex items-center justify-between text-sm text-slate-500">
-                                    <div className="flex items-center gap-4">
-                                      <div className="flex items-center gap-1">
-                                        <User className="w-4 h-4" />
-                                        {post.member_user_id}
-                                      </div>
-                                      <div className="flex items-center gap-1">
-                                        <Clock className="w-4 h-4" />
-                                        {formatTimeAgo(post.created_at)}
-                                      </div>
-                                    </div>
-                                    <div className="flex items-center gap-4">
-                                      <div className="flex items-center gap-1">
-                                        <Eye className="w-4 h-4" />
-                                        {post.views.toLocaleString()}
-                                      </div>
-                                      <div className="flex items-center gap-1">
-                                        <Heart className="w-4 h-4" />
-                                        {post.likes}
-                                      </div>
-                                      <div className="flex items-center gap-1">
-                                        <MessageSquare className="w-4 h-4" />
-                                        {post.answers_count}
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            </Link>
-                          </CardContent>
-                        </Card>
+              <Card key={post.id} className="hover:shadow-lg transition-shadow">
+                <CardContent className="p-6">
+                  <Link to={`/playground/post/${post.id}`} className="block">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          {post.ishot && (
+                            <Badge className="bg-red-100 text-red-800">
+                              <TrendingUp className="w-3 h-3 mr-1" />
+                              HOT
+                            </Badge>
+                          )}
+                          <Badge className={getCategoryColor(post.category)}>
+                            {post.category}
+                          </Badge>
+                        </div>
+                        <h3 className="text-lg font-semibold text-slate-900 mb-2 hover:text-blue-600 transition-colors">
+                          {highlightSearchTerm(post.title, searchQuery)}
+                        </h3>
+                        <p className="text-slate-600 text-sm line-clamp-2 mb-3">
+                          {highlightSearchTerm(post.content, searchQuery)}
+                        </p>
+                        <div className="flex items-center justify-between text-sm text-slate-500">
+                          <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-1">
+                              <User className="w-4 h-4" />
+                              {post.member_user_id}
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Clock className="w-4 h-4" />
+                              {formatTimeAgo(post.created_at)}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-1">
+                              <Eye className="w-4 h-4" />
+                              {post.views.toLocaleString()}
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Heart className="w-4 h-4" />
+                              {post.likes}
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <MessageSquare className="w-4 h-4" />
+                              {post.answers_count}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                </CardContent>
+              </Card>
                       ))}
                     </div>
 

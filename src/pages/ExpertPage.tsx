@@ -152,7 +152,7 @@ const ExpertPage = () => {
       expectations: '기대사항 정보 없음', // 실제 데이터베이스에 expectations 컬럼이 없으므로 기본값
       attachmentFile: app.attachment_url || undefined,
       status: app.status || '접수',
-      applicationCount: 1,
+        applicationCount: 1,
       priceType: app.product_name === 'FREE' ? '무료' : app.product_name === 'DELUXE' ? '디럭스' : '프리미엄',
       productPrice: app.product_price || 0, // 실제 product_price 추가
       history: app.history || [],
@@ -1045,10 +1045,10 @@ const ExpertPage = () => {
                                         </div>
                                         <h4 className="font-semibold text-lg">{historyItem.title}</h4>
                                       </div>
-                                      <Badge className={getStatusColor(historyItem.status)}>
-                                        {historyItem.status}
-                                      </Badge>
-                                    </div>
+                                    <Badge className={getStatusColor(historyItem.status)}>
+                                      {historyItem.status}
+                                    </Badge>
+                                  </div>
                                     <div className="flex items-center gap-2 mb-3 text-sm text-gray-500">
                                       <Clock className="w-4 h-4" />
                                       <span>{new Date(historyItem.date).toLocaleDateString('ko-KR', {
@@ -1062,8 +1062,8 @@ const ExpertPage = () => {
                                     <div className="bg-gray-50 p-4 rounded-lg">
                                       <p className="text-sm leading-relaxed whitespace-pre-wrap">{historyItem.content}</p>
                                     </div>
-                                  </div>
-                                ))
+                                </div>
+                              ))
                             ) : (
                               <div className="text-center py-8">
                                 <History className="w-12 h-12 text-gray-300 mx-auto mb-3" />

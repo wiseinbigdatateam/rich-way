@@ -209,17 +209,17 @@ const EducationSection = () => {
         </div>
 
         {/* Course Grid */}
-        {loading ? (
+          {loading ? (
           <div className="text-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
             <p className="text-lg text-slate-600">강의 정보를 불러오는 중...</p>
           </div>
-        ) : lectures.length === 0 ? (
+          ) : lectures.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-slate-600 mb-4">등록된 강의가 없습니다.</p>
             <Button onClick={() => navigate('/education')}>강의 등록하기</Button>
           </div>
-        ) : (
+          ) : (
           <div className="relative max-w-7xl mx-auto">
             {/* 자동 스크롤 제어 버튼 */}
             <div className="absolute top-4 right-4 z-20">
@@ -264,63 +264,63 @@ const EducationSection = () => {
               onMouseLeave={handleMouseLeave}
             >
               {lectures.map((lecture, index) => (
-                <Card 
-                  key={lecture.id} 
+              <Card 
+                key={lecture.id} 
                   className="flex-shrink-0 w-80 hover:shadow-lg transition-all duration-300 border border-gray-200 hover:border-blue-300 overflow-hidden cursor-pointer"
-                  onClick={() => handleLectureClick(lecture.id)}
-                >
-                  <div className="relative overflow-hidden">
-                    <img 
-                      src={lecture.thumbnail_url} 
-                      alt={lecture.title}
-                      className="w-full h-36 object-cover transition-transform duration-300 hover:scale-110"
-                      onError={(e) => {
-                        e.currentTarget.src = "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=400&h=200&fit=crop";
-                      }}
-                    />
+                onClick={() => handleLectureClick(lecture.id)}
+              >
+                <div className="relative overflow-hidden">
+                  <img 
+                    src={lecture.thumbnail_url} 
+                    alt={lecture.title}
+                    className="w-full h-36 object-cover transition-transform duration-300 hover:scale-110"
+                    onError={(e) => {
+                      e.currentTarget.src = "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=400&h=200&fit=crop";
+                    }}
+                  />
+                  <Badge 
+                    className="absolute top-3 left-3 bg-blue-600 text-white font-semibold px-2 py-1 text-xs"
+                  >
+                    {lecture.duration ? formatDuration(lecture.duration) : "시간 미정"}
+                  </Badge>
+                  {lecture.discount_price && (
                     <Badge 
-                      className="absolute top-3 left-3 bg-blue-600 text-white font-semibold px-2 py-1 text-xs"
+                      className="absolute top-3 right-3 bg-red-500 text-white font-semibold px-2 py-1 text-xs"
                     >
-                      {lecture.duration ? formatDuration(lecture.duration) : "시간 미정"}
+                      {getDiscountRate(lecture.price, lecture.discount_price)}% 할인
                     </Badge>
+                  )}
+                </div>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg leading-tight line-clamp-2 cursor-pointer">
+                    {lecture.title}
+                  </CardTitle>
+                  <div className="text-sm text-gray-600">
+                    {lecture.instructor_intro ? lecture.instructor_intro.split('은')[0] + '은' : '전문가'}
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-0 pb-3">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                    <span className="font-semibold">{lecture.averageRating ?? 0}</span>
+                    <span className="text-gray-500">({lecture.reviewCount ?? 0})</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-blue-600 font-bold text-lg">
+                      {lecture.discount_price ? lecture.discount_price.toLocaleString() : lecture.price.toLocaleString()}원
+                    </span>
                     {lecture.discount_price && (
-                      <Badge 
-                        className="absolute top-3 right-3 bg-red-500 text-white font-semibold px-2 py-1 text-xs"
-                      >
-                        {getDiscountRate(lecture.price, lecture.discount_price)}% 할인
-                      </Badge>
+                      <span className="text-gray-400 line-through text-sm">
+                        {lecture.price.toLocaleString()}원
+                      </span>
                     )}
                   </div>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-lg leading-tight line-clamp-2 cursor-pointer">
-                      {lecture.title}
-                    </CardTitle>
-                    <div className="text-sm text-gray-600">
-                      {lecture.instructor_intro ? lecture.instructor_intro.split('은')[0] + '은' : '전문가'}
-                    </div>
-                  </CardHeader>
-                  <CardContent className="pt-0 pb-3">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                      <span className="font-semibold">{lecture.averageRating ?? 0}</span>
-                      <span className="text-gray-500">({lecture.reviewCount ?? 0})</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-blue-600 font-bold text-lg">
-                        {lecture.discount_price ? lecture.discount_price.toLocaleString() : lecture.price.toLocaleString()}원
-                      </span>
-                      {lecture.discount_price && (
-                        <span className="text-gray-400 line-through text-sm">
-                          {lecture.price.toLocaleString()}원
-                        </span>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
+                </CardContent>
+              </Card>
               ))}
             </div>
           </div>
-        )}
+          )}
 
         {/* CTA Section */}
         <div 
