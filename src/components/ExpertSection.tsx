@@ -244,17 +244,17 @@ const ExpertSection = () => {
                     <div className="absolute bottom-3 left-3 right-3">
                       <h3 className="text-lg font-bold text-white mb-1">{expert.expert_name}</h3>
                       <p className="text-white/90 text-xs">{expert.company_name || expert.main_field}</p>
-                    </div>
-                  </div>
-                  
+                </div>
+              </div>
+              
                   {/* 전문가 정보 */}
                   <div className="p-4">
                     {/* 슬로건 */}
                     <div className="mb-3">
                       <p className="text-sm font-semibold text-slate-900 italic line-clamp-2">
                         "{expert.core_intro || `${expert.main_field} 전문가와 함께 성공하세요!`}"
-                      </p>
-                    </div>
+                  </p>
+                </div>
 
                     {/* 주요 업적 */}
                     <div className="mb-3">
@@ -286,10 +286,10 @@ const ExpertSection = () => {
                     >
                       코칭 신청하기
                     </Button>
-                  </div>
-                </Card>
-              ))}
-            </div>
+              </div>
+            </Card>
+          ))}
+        </div>
           </div>
         )}
 
