@@ -70,7 +70,7 @@ export const useCoachingApplications = (expertId?: string) => {
         ...app,
         expert_profile_image_url: app.experts?.profile_image_url || null
       }));
-
+      
       // 신청일 기준 정렬
       processedData.sort((a: any, b: any) => 
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
@@ -109,7 +109,7 @@ export const useCoachingApplications = (expertId?: string) => {
             : app
         )
       );
-
+      
       return true;
     } catch (err) {
       console.error('상태 업데이트 중 예외 발생:', err);
@@ -133,7 +133,7 @@ export const useCoachingApplications = (expertId?: string) => {
         console.error('히스토리 추가 오류:', error);
         throw new Error('히스토리 추가에 실패했습니다.');
       }
-
+      
       return true;
     } catch (err) {
       console.error('히스토리 추가 중 예외 발생:', err);

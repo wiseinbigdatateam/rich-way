@@ -133,210 +133,210 @@ const CoachingPage = () => {
     };
 
     return (
-      <div className="space-y-6">
-        {experts.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-gray-500 text-lg">해당 분야의 전문가가 준비 중입니다.</p>
-          </div>
-        ) : (
+    <div className="space-y-6">
+      {experts.length === 0 ? (
+        <div className="text-center py-12">
+          <p className="text-gray-500 text-lg">해당 분야의 전문가가 준비 중입니다.</p>
+        </div>
+      ) : (
           <>
             <div className="space-y-6">
               {currentExperts.map((expert) => (
-                <Card key={expert.id} className="hover:shadow-lg transition-shadow duration-300 border-2 border-gray-100 hover:border-blue-200">
-                  <CardHeader className="pb-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <Avatar className="w-16 h-16">
-                          <AvatarImage src={expert.profile_image_url} alt={expert.expert_name} />
-                          <AvatarFallback>{expert.expert_name.charAt(0)}</AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-2">
-                            <CardTitle className="text-lg">{expert.expert_name}</CardTitle>
-                            <Dialog>
-                              <DialogTrigger asChild>
-                                <Button variant="outline" size="sm">
-                                  전문가 상세보기
-                                </Button>
-                              </DialogTrigger>
-                              <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-                                <DialogHeader>
-                                  <DialogTitle className="flex items-center gap-2">
-                                    <Avatar className="w-12 h-12">
-                                      <AvatarImage src={expert.profile_image_url} alt={expert.expert_name} />
-                                      <AvatarFallback>{expert.expert_name.charAt(0)}</AvatarFallback>
-                                    </Avatar>
-                                    <div>
-                                      <div className="text-xl font-bold">{expert.expert_name}</div>
-                                      <div className="text-sm text-gray-500">{expert.company_name}</div>
-                                    </div>
-                                  </DialogTitle>
-                                </DialogHeader>
-                                
-                                <div className="space-y-6">
-                                  {/* 기본 정보 */}
-                                  <div>
-                                    <h3 className="font-semibold mb-2">기본 정보</h3>
-                                    <div className="grid grid-cols-2 gap-4 text-sm">
-                                      <div>
-                                        <span className="font-medium">전문 분야:</span> {expert.main_field}
-                                      </div>
-                                      <div>
-                                        <span className="font-medium">경력:</span> {expert.experience_years}년
-                                      </div>
-                                      <div>
-                                        <span className="font-medium">이메일:</span> {expert.email}
-                                      </div>
-                                      <div>
-                                        <span className="font-medium">연락처:</span> {expert.personal_phone || expert.company_phone}
-                                      </div>
-                                    </div>
-                                  </div>
-
-                                  {/* 소개 */}
-                                  {expert.core_intro && (
-                                    <div>
-                                      <h3 className="font-semibold mb-2">소개</h3>
-                                      <p className="text-sm text-gray-700 whitespace-pre-line">{expert.core_intro}</p>
-                                    </div>
-                                  )}
-
-                                  {/* 학력 및 자격 */}
-                                  {expert.education_and_certifications && (
-                                    <div>
-                                      <h3 className="font-semibold mb-2">학력 및 자격</h3>
-                                      <p className="text-sm text-gray-700 whitespace-pre-line">{expert.education_and_certifications}</p>
-                                    </div>
-                                  )}
-
-                                  {/* 경력 */}
-                                  {expert.career && (
-                                    <div>
-                                      <h3 className="font-semibold mb-2">경력</h3>
-                                      <p className="text-sm text-gray-700 whitespace-pre-line">{expert.career}</p>
-                                    </div>
-                                  )}
-
-                                  {/* 주요 성과 */}
-                                  {expert.achievements && (
-                                    <div>
-                                      <h3 className="font-semibold mb-2">주요 성과</h3>
-                                      <p className="text-sm text-gray-700 whitespace-pre-line">{expert.achievements}</p>
-                                    </div>
-                                  )}
-
-                                  {/* 전문 영역 */}
-                                  {expert.expertise_detail && (
-                                    <div>
-                                      <h3 className="font-semibold mb-2">전문 영역</h3>
-                                      <p className="text-sm text-gray-700 whitespace-pre-line">{expert.expertise_detail}</p>
-                                    </div>
-                                  )}
-
-                                  {/* 상품 정보 */}
-                                  {expert.products && expert.products.length > 0 && (
-                                    <div>
-                                      <h3 className="font-semibold mb-2">코칭 상품</h3>
-                                      <div className="space-y-2">
-                                        {expert.products.map((product) => (
-                                          <div key={product.product_name} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                                            <div>
-                                              <div className="font-medium">{product.product_name}</div>
-                                              <div className="text-sm text-gray-600">{product.duration}분</div>
-                                              {product.description && (
-                                                <div className="text-sm text-gray-500 mt-1">{product.description}</div>
-                                              )}
-                                            </div>
-                                            <div className="text-right">
-                                              <div className="font-bold text-lg">
-                                                {product.price === 0 ? '무료' : `${product.price.toLocaleString()}원`}
-                                              </div>
-                                            </div>
-                                          </div>
-                                        ))}
-                                      </div>
-                                    </div>
-                                  )}
-
-                                  {/* 태그 */}
-                                  {expert.tags && expert.tags.length > 0 && (
-                                    <div>
-                                      <h3 className="font-semibold mb-2">전문 태그</h3>
-                                      <div className="flex flex-wrap gap-2">
-                                        {expert.tags.map((tag, index) => (
-                                          <Badge key={index} variant="secondary">{tag}</Badge>
-                                        ))}
-                                      </div>
-                                    </div>
-                                  )}
-                                </div>
-                              </DialogContent>
-                            </Dialog>
-                          </div>
-                          <div className="flex items-center gap-4 text-sm text-gray-600">
-                            <div className="flex items-center gap-1">
-                              <Briefcase className="w-4 h-4" />
-                              <span>{expert.main_field}</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <Calendar className="w-4 h-4" />
-                              <span>{expert.experience_years}년 경력</span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <Button 
-                          onClick={() => handleCoachingApplication(expert)}
-                          className="bg-blue-600 hover:bg-blue-700"
-                        >
-                          코칭 신청
-                        </Button>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  
-                  <CardContent>
-                    <div className="space-y-4">
-                      {/* 소개 */}
-                      <div>
-                        <p className="text-gray-700 line-clamp-3">
-                          {expert.core_intro || '전문가 소개가 준비 중입니다.'}
-                        </p>
-                      </div>
-
-                      {/* 상품 정보 */}
-                      {expert.products && expert.products.length > 0 && (
-                        <div>
-                          <h4 className="font-medium mb-2">코칭 상품</h4>
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                            {expert.products.map((product) => (
-                              <div key={product.product_name} className="text-xs">
-                                {product.product_name}: {product.price === 0 ? '무료' : `${product.price.toLocaleString()}원`}
+          <Card key={expert.id} className="hover:shadow-lg transition-shadow duration-300 border-2 border-gray-100 hover:border-blue-200">
+            <CardHeader className="pb-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <Avatar className="w-16 h-16">
+                    <AvatarImage src={expert.profile_image_url} alt={expert.expert_name} />
+                    <AvatarFallback>{expert.expert_name.charAt(0)}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2">
+                      <CardTitle className="text-lg">{expert.expert_name}</CardTitle>
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button variant="outline" size="sm">
+                            전문가 상세보기
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                          <DialogHeader>
+                            <DialogTitle className="flex items-center gap-2">
+                              <Avatar className="w-12 h-12">
+                                <AvatarImage src={expert.profile_image_url} alt={expert.expert_name} />
+                                <AvatarFallback>{expert.expert_name.charAt(0)}</AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <div className="text-xl font-bold">{expert.expert_name}</div>
+                                <div className="text-sm text-gray-500">{expert.company_name}</div>
                               </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
+                            </DialogTitle>
+                          </DialogHeader>
+                          
+                          <div className="space-y-6">
+                            {/* 기본 정보 */}
+                            <div>
+                              <h3 className="font-semibold mb-2">기본 정보</h3>
+                              <div className="grid grid-cols-2 gap-4 text-sm">
+                                <div>
+                                  <span className="font-medium">전문 분야:</span> {expert.main_field}
+                                </div>
+                                <div>
+                                  <span className="font-medium">경력:</span> {expert.experience_years}년
+                                </div>
+                                <div>
+                                  <span className="font-medium">이메일:</span> {expert.email}
+                                </div>
+                                <div>
+                                  <span className="font-medium">연락처:</span> {expert.personal_phone || expert.company_phone}
+                                </div>
+                              </div>
+                            </div>
 
-                      {/* 태그 */}
-                      {expert.tags && expert.tags.length > 0 && (
-                        <div className="flex flex-wrap gap-1">
-                          {expert.tags.slice(0, 3).map((tag, index) => (
-                            <Badge key={index} variant="outline" className="text-xs">
-                              {tag}
-                            </Badge>
-                          ))}
-                          {expert.tags.length > 3 && (
-                            <Badge variant="outline" className="text-xs">
-                              +{expert.tags.length - 3}
-                            </Badge>
-                          )}
-                        </div>
-                      )}
+                            {/* 소개 */}
+                            {expert.core_intro && (
+                              <div>
+                                <h3 className="font-semibold mb-2">소개</h3>
+                                <p className="text-sm text-gray-700 whitespace-pre-line">{expert.core_intro}</p>
+                              </div>
+                            )}
+
+                            {/* 학력 및 자격 */}
+                            {expert.education_and_certifications && (
+                              <div>
+                                <h3 className="font-semibold mb-2">학력 및 자격</h3>
+                                <p className="text-sm text-gray-700 whitespace-pre-line">{expert.education_and_certifications}</p>
+                              </div>
+                            )}
+
+                            {/* 경력 */}
+                            {expert.career && (
+                              <div>
+                                <h3 className="font-semibold mb-2">경력</h3>
+                                <p className="text-sm text-gray-700 whitespace-pre-line">{expert.career}</p>
+                              </div>
+                            )}
+
+                            {/* 주요 성과 */}
+                            {expert.achievements && (
+                              <div>
+                                <h3 className="font-semibold mb-2">주요 성과</h3>
+                                <p className="text-sm text-gray-700 whitespace-pre-line">{expert.achievements}</p>
+                              </div>
+                            )}
+
+                            {/* 전문 영역 */}
+                            {expert.expertise_detail && (
+                              <div>
+                                <h3 className="font-semibold mb-2">전문 영역</h3>
+                                <p className="text-sm text-gray-700 whitespace-pre-line">{expert.expertise_detail}</p>
+                              </div>
+                            )}
+
+                            {/* 상품 정보 */}
+                            {expert.products && expert.products.length > 0 && (
+                              <div>
+                                <h3 className="font-semibold mb-2">코칭 상품</h3>
+                                <div className="space-y-2">
+                                  {expert.products.map((product) => (
+                                    <div key={product.product_name} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                                      <div>
+                                        <div className="font-medium">{product.product_name}</div>
+                                        <div className="text-sm text-gray-600">{product.duration}분</div>
+                                        {product.description && (
+                                          <div className="text-sm text-gray-500 mt-1">{product.description}</div>
+                                        )}
+                                      </div>
+                                      <div className="text-right">
+                                        <div className="font-bold text-lg">
+                                          {product.price === 0 ? '무료' : `${product.price.toLocaleString()}원`}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* 태그 */}
+                            {expert.tags && expert.tags.length > 0 && (
+                              <div>
+                                <h3 className="font-semibold mb-2">전문 태그</h3>
+                                <div className="flex flex-wrap gap-2">
+                                  {expert.tags.map((tag, index) => (
+                                    <Badge key={index} variant="secondary">{tag}</Badge>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </DialogContent>
+                      </Dialog>
                     </div>
-                  </CardContent>
-                </Card>
+                    <div className="flex items-center gap-4 text-sm text-gray-600">
+                      <div className="flex items-center gap-1">
+                        <Briefcase className="w-4 h-4" />
+                        <span>{expert.main_field}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Calendar className="w-4 h-4" />
+                        <span>{expert.experience_years}년 경력</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <Button 
+                    onClick={() => handleCoachingApplication(expert)}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    코칭 신청
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            
+            <CardContent>
+              <div className="space-y-4">
+                {/* 소개 */}
+                <div>
+                  <p className="text-gray-700 line-clamp-3">
+                    {expert.core_intro || '전문가 소개가 준비 중입니다.'}
+                  </p>
+                </div>
+
+                {/* 상품 정보 */}
+                {expert.products && expert.products.length > 0 && (
+                  <div>
+                    <h4 className="font-medium mb-2">코칭 상품</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                      {expert.products.map((product) => (
+                        <div key={product.product_name} className="text-xs">
+                          {product.product_name}: {product.price === 0 ? '무료' : `${product.price.toLocaleString()}원`}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* 태그 */}
+                {expert.tags && expert.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {expert.tags.slice(0, 3).map((tag, index) => (
+                      <Badge key={index} variant="outline" className="text-xs">
+                        {tag}
+                      </Badge>
+                    ))}
+                    {expert.tags.length > 3 && (
+                      <Badge variant="outline" className="text-xs">
+                        +{expert.tags.length - 3}
+                      </Badge>
+                    )}
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
               ))}
             </div>
 
@@ -375,9 +375,9 @@ const CoachingPage = () => {
               </div>
             )}
           </>
-        )}
-      </div>
-    );
+      )}
+    </div>
+  );
   };
 
   if (loading) {
@@ -494,7 +494,7 @@ const CoachingPage = () => {
               ...displayData.insurance
             ]} />
           </TabsContent>
-          
+
           <TabsContent value="realestate">
             <TabContent category="부동산" experts={displayData.realestate} />
           </TabsContent>

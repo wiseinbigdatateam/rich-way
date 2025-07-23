@@ -207,7 +207,7 @@ const ExpertSection = () => {
                   className="flex-shrink-0 w-80 bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-xl transition-all duration-300 hover:scale-105"
                 >
                   {/* 전문가 이미지 */}
-                  <div className="relative h-72 overflow-hidden">
+                  <div className="relative h-80 overflow-hidden">
                     {expert.profile_image_url ? (
                       <img 
                         src={expert.profile_image_url} 

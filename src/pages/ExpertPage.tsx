@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCoachingApplications } from "@/hooks/useCoachingApplications";
+import { useAuth } from "@/contexts/AuthContext";
+import { getSessionStatus } from "@/utils/sessionManager";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -70,11 +72,16 @@ const ExpertPage = () => {
   const { applications, loading, error, updateApplicationStatus, addCoachingHistory, getCoachingHistory } = useCoachingApplications(expertInfo?.user_id);
 
   useEffect(() => {
-    // 전문가 인증 확인
-    const isAuthenticated = localStorage.getItem("expertAuth");
-    if (!isAuthenticated) {
-      navigate("/expert/login");
-      return;
+    // 새로운 세션 관리 시스템으로 인증 확인
+    const { isAuthenticated, userType } = getSessionStatus();
+    
+    if (!isAuthenticated || userType !== 'expert') {
+      // 기존 시스템과의 호환성을 위해 기존 인증도 확인
+      const legacyAuth = localStorage.getItem("expertAuth");
+      if (!legacyAuth) {
+        navigate("/expert/login");
+        return;
+      }
     }
 
     const expertData = localStorage.getItem("expertInfo");
@@ -85,7 +92,7 @@ const ExpertPage = () => {
       // localStorage의 데이터를 최신 데이터베이스 정보로 업데이트
       const updateExpertInfo = async () => {
         try {
-          const { data, error } = await supabase
+          const { data, error } = await (supabase as any)
             .from('experts')
             .select('*')
             .eq('user_id', parsedData.user_id);
@@ -152,7 +159,7 @@ const ExpertPage = () => {
       expectations: '기대사항 정보 없음', // 실제 데이터베이스에 expectations 컬럼이 없으므로 기본값
       attachmentFile: app.attachment_url || undefined,
       status: app.status || '접수',
-      applicationCount: 1,
+        applicationCount: 1,
       priceType: app.product_name === 'FREE' ? '무료' : app.product_name === 'DELUXE' ? '디럭스' : '프리미엄',
       productPrice: app.product_price || 0, // 실제 product_price 추가
       history: app.history || [],
@@ -195,8 +202,8 @@ const ExpertPage = () => {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("expertAuth");
-    localStorage.removeItem("expertInfo");
+    const { logout } = useAuth();
+    logout();
     navigate("/expert/login");
   };
 
@@ -212,7 +219,7 @@ const ExpertPage = () => {
       console.log('Supabase에서 알림 데이터 조회 시작...');
       console.log('조회할 expert_user_id:', expertInfo.user_id);
       
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('expert_notifications')
         .select('*')
         .eq('expert_user_id', expertInfo.user_id)
@@ -235,7 +242,7 @@ const ExpertPage = () => {
 
   const markNotificationAsRead = async (notificationId: string) => {
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('expert_notifications')
         .update({ is_read: true })
         .eq('id', notificationId);
@@ -261,7 +268,7 @@ const ExpertPage = () => {
     if (!expertInfo?.user_id) return;
 
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('expert_notifications')
         .update({ is_read: true })
         .eq('expert_user_id', expertInfo.user_id)
@@ -287,7 +294,7 @@ const ExpertPage = () => {
 
   const deleteNotification = async (notificationId: string) => {
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('expert_notifications')
         .delete()
         .eq('id', notificationId);
@@ -315,7 +322,7 @@ const ExpertPage = () => {
     if (!expertInfo?.user_id) return;
 
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('expert_notifications')
         .insert({
           expert_user_id: expertInfo.user_id,
@@ -1045,10 +1052,10 @@ const ExpertPage = () => {
                                         </div>
                                         <h4 className="font-semibold text-lg">{historyItem.title}</h4>
                                       </div>
-                                      <Badge className={getStatusColor(historyItem.status)}>
-                                        {historyItem.status}
-                                      </Badge>
-                                    </div>
+                                    <Badge className={getStatusColor(historyItem.status)}>
+                                      {historyItem.status}
+                                    </Badge>
+                                  </div>
                                     <div className="flex items-center gap-2 mb-3 text-sm text-gray-500">
                                       <Clock className="w-4 h-4" />
                                       <span>{new Date(historyItem.date).toLocaleDateString('ko-KR', {
@@ -1062,8 +1069,8 @@ const ExpertPage = () => {
                                     <div className="bg-gray-50 p-4 rounded-lg">
                                       <p className="text-sm leading-relaxed whitespace-pre-wrap">{historyItem.content}</p>
                                     </div>
-                                  </div>
-                                ))
+                                </div>
+                              ))
                             ) : (
                               <div className="text-center py-8">
                                 <History className="w-12 h-12 text-gray-300 mx-auto mb-3" />

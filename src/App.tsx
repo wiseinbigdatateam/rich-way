@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import Index from "./pages/Index.tsx";
 import DemoModeNotice from "@/components/DemoModeNotice";
+import SessionExpiryAlert from "@/components/SessionExpiryAlert";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import TermsPage from "./pages/TermsPage";
 import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
@@ -47,8 +48,9 @@ const App = () => (
               v7_relativeSplatPath: true
             }}
           >
-            <DemoModeNotice />
-            <Suspense fallback={<div>Loading...</div>}>
+                      <DemoModeNotice />
+          <SessionExpiryAlert />
+          <Suspense fallback={<div>Loading...</div>}>
             <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/coaching" element={<CoachingPage />} />
