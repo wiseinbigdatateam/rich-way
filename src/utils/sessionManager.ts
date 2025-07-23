@@ -27,6 +27,87 @@ const SESSION_KEY = 'richway_session_info';
 const TOKEN_EXPIRY_HOURS = 24;
 
 /**
+ * 쿠키 도메인 설정 함수
+ */
+const getCookieDomain = (): string | undefined => {
+  const hostname = window.location.hostname;
+  
+  // 로컬 개발 환경
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    return undefined; // localhost에서는 도메인 설정하지 않음
+  }
+  
+  // rich-way.co.kr 도메인 계열
+  if (hostname.includes('rich-way.co.kr')) {
+    return '.rich-way.co.kr'; // 서브도메인 간 공유
+  }
+  
+  // IP 주소인 경우
+  if (/^\d+\.\d+\.\d+\.\d+$/.test(hostname)) {
+    return undefined; // IP 주소에서는 도메인 설정하지 않음
+  }
+  
+  return undefined;
+};
+
+// 쿠키 설정
+const COOKIE_OPTIONS = {
+  path: '/',
+  secure: window.location.protocol === 'https:', // HTTPS에서만 secure 쿠키
+  sameSite: 'lax' as const,
+  maxAge: 24 * 60 * 60 * 1000, // 24시간
+  domain: getCookieDomain() // 서브도메인 간 공유를 위한 도메인 설정
+};
+
+/**
+ * 쿠키 설정 함수
+ */
+const setCookie = (name: string, value: string, options: any = {}) => {
+  const opts = { ...COOKIE_OPTIONS, ...options };
+  let cookieString = `${name}=${encodeURIComponent(value)}`;
+  
+  if (opts.path) cookieString += `; path=${opts.path}`;
+  if (opts.domain) cookieString += `; domain=${opts.domain}`;
+  if (opts.secure) cookieString += '; secure';
+  if (opts.sameSite) cookieString += `; samesite=${opts.sameSite}`;
+  if (opts.maxAge) {
+    const expires = new Date(Date.now() + opts.maxAge);
+    cookieString += `; expires=${expires.toUTCString()}`;
+  }
+  
+  document.cookie = cookieString;
+  
+  // 디버깅 로그
+  if (!import.meta.env.PROD) {
+    console.log(`🍪 쿠키 설정: ${name}`, {
+      domain: opts.domain,
+      secure: opts.secure,
+      sameSite: opts.sameSite,
+      hostname: window.location.hostname
+    });
+  }
+};
+
+/**
+ * 쿠키 가져오기 함수
+ */
+const getCookie = (name: string): string | null => {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) {
+    return decodeURIComponent(parts.pop()!.split(';').shift()!);
+  }
+  return null;
+};
+
+/**
+ * 쿠키 삭제 함수
+ */
+const deleteCookie = (name: string) => {
+  document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+};
+
+/**
  * 토큰 생성 및 저장
  */
 export const createAndStoreToken = (
@@ -45,17 +126,24 @@ export const createAndStoreToken = (
     user_type
   };
 
-  // 토큰 저장
-  localStorage.setItem(TOKEN_KEY, JSON.stringify(token));
+  // 쿠키에 토큰 저장 (도메인 간 공유 가능)
+  setCookie(TOKEN_KEY, JSON.stringify(token), { maxAge: TOKEN_EXPIRY_HOURS * 60 * 60 * 1000 });
   
-  // 세션 정보 저장
+  // 세션 정보 저장 (쿠키 + localStorage 백업)
   if (sessionInfo) {
     const sessionData: SessionInfo = {
       user_id,
       user_type,
       ...sessionInfo
     };
-    localStorage.setItem(SESSION_KEY, JSON.stringify(sessionData));
+    setCookie(SESSION_KEY, JSON.stringify(sessionData), { maxAge: TOKEN_EXPIRY_HOURS * 60 * 60 * 1000 });
+    
+    // localStorage에도 백업 저장 (로컬 개발 환경 지원)
+    try {
+      localStorage.setItem(SESSION_KEY, JSON.stringify(sessionData));
+    } catch (error) {
+      console.warn('localStorage 백업 저장 실패:', error);
+    }
   }
 
   return token;
@@ -66,7 +154,14 @@ export const createAndStoreToken = (
  */
 export const validateToken = (): boolean => {
   try {
-    const tokenData = localStorage.getItem(TOKEN_KEY);
+    // 먼저 쿠키에서 확인
+    let tokenData = getCookie(TOKEN_KEY);
+    
+    // 쿠키에 없으면 localStorage에서 확인 (하위 호환성)
+    if (!tokenData) {
+      tokenData = localStorage.getItem(TOKEN_KEY);
+    }
+    
     if (!tokenData) return false;
 
     const token: AuthToken = JSON.parse(tokenData);
@@ -91,7 +186,14 @@ export const validateToken = (): boolean => {
  */
 export const refreshToken = async (): Promise<boolean> => {
   try {
-    const tokenData = localStorage.getItem(TOKEN_KEY);
+    // 먼저 쿠키에서 확인
+    let tokenData = getCookie(TOKEN_KEY);
+    
+    // 쿠키에 없으면 localStorage에서 확인 (하위 호환성)
+    if (!tokenData) {
+      tokenData = localStorage.getItem(TOKEN_KEY);
+    }
+    
     if (!tokenData) return false;
 
     const token: AuthToken = JSON.parse(tokenData);
@@ -110,7 +212,14 @@ export const refreshToken = async (): Promise<boolean> => {
  */
 export const getSessionInfo = (): SessionInfo | null => {
   try {
-    const sessionData = localStorage.getItem(SESSION_KEY);
+    // 먼저 쿠키에서 확인
+    let sessionData = getCookie(SESSION_KEY);
+    
+    // 쿠키에 없으면 localStorage에서 확인 (하위 호환성)
+    if (!sessionData) {
+      sessionData = localStorage.getItem(SESSION_KEY);
+    }
+    
     if (!sessionData) return null;
 
     return JSON.parse(sessionData);
@@ -125,7 +234,14 @@ export const getSessionInfo = (): SessionInfo | null => {
  */
 export const getTokenInfo = (): AuthToken | null => {
   try {
-    const tokenData = localStorage.getItem(TOKEN_KEY);
+    // 먼저 쿠키에서 확인
+    let tokenData = getCookie(TOKEN_KEY);
+    
+    // 쿠키에 없으면 localStorage에서 확인 (하위 호환성)
+    if (!tokenData) {
+      tokenData = localStorage.getItem(TOKEN_KEY);
+    }
+    
     if (!tokenData) return null;
 
     return JSON.parse(tokenData);
@@ -139,6 +255,11 @@ export const getTokenInfo = (): AuthToken | null => {
  * 세션 정리
  */
 export const clearSession = (): void => {
+  // 쿠키 삭제
+  deleteCookie(TOKEN_KEY);
+  deleteCookie(SESSION_KEY);
+  
+  // localStorage도 정리 (하위 호환성)
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(SESSION_KEY);
   
@@ -245,6 +366,25 @@ export const getSessionStatus = () => {
   const session = getSessionInfo();
   const isValid = validateToken();
   const timeUntilExpiry = getTimeUntilExpiry();
+  
+  // 디버깅 정보
+  if (!import.meta.env.PROD) {
+    const cookieToken = getCookie(TOKEN_KEY);
+    const localStorageToken = localStorage.getItem(TOKEN_KEY);
+    const cookieSession = getCookie(SESSION_KEY);
+    const localStorageSession = localStorage.getItem(SESSION_KEY);
+    
+    console.log('🔍 세션 상태 디버깅:', {
+      hostname: window.location.hostname,
+      cookieToken: !!cookieToken,
+      localStorageToken: !!localStorageToken,
+      cookieSession: !!cookieSession,
+      localStorageSession: !!localStorageSession,
+      isValid,
+      timeUntilExpiry,
+      userType: session?.user_type
+    });
+  }
   
   return {
     isAuthenticated: isValid && !!session,
