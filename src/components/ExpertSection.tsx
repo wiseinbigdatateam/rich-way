@@ -105,9 +105,6 @@ const ExpertSection = () => {
     }
   };
 
-  // 기본 이미지 (profile_image_url이 없을 때 사용)
-
-
   // 전문 분야별 색상 매핑
   const getFieldColor = (field: string) => {
     const colorMap: { [key: string]: string } = {
