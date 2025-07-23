@@ -210,12 +210,15 @@ const ExpertSection = () => {
                   className="flex-shrink-0 w-80 bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-xl transition-all duration-300 hover:scale-105"
                 >
                   {/* 전문가 이미지 */}
-                  <div className="relative h-64 overflow-hidden">
+                  <div className="relative h-72 overflow-hidden">
                     {expert.profile_image_url ? (
                       <img 
                         src={expert.profile_image_url} 
                         alt={expert.expert_name}
-                        className="w-full h-full object-cover object-top"
+                        className="w-full h-full object-cover object-center"
+                        style={{
+                          objectPosition: 'center 20%'
+                        }}
                         onError={(e) => {
                           const target = e.target as HTMLImageElement;
                           target.style.display = 'none';
