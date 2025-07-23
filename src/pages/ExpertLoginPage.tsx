@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +12,7 @@ import { Eye, EyeOff, UserCheck } from "lucide-react";
 
 const ExpertLoginPage = () => {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [formData, setFormData] = useState({
     username: "",
     password: ""
@@ -49,7 +51,23 @@ const ExpertLoginPage = () => {
         return;
       }
 
-      // 전문가 로그인 성공
+      // 전문가 로그인 성공 - 새로운 세션 관리 시스템 사용
+      const userData = {
+        id: expert.user_id,
+        user_id: expert.user_id,
+        name: expert.expert_name,
+        email: expert.email || '',
+        user_metadata: {
+          specialty: expert.main_field,
+          company: expert.company_name,
+          avatar: expert.profile_image_url || null
+        }
+      };
+      
+      // AuthContext를 통해 로그인 (전문가 타입으로)
+      login(userData, 'expert');
+      
+      // 기존 시스템과의 호환성을 위해 기존 저장소도 유지
       localStorage.setItem("expertAuth", "true");
       localStorage.setItem("expertInfo", JSON.stringify({
         user_id: expert.user_id,

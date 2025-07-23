@@ -1,6 +1,16 @@
 import { createContext, useContext, useEffect, useState, ReactNode, useRef } from 'react';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { isProduction, isDemoModeEnabled } from '@/utils/productionUtils';
+import { 
+  createAndStoreToken, 
+  validateToken, 
+  refreshToken, 
+  getSessionInfo, 
+  clearSession, 
+  checkAutoLogin,
+  getSessionStatus,
+  type SessionInfo 
+} from '@/utils/sessionManager';
 
 interface User {
   id: string;
@@ -16,9 +26,11 @@ interface User {
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (userData: User) => void;
+  login: (userData: User, userType?: 'member' | 'expert' | 'admin') => void;
   logout: () => void;
   isAuthenticated: boolean;
+  sessionStatus: ReturnType<typeof getSessionStatus>;
+  refreshSession: () => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -56,8 +68,23 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   useEffect(() => {
     const initializeAuth = async () => {
       try {
-        if (!isSupabaseConfigured) {
-          // Demo 모드: localStorage에서 사용자 정보 확인
+        // 새로운 세션 관리 시스템으로 자동 로그인 확인
+        const session = await checkAutoLogin();
+        
+        if (session && isMountedRef.current) {
+          // 세션 정보를 User 형식으로 변환
+          const userData: User = {
+            id: session.user_id,
+            user_id: session.user_id,
+            email: session.email,
+            name: session.name,
+            user_metadata: session.metadata,
+            created_at: new Date().toISOString()
+          };
+          setUser(userData);
+          log('🟢 세션 관리 시스템으로 사용자 복원:', userData);
+        } else if (!isSupabaseConfigured) {
+          // 기존 Demo 모드 지원 (하위 호환성)
           const demoUser = localStorage.getItem('demo-user');
           if (demoUser && isMountedRef.current) {
             const parsedUser = JSON.parse(demoUser);
@@ -65,13 +92,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
             log('🟡 Demo 모드 사용자 복원:', parsedUser);
           }
         } else {
-          // 실제 Supabase: 현재 세션 확인 (오류 처리 강화)
+          // 기존 Supabase Auth 지원 (하위 호환성)
           try {
             const { data: { user: authUser }, error } = await supabase.auth.getUser();
             if (error) {
               log('🟡 Supabase 사용자 확인 오류 (무시):', error.message);
             } else if (authUser && isMountedRef.current) {
-              // Supabase Auth 사용자를 우리 User 형식으로 변환
               const userData: User = {
                 id: authUser.id,
                 email: authUser.email,
@@ -167,30 +193,41 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   }, []);
 
   // 로그인 함수
-  const login = (userData: User) => {
+  const login = (userData: User, userType: 'member' | 'expert' | 'admin' = 'member') => {
     if (!isMountedRef.current) return;
     
     setUser(userData);
     setLoading(false); // 로그인 완료 후 로딩 상태 해제
     
+    // 새로운 세션 관리 시스템으로 토큰 생성 및 저장
+    const sessionInfo: Partial<SessionInfo> = {
+      name: userData.name,
+      email: userData.email,
+      avatar: userData.user_metadata?.avatar,
+      metadata: userData.user_metadata
+    };
+    
+    createAndStoreToken(userData.id || userData.user_id || '', userType, sessionInfo);
+    
+    // 기존 시스템과의 호환성을 위해 기존 저장소도 유지
     if (!isSupabaseConfigured) {
-      // Demo 모드: localStorage에 저장
       localStorage.setItem('demo-user', JSON.stringify(userData));
       log('🟡 Demo 모드 로그인:', userData);
     }
     
-    log('✅ 사용자 로그인 완료:', userData);
+    log('✅ 사용자 로그인 완료 (새 세션 관리 시스템):', userData);
   };
 
   // 로그아웃 함수
   const logout = async () => {
     try {
+      // 새로운 세션 관리 시스템으로 세션 정리
+      clearSession();
+      
+      // 기존 시스템과의 호환성을 위해 기존 로그아웃 처리도 수행
       if (!isSupabaseConfigured) {
-        // Demo 모드: localStorage에서 제거
-        localStorage.removeItem('demo-user');
         log('🟡 Demo 모드 로그아웃');
       } else {
-        // 실제 Supabase: 로그아웃 처리 (오류 처리 강화)
         try {
           const { error } = await supabase.auth.signOut();
           if (error) {
@@ -206,7 +243,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       if (isMountedRef.current) {
         setUser(null);
       }
-      log('✅ 사용자 로그아웃 완료');
+      log('✅ 사용자 로그아웃 완료 (새 세션 관리 시스템)');
     } catch (error) {
       if (!isProduction) {
         console.error('로그아웃 오류:', error);
@@ -220,6 +257,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     login,
     logout,
     isAuthenticated: !!user,
+    sessionStatus: getSessionStatus(),
+    refreshSession: refreshToken,
   };
 
   return (
