@@ -22,7 +22,7 @@ export default defineConfig(({ command, mode }) => {
     // 개발 서버 설정
     server: {
       port: 8080,
-      host: true,
+      strictPort: true,
     },
     // 환경별 설정
     define: {
