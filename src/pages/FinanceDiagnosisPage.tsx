@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { PiggyBank, ArrowRight, Send, User, Bot, Menu, Check, Loader2 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
+import Footer from "@/components/Footer";
 import FinanceAnalysisEngine from "@/lib/financeAnalysis";
 
 interface Message {
@@ -796,6 +797,8 @@ const FinanceDiagnosisPage = () => {
           </div>
         )}
       </div>
+      
+      <Footer />
     </>
   );
 };

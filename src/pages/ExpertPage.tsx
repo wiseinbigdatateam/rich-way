@@ -79,8 +79,8 @@ const ExpertPage = () => {
       // 기존 시스템과의 호환성을 위해 기존 인증도 확인
       const legacyAuth = localStorage.getItem("expertAuth");
       if (!legacyAuth) {
-        navigate("/expert/login");
-        return;
+      navigate("/expert/login");
+      return;
       }
     }
 

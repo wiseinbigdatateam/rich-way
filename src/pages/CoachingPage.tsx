@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { Home, TrendingUp, Users, PiggyBank, CreditCard, Shield, Briefcase, Calendar, Award, Building, GraduationCap, Youtube, ExternalLink, Play, Coins, Landmark, Target, Banknote, DollarSign, LineChart, Loader2, Calculator } from "lucide-react";
 import Header from "@/components/Header";
+import Footer from "@/components/Footer";
 import { useNavigate } from "react-router-dom";
 import { useExperts, type Expert } from "@/hooks/useExperts";
 import { supabase } from "@/lib/supabase";
@@ -49,7 +50,7 @@ const CoachingPage = () => {
 
   // 전문가별 상품 정보를 가져오는 함수
   const fetchExpertProducts = async (expertUserId: string) => {
-    const { data: products, error } = await supabase
+    const { data: products, error } = await (supabase as any)
       .from('expert_products')
       .select('*')
       .eq('user_id', expertUserId);
@@ -520,6 +521,8 @@ const CoachingPage = () => {
           </TabsContent>
         </Tabs>
       </div>
+      
+      <Footer />
     </div>
   );
 };

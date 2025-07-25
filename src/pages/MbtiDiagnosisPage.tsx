@@ -5,6 +5,7 @@ import { Progress } from "@/components/ui/progress";
 import { ArrowLeft, Lightbulb } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
+import Footer from "@/components/Footer";
 
 const MbtiDiagnosisPage = () => {
   const [currentQuestion, setCurrentQuestion] = useState(0);
@@ -306,6 +307,8 @@ const MbtiDiagnosisPage = () => {
           </div>
         </div>
       </div>
+      
+      <Footer />
     </div>
   );
 };
