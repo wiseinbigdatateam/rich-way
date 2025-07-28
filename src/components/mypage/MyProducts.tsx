@@ -130,7 +130,7 @@ const MyProducts = () => {
                       </div>
                       <div>
                         <span className="text-gray-500">유형</span>
-                        <p className="font-medium">{product.type}</p>
+                        <p className="font-medium">{product['type']}</p>
                       </div>
                       {product.expiryDate && (
                         <div>

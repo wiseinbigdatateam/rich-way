@@ -307,6 +307,8 @@ rich-way/
 
 ## 📚 문서
 
+- [개발 가이드](./DEVELOPMENT_GUIDE.md) - 상세한 개발 환경 설정 및 워크플로우
+- [데이터베이스 마이그레이션 가이드](./MIGRATION_GUIDE.md) - DB 동기화 및 스키마 관리
 - [GitFlow 워크플로우 가이드](./GITFLOW_GUIDE.md)
 - [메모리 누수 방지 가이드](./MEMORY_LEAK_PREVENTION.md)
 - [프로덕션 배포 가이드](./PRODUCTION_DEPLOYMENT.md)
@@ -320,3 +322,205 @@ rich-way/
 ## 📄 라이선스
 
 이 프로젝트는 MIT 라이선스 하에 배포됩니다.
+
+# RichWay - 부자되기 프로젝트
+
+부자가 되기 위한 맞춤형 진단 및 교육 플랫폼
+
+## 🚀 빠른 시작
+
+### 1. 의존성 설치
+```bash
+npm install
+```
+
+### 2. 환경별 설정
+
+#### **로컬 개발환경**
+```bash
+# 로컬 환경변수 설정
+npm run env:local
+# .env.local 파일을 편집하여 실제 Supabase 정보 입력
+```
+
+#### **개발 서버용**
+```bash
+# 개발 환경변수 설정
+npm run env:dev
+# .env.development 파일을 편집하여 실제 Supabase 정보 입력
+```
+
+#### **운영 서버용**
+```bash
+# 운영 환경변수 설정
+npm run env:prod
+# .env.production 파일을 편집하여 실제 Supabase 정보 입력
+```
+
+### 3. 개발 서버 실행
+```bash
+npm run dev
+```
+
+## 🗄️ 데이터베이스 설정
+
+### 환경별 데이터베이스 분리
+
+프로젝트는 로컬, 개발, 운영 환경별로 데이터베이스를 분리하여 관리합니다.
+
+#### **환경별 설정**
+
+| 환경 | 설정 파일 | Supabase 프로젝트 | URL | 용도 |
+|------|-----------|-------------------|-----|------|
+| 로컬 | `.env.local` | `rich-way-dev` | `localhost:8080` | 로컬 개발 |
+| 개발 | `.env.development` | `rich-way-dev` | `dev.rich-way.co.kr` | 개발 서버 |
+| 운영 | `.env.production` | `rich-way-prod` | `rich-way.co.kr` | 실제 서비스 |
+
+#### **환경변수 구조**
+```bash
+# 로컬/개발 환경
+VITE_SUPABASE_URL_DEV=https://your-dev-project-id.supabase.co
+VITE_SUPABASE_ANON_KEY_DEV=your-dev-anon-key
+
+# 운영 환경
+VITE_SUPABASE_URL_PROD=https://your-prod-project-id.supabase.co
+VITE_SUPABASE_ANON_KEY_PROD=your-prod-anon-key
+```
+
+### 데이터베이스 설정 가이드
+
+#### **1. 개발용 Supabase 프로젝트 생성**
+```bash
+# 1. https://supabase.com 에서 새 프로젝트 생성
+# 2. 프로젝트명: rich-way-dev
+# 3. Settings > API에서 URL과 anon key 복사
+```
+
+#### **2. 환경변수 설정**
+```bash
+# 개발 환경변수 설정
+npm run env:dev
+# .env.development 파일에 실제 Supabase 정보 입력
+
+# 로컬 환경변수 설정 (선택사항)
+npm run env:local
+# .env.local 파일에 실제 Supabase 정보 입력
+```
+
+#### **3. 데이터베이스 스키마 설정**
+```bash
+# 방법 1: 완전한 설정 (권장)
+# 개발 Supabase Dashboard > SQL Editor에서 실행:
+# scripts/setup-dev-database-complete.sql
+
+# 방법 2: 단계별 설정
+npm run db:setup
+```
+
+#### **4. 샘플 데이터 삽입**
+```bash
+# 자동 생성
+./scripts/generate-sample-data.sh
+
+# 수동 실행
+# 개발 Supabase Dashboard > SQL Editor에서 실행:
+# sql/dev_sample_data.sql
+```
+
+### 데이터베이스 스키마
+
+주요 테이블:
+- `members` - 회원 정보
+- `mbti_diagnosis` - MBTI 진단 결과
+- `finance_diagnosis` - 재무 진단 결과
+- `expert_products` - 전문가 상품
+- `coaching_applications` - 코칭 신청
+- `community_posts` - 커뮤니티 게시글
+- `community_comments` - 커뮤니티 댓글
+
+## 🛠️ 개발 가이드
+
+### 기술 스택
+- **Frontend**: React + TypeScript + Vite
+- **UI**: TailwindCSS + Shadcn/ui
+- **Database**: Supabase (PostgreSQL)
+- **Authentication**: Supabase Auth
+- **Storage**: AWS S3
+
+### 프로젝트 구조
+```
+src/
+├── components/     # UI 컴포넌트
+├── pages/         # 페이지 컴포넌트
+├── hooks/         # 커스텀 훅
+├── lib/           # 유틸리티 라이브러리
+├── contexts/      # React Context
+└── data/          # 정적 데이터
+```
+
+### 주요 기능
+- **진단 시스템**: MBTI 진단, 재무 진단
+- **마이페이지**: 진단 이력, 재무 요약
+- **커뮤니티**: 게시글, 댓글 시스템
+- **전문가 시스템**: 상품 등록, 코칭 신청
+- **관리자 기능**: 사용자, 진단, 상품 관리
+
+### 유용한 명령어
+
+#### **환경변수 관리**
+```bash
+npm run env:dev      # 개발환경 설정 파일 생성
+npm run env:local    # 로컬환경 설정 파일 생성
+npm run env:prod     # 운영환경 설정 파일 생성
+npm run env:check    # 환경변수 파일 확인
+```
+
+#### **데이터베이스 관리**
+```bash
+npm run db:sync      # 개발 DB 동기화 가이드
+npm run db:migrate   # 스키마 마이그레이션 가이드
+npm run db:extract   # 운영 DB 스키마 추출 가이드
+npm run db:apply     # 개발 DB 스키마 적용 가이드
+```
+
+#### **개발 서버 관리**
+```bash
+npm run dev          # 로컬 개발 서버 (localhost:8080)
+npm run dev:check    # 서버 상태 확인
+npm run dev:open     # 브라우저 자동 열기
+```
+
+#### **배포**
+```bash
+npm run deploy:dev   # 개발 서버 배포 (dev.rich-way.co.kr)
+npm run deploy:prod  # 운영 서버 배포 (rich-way.co.kr)
+```
+
+## 📦 배포
+
+### 개발 환경
+```bash
+npm run dev
+```
+
+### 운영 환경
+```bash
+npm run build
+npm run preview
+```
+
+## 🔧 유틸리티
+
+### Git Flow
+```bash
+./scripts/gitflow.sh
+```
+
+### 데이터베이스 설정
+```bash
+./scripts/setup-dev-database.sh
+```
+
+## �� 라이선스
+
+MIT License

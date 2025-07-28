@@ -110,14 +110,14 @@ const ProductSection = () => {
                   {category.products.map((product, productIndex) => (
                     <div key={productIndex} className="p-3 bg-slate-50 rounded-lg">
                       <div className="flex justify-between items-start mb-1">
-                        <div className="font-medium text-sm">{product.name}</div>
+                        <div className="font-medium text-sm">{product['name']}</div>
                         <Badge variant="outline" className="text-xs">
-                          {product.risk}
+                          {product['risk']}
                         </Badge>
                       </div>
-                      <div className="text-xs text-slate-600">{product.provider}</div>
+                                              <div className="text-xs text-slate-600">{product['provider']}</div>
                       <div className="text-sm font-semibold text-green-600 mt-1">
-                        {product.rate}
+                        {product['rate']}
                       </div>
                     </div>
                   ))}

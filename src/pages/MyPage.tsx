@@ -1,5 +1,6 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,11 +19,20 @@ import { useNavigate } from "react-router-dom";
 const MyPage = () => {
   const { user, loading, login } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState("info");
   const [showLoginDialog, setShowLoginDialog] = useState(false);
 
+  // URL 파라미터에서 tab 값 읽기
+  useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam && ['info', 'diagnosis', 'coaching', 'education', 'products', 'posts'].includes(tabParam)) {
+      setActiveTab(tabParam);
+    }
+  }, [searchParams]);
+
   // 디버깅용 로그
-  console.log('🔍 MyPage 상태:', { user: !!user, loading, showLoginDialog });
+  console.log('🔍 MyPage 상태:', { user: !!user, loading, showLoginDialog, activeTab });
 
   // 로그인 성공 처리
   const handleLoginSuccess = (userData: any) => {

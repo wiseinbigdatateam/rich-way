@@ -9,6 +9,8 @@
     "dev:open": "open http://localhost:8080",
     "dev:start": "npm run dev",
     "build": "tsc && vite build",
+    "build:dev": "cp .env.development .env && tsc && vite build",
+    "build:prod": "cp .env.production .env && tsc && vite build",
     "build:check": "npm run build && echo '✅ 빌드 완료! dist/ 폴더를 확인하세요.'",
     "preview": "vite preview",
     "preview:check": "npm run preview & sleep 3 && curl -s http://localhost:4173 > /dev/null && echo '✅ 프리뷰 서버 정상 작동 (http://localhost:4173)' || echo '❌ 프리뷰 서버 오류'",
@@ -32,7 +34,16 @@
     "gitflow:hotfix": "./scripts/gitflow.sh hotfix-start",
     "gitflow:hotfix-finish": "./scripts/gitflow.sh hotfix-finish",
     "gitflow:status": "./scripts/gitflow.sh status",
-    "gitflow:help": "./scripts/gitflow.sh help"
+    "gitflow:help": "./scripts/gitflow.sh help",
+    "env:dev": "cp env.development.example .env.development && echo '✅ 개발환경 설정 파일 생성됨: .env.development'",
+    "env:local": "cp env.local.example .env.local && echo '✅ 로컬환경 설정 파일 생성됨: .env.local'",
+    "env:prod": "cp env.production.example .env.production && echo '✅ 운영환경 설정 파일 생성됨: .env.production'",
+    "env:check": "echo '🔍 환경변수 파일 확인:' && ls -la .env* 2>/dev/null || echo '❌ 환경변수 파일이 없습니다'",
+    "db:setup": "./scripts/setup-dev-database-complete.sql && echo '✅ 개발 DB 설정 완료'",
+    "db:sync": "./scripts/sync-dev-db.sh",
+    "db:migrate": "./scripts/migrate-schema.sh",
+    "db:extract": "echo '📋 운영 DB 스키마 추출:' && echo '1. 운영 Supabase Dashboard 접속' && echo '2. SQL Editor에서 scripts/export-production-schema.sql 실행' && echo '3. 결과를 sql/prod_schema.sql로 저장'",
+    "db:apply": "echo '📋 개발 DB 스키마 적용:' && echo '1. 개발 Supabase Dashboard 접속' && echo '2. SQL Editor에서 scripts/setup-dev-database-complete.sql 실행' && echo '3. 또는 sql/prod_schema.sql 실행'"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.848.0",

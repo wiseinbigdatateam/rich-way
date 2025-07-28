@@ -17,6 +17,7 @@ const CoachingPage = lazy(() => import("./pages/CoachingPage"));
 const CoachingApplicationPage = lazy(() => import("./pages/CoachingApplicationPage"));
 const CoachingSuccessPage = lazy(() => import("./pages/CoachingSuccessPage"));
 const DiagnosisPage = lazy(() => import("./pages/DiagnosisPage"));
+const DiagnosisDetailPage = lazy(() => import("./pages/DiagnosisDetailPage"));
 const FinanceDiagnosisPage = lazy(() => import("./pages/FinanceDiagnosisPage"));
 const MbtiDiagnosisPage = lazy(() => import("./pages/MbtiDiagnosisPage"));
 const MbtiDiagnosisResultPage = lazy(() => import("./pages/MbtiDiagnosisResultPage"));
@@ -57,6 +58,7 @@ const App = () => (
             <Route path="/coaching/apply" element={<CoachingApplicationPage />} />
             <Route path="/coaching/success" element={<CoachingSuccessPage />} />
             <Route path="/diagnosis" element={<DiagnosisPage />} />
+            <Route path="/diagnosis-detail/:type/:id" element={<DiagnosisDetailPage />} />
             <Route path="/diagnosis/finance" element={<FinanceDiagnosisPage />} />
             <Route path="/diagnosis/mbti" element={<MbtiDiagnosisPage />} />
             <Route path="/diagnosis/mbti/result" element={<MbtiDiagnosisResultPage />} />

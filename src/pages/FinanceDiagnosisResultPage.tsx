@@ -1291,36 +1291,36 @@ const FinanceDiagnosisResultPage = () => {
                               {index + 1}위
                             </Badge>
                             <h5 className="text-md font-semibold text-green-900">
-                              {product.name}
+                              {product['name']}
                             </h5>
                           </div>
                           <p className="text-green-700 text-sm mb-2">
-                            {product.description}
+                            {product['description']}
                           </p>
                           <div className="flex gap-2 mb-2">
-                            <Badge className={getRiskLevelColor(product.riskLevel)}>
-                              {product.riskLevel === 'low' ? '낮은 위험' : 
-                               product.riskLevel === 'medium' ? '보통 위험' : '높은 위험'}
+                            <Badge className={getRiskLevelColor(product['riskLevel'])}>
+                              {product['riskLevel'] === 'low' ? '낮은 위험' : 
+                               product['riskLevel'] === 'medium' ? '보통 위험' : '높은 위험'}
                             </Badge>
                             <Badge variant="outline" className="text-xs border-green-300 text-green-700">
-                              {product.category}
+                              {product['category']}
                             </Badge>
                           </div>
                         </div>
                         <div className="text-right">
-                          <div className="text-xl font-bold text-green-800">
-                            {product.return}%
-                          </div>
+                                                      <div className="text-xl font-bold text-green-800">
+                              {product['return']}%
+                            </div>
                           <div className="text-xs text-green-600">예상 수익률</div>
                         </div>
                       </div>
                       
                       <div className="border-t-2 border-green-200 pt-3">
                         <div className="text-sm text-green-700 mb-1">
-                          <span className="font-medium">추천 이유:</span> {product.reason}
+                          <span className="font-medium">추천 이유:</span> {product['reason']}
                         </div>
                         <div className="text-xs text-green-600">
-                          최소 투자금액: {formatCurrency(product.minAmount)}
+                          최소 투자금액: {formatCurrency(product['minAmount'])}
                         </div>
                       </div>
                     </div>
@@ -1347,36 +1347,36 @@ const FinanceDiagnosisResultPage = () => {
                               {index + 1}위
                             </Badge>
                             <h5 className="text-md font-semibold text-blue-900">
-                              {product.name}
+                              {product['name']}
                             </h5>
                           </div>
                           <p className="text-blue-700 text-sm mb-2">
-                            {product.description}
+                            {product['description']}
                           </p>
                           <div className="flex gap-2 mb-2">
-                            <Badge className={getRiskLevelColor(product.riskLevel)}>
-                              {product.riskLevel === 'low' ? '낮은 위험' : 
-                               product.riskLevel === 'medium' ? '보통 위험' : '높은 위험'}
+                            <Badge className={getRiskLevelColor(product['riskLevel'])}>
+                              {product['riskLevel'] === 'low' ? '낮은 위험' : 
+                               product['riskLevel'] === 'medium' ? '보통 위험' : '높은 위험'}
                             </Badge>
                             <Badge variant="outline" className="text-xs border-blue-300 text-blue-700">
-                              {product.category}
+                              {product['category']}
                             </Badge>
                           </div>
                         </div>
                         <div className="text-right">
-                          <div className="text-xl font-bold text-blue-800">
-                            {product.return}%
-                          </div>
+                                                      <div className="text-xl font-bold text-blue-800">
+                              {product['return']}%
+                            </div>
                           <div className="text-xs text-blue-600">예상 수익률</div>
                         </div>
                       </div>
                       
                       <div className="border-t-2 border-blue-200 pt-3">
                         <div className="text-sm text-blue-700 mb-1">
-                          <span className="font-medium">추천 이유:</span> {product.reason}
+                          <span className="font-medium">추천 이유:</span> {product['reason']}
                         </div>
                         <div className="text-xs text-blue-600">
-                          최소 투자금액: {formatCurrency(product.minAmount)}
+                          최소 투자금액: {formatCurrency(product['minAmount'])}
                         </div>
                       </div>
                     </div>
@@ -1403,36 +1403,36 @@ const FinanceDiagnosisResultPage = () => {
                               {index + 1}위
                             </Badge>
                             <h5 className="text-md font-semibold text-purple-900">
-                              {product.name}
+                              {product['name']}
                             </h5>
                           </div>
                           <p className="text-purple-700 text-sm mb-2">
-                            {product.description}
+                            {product['description']}
                           </p>
                           <div className="flex gap-2 mb-2">
-                            <Badge className={getRiskLevelColor(product.riskLevel)}>
-                              {product.riskLevel === 'low' ? '낮은 위험' : 
-                               product.riskLevel === 'medium' ? '보통 위험' : '높은 위험'}
+                            <Badge className={getRiskLevelColor(product['riskLevel'])}>
+                              {product['riskLevel'] === 'low' ? '낮은 위험' : 
+                               product['riskLevel'] === 'medium' ? '보통 위험' : '높은 위험'}
                             </Badge>
                             <Badge variant="outline" className="text-xs border-purple-300 text-purple-700">
-                              {product.category}
+                              {product['category']}
                             </Badge>
                           </div>
                         </div>
                         <div className="text-right">
-                          <div className="text-xl font-bold text-purple-800">
-                            {product.return}%
-                          </div>
+                                                      <div className="text-xl font-bold text-purple-800">
+                              {product['return']}%
+                            </div>
                           <div className="text-xs text-purple-600">예상 수익률</div>
                         </div>
                       </div>
                       
                       <div className="border-t-2 border-purple-200 pt-3">
                         <div className="text-sm text-purple-700 mb-1">
-                          <span className="font-medium">추천 이유:</span> {product.reason}
+                          <span className="font-medium">추천 이유:</span> {product['reason']}
                         </div>
                         <div className="text-xs text-purple-600">
-                          최소 투자금액: {formatCurrency(product.minAmount)}
+                          최소 투자금액: {formatCurrency(product['minAmount'])}
                         </div>
                       </div>
                     </div>
@@ -1459,36 +1459,36 @@ const FinanceDiagnosisResultPage = () => {
                               {index + 1}위
                             </Badge>
                             <h5 className="text-md font-semibold text-orange-900">
-                              {product.name}
+                              {product['name']}
                             </h5>
                           </div>
                           <p className="text-orange-700 text-sm mb-2">
-                            {product.description}
+                            {product['description']}
                           </p>
                           <div className="flex gap-2 mb-2">
-                            <Badge className={getRiskLevelColor(product.riskLevel)}>
-                              {product.riskLevel === 'low' ? '낮은 위험' : 
-                               product.riskLevel === 'medium' ? '보통 위험' : '높은 위험'}
+                            <Badge className={getRiskLevelColor(product['riskLevel'])}>
+                              {product['riskLevel'] === 'low' ? '낮은 위험' : 
+                               product['riskLevel'] === 'medium' ? '보통 위험' : '높은 위험'}
                             </Badge>
                             <Badge variant="outline" className="text-xs border-orange-300 text-orange-700">
-                              {product.category}
+                              {product['category']}
                             </Badge>
                           </div>
                         </div>
                         <div className="text-right">
-                          <div className="text-xl font-bold text-orange-800">
-                            {product.return}%
-                          </div>
+                                                      <div className="text-xl font-bold text-orange-800">
+                              {product['return']}%
+                            </div>
                           <div className="text-xs text-orange-600">예상 수익률</div>
                         </div>
                       </div>
                       
                       <div className="border-t-2 border-orange-200 pt-3">
                         <div className="text-sm text-orange-700 mb-1">
-                          <span className="font-medium">추천 이유:</span> {product.reason}
+                          <span className="font-medium">추천 이유:</span> {product['reason']}
                         </div>
                         <div className="text-xs text-orange-600">
-                          최소 투자금액: {formatCurrency(product.minAmount)}
+                          최소 투자금액: {formatCurrency(product['minAmount'])}
                         </div>
                       </div>
                     </div>
@@ -1684,32 +1684,32 @@ const FinanceDiagnosisResultPage = () => {
                         <div key={product.id} className="text-center p-4 bg-white rounded-xl border border-navy-200">
                           <div className="text-2xl font-bold text-navy-900">{fundRatio}%</div>
                           <div className="text-sm text-gray-600 mb-2">펀드</div>
-                          <div className="text-xs text-navy-700 font-medium">{product.name}</div>
-                          <div className="text-xs text-gold-600 font-bold">{product.return}%</div>
+                          <div className="text-xs text-navy-700 font-medium">{product['name']}</div>
+                          <div className="text-xs text-gold-600 font-bold">{product['return']}%</div>
                         </div>
                       ))}
                       {report?.recommendations?.filter(p => p.type === 'savings').slice(0, 1).map((product, index) => (
                         <div key={product.id} className="text-center p-4 bg-white rounded-xl border border-navy-200">
                           <div className="text-2xl font-bold text-navy-900">{savingsRatio}%</div>
                           <div className="text-sm text-gray-600 mb-2">정기적금</div>
-                          <div className="text-xs text-navy-700 font-medium">{product.name}</div>
-                          <div className="text-xs text-gold-600 font-bold">{product.return}%</div>
+                          <div className="text-xs text-navy-700 font-medium">{product['name']}</div>
+                          <div className="text-xs text-gold-600 font-bold">{product['return']}%</div>
                         </div>
                       ))}
                       {report?.recommendations?.filter(p => p.type === 'pension' && p.category === '연금저축').slice(0, 1).map((product, index) => (
                         <div key={product.id} className="text-center p-4 bg-white rounded-xl border border-navy-200">
                           <div className="text-2xl font-bold text-navy-900">{pensionRatio}%</div>
                           <div className="text-sm text-gray-600 mb-2">연금저축</div>
-                          <div className="text-xs text-navy-700 font-medium">{product.name}</div>
-                          <div className="text-xs text-gold-600 font-bold">{product.return}%</div>
+                          <div className="text-xs text-navy-700 font-medium">{product['name']}</div>
+                          <div className="text-xs text-gold-600 font-bold">{product['return']}%</div>
                         </div>
                       ))}
                       {report?.recommendations?.filter(p => p.type === 'retirement').slice(0, 1).map((product, index) => (
                         <div key={product.id} className="text-center p-4 bg-white rounded-xl border border-navy-200">
                           <div className="text-2xl font-bold text-navy-900">{retirementRatio}%</div>
                           <div className="text-sm text-gray-600 mb-2">퇴직연금</div>
-                          <div className="text-xs text-navy-700 font-medium">{product.name}</div>
-                          <div className="text-xs text-gold-600 font-bold">{product.return}%</div>
+                          <div className="text-xs text-navy-700 font-medium">{product['name']}</div>
+                          <div className="text-xs text-gold-600 font-bold">{product['return']}%</div>
                         </div>
                       ))}
                     </div>
