@@ -598,13 +598,20 @@ const FinanceDiagnosisPage = () => {
             transform: 'translateZ(0)',
             WebkitPerspective: '1000px',
             perspective: '1000px',
-            width: '400px',
-            minHeight: '200px'
+            width: '100%',
+            maxWidth: '500px',
+            minHeight: '200px',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center'
           }}>
-            <div className="grid grid-cols-2 gap-2 transform-gpu will-change-transform" style={{
+            <div className="grid grid-cols-2 gap-3 transform-gpu will-change-transform" style={{
               WebkitBackfaceVisibility: 'hidden',
               WebkitTransform: 'translateZ(0) scale(1.0, 1.0)',
-              transform: 'translateZ(0)'
+              transform: 'translateZ(0)',
+              width: '100%',
+              maxWidth: '480px'
             }}>
               {currentQuestion.options?.map((option) => (
                 <div key={option.value} className="flex items-center space-x-2 p-2 border rounded-md">
@@ -629,13 +636,15 @@ const FinanceDiagnosisPage = () => {
             <Button
               onClick={() => handleNext()}
               disabled={currentCheckboxes.length === 0}
-              className="bg-orange-500 hover:bg-orange-600 text-white w-full mt-4 font-semibold transform-gpu will-change-transform"
+              className="bg-orange-500 hover:bg-orange-600 text-white w-full mt-6 font-semibold transform-gpu will-change-transform"
               style={{
                 WebkitBackfaceVisibility: 'hidden',
                 WebkitTransform: 'translateZ(0) scale(1.0, 1.0)',
                 transform: 'translateZ(0)',
                 WebkitFontSmoothing: 'antialiased',
-                MozOsxFontSmoothing: 'grayscale'
+                MozOsxFontSmoothing: 'grayscale',
+                maxWidth: '480px',
+                height: '48px'
               }}
             >
               <Check className="mr-2 h-4 w-4" /> 확인
@@ -654,8 +663,13 @@ const FinanceDiagnosisPage = () => {
               transform: 'translateZ(0)',
               WebkitPerspective: '1000px',
               perspective: '1000px',
-              width: '400px',
-              minHeight: '120px'
+              width: '100%',
+              maxWidth: '500px',
+              minHeight: '120px',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center'
             }}
           >
             {currentQuestion.options?.map((option) => (
@@ -682,8 +696,12 @@ const FinanceDiagnosisPage = () => {
             transform: 'translateZ(0)',
             WebkitPerspective: '1000px',
             perspective: '1000px',
-            width: '320px',
-            height: '48px'
+            width: '100%',
+            maxWidth: '400px',
+            height: '48px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
           }}>
             <Input
               ref={inputRef}
@@ -736,8 +754,12 @@ const FinanceDiagnosisPage = () => {
             transform: 'translateZ(0)',
             WebkitPerspective: '1000px',
             perspective: '1000px',
-            width: '320px',
-            height: '48px'
+            width: '100%',
+            maxWidth: '400px',
+            height: '48px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
           }}>
             <Input
               ref={inputRef}
@@ -790,8 +812,12 @@ const FinanceDiagnosisPage = () => {
             transform: 'translateZ(0)',
             WebkitPerspective: '1000px',
             perspective: '1000px',
-            width: '320px',
-            height: '48px'
+            width: '100%',
+            maxWidth: '400px',
+            height: '48px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
           }}>
             <Input
               ref={inputRef}
@@ -939,12 +965,18 @@ const FinanceDiagnosisPage = () => {
         </main>
         
         {!isAllCompleted && (
-          <div ref={inputAreaRef} className="p-4 bg-white border-t transform-gpu will-change-transform" style={{
+          <div ref={inputAreaRef} className="p-6 bg-white border-t transform-gpu will-change-transform" style={{
             WebkitBackfaceVisibility: 'hidden',
             WebkitTransform: 'translateZ(0) scale(1.0, 1.0)',
-            transform: 'translateZ(0)'
+            transform: 'translateZ(0)',
+            minHeight: '120px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
           }}>
-            <div className="max-w-3xl mx-auto flex justify-center">
+            <div className="w-full max-w-2xl mx-auto flex justify-center items-center" style={{
+              minHeight: '80px'
+            }}>
               {renderInput()}
             </div>
           </div>
