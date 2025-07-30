@@ -709,21 +709,25 @@ const FinanceDiagnosisPage = () => {
               value={currentInput}
               onChange={(e) => setCurrentInput(e.target.value)}
               placeholder={placeholder}
-              className="border-gray-300 focus:border-orange-500 focus:ring-orange-500 pr-24 transform-gpu will-change-transform"
+              className="border-2 border-orange-500 focus:border-orange-600 focus:ring-orange-500 pr-20 transform-gpu will-change-transform rounded-lg"
               style={{
                 WebkitBackfaceVisibility: 'hidden',
                 WebkitTransform: 'translateZ(0) scale(1.0, 1.0)',
                 transform: 'translateZ(0)',
                 WebkitFontSmoothing: 'antialiased',
                 MozOsxFontSmoothing: 'grayscale',
-                width: '240px',
+                width: '280px',
                 height: '48px',
-                minWidth: '240px',
-                maxWidth: '240px'
+                minWidth: '280px',
+                maxWidth: '280px',
+                fontSize: '16px',
+                paddingLeft: '16px',
+                paddingRight: '80px'
               }}
               onKeyPress={(e) => e.key === 'Enter' && handleNext()}
             />
-            <span className="absolute right-12 top-1/2 transform -translate-y-1/2 text-gray-700 text-sm font-semibold bg-gray-100 px-2 py-1 rounded">
+            <span className="absolute right-16 top-1/2 transform -translate-y-1/2 text-white text-sm font-semibold bg-orange-500 px-3 py-1 rounded-md flex items-center gap-1">
+              <span className="text-xs">→</span>
               억원
             </span>
             <Button
@@ -767,21 +771,25 @@ const FinanceDiagnosisPage = () => {
               value={currentInput}
               onChange={(e) => setCurrentInput(e.target.value)}
               placeholder={placeholder}
-              className="border-gray-300 focus:border-orange-500 focus:ring-orange-500 pr-24 transform-gpu will-change-transform"
+              className="border-2 border-orange-500 focus:border-orange-600 focus:ring-orange-500 pr-20 transform-gpu will-change-transform rounded-lg"
               style={{
                 WebkitBackfaceVisibility: 'hidden',
                 WebkitTransform: 'translateZ(0) scale(1.0, 1.0)',
                 transform: 'translateZ(0)',
                 WebkitFontSmoothing: 'antialiased',
                 MozOsxFontSmoothing: 'grayscale',
-                width: '240px',
+                width: '280px',
                 height: '48px',
-                minWidth: '240px',
-                maxWidth: '240px'
+                minWidth: '280px',
+                maxWidth: '280px',
+                fontSize: '16px',
+                paddingLeft: '16px',
+                paddingRight: '80px'
               }}
               onKeyPress={(e) => e.key === 'Enter' && handleNext()}
             />
-            <span className="absolute right-12 top-1/2 transform -translate-y-1/2 text-gray-700 text-sm font-semibold bg-gray-100 px-2 py-1 rounded">
+            <span className="absolute right-16 top-1/2 transform -translate-y-1/2 text-white text-sm font-semibold bg-orange-500 px-3 py-1 rounded-md flex items-center gap-1">
+              <span className="text-xs">→</span>
               만원
             </span>
             <Button
@@ -825,17 +833,20 @@ const FinanceDiagnosisPage = () => {
               value={currentInput}
               onChange={(e) => setCurrentInput(e.target.value)}
               placeholder={placeholder}
-              className="border-gray-300 focus:border-orange-500 focus:ring-orange-500 transform-gpu will-change-transform"
+              className="border-2 border-orange-500 focus:border-orange-600 focus:ring-orange-500 transform-gpu will-change-transform rounded-lg"
               style={{
                 WebkitBackfaceVisibility: 'hidden',
                 WebkitTransform: 'translateZ(0) scale(1.0, 1.0)',
                 transform: 'translateZ(0)',
                 WebkitFontSmoothing: 'antialiased',
                 MozOsxFontSmoothing: 'grayscale',
-                width: '240px',
+                width: '280px',
                 height: '48px',
-                minWidth: '240px',
-                maxWidth: '240px'
+                minWidth: '280px',
+                maxWidth: '280px',
+                fontSize: '16px',
+                paddingLeft: '16px',
+                paddingRight: '16px'
               }}
               onKeyPress={(e) => e.key === 'Enter' && handleNext()}
             />
