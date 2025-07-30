@@ -592,8 +592,18 @@ const FinanceDiagnosisPage = () => {
     switch (currentQuestion.inputType) {
       case 'checkbox':
         return (
-          <div className="w-full max-w-md mx-auto">
-            <div className="grid grid-cols-2 gap-2">
+          <div className="w-full max-w-md mx-auto transform-gpu will-change-transform" style={{
+            WebkitBackfaceVisibility: 'hidden',
+            WebkitTransform: 'translateZ(0) scale(1.0, 1.0)',
+            transform: 'translateZ(0)',
+            WebkitPerspective: '1000px',
+            perspective: '1000px'
+          }}>
+            <div className="grid grid-cols-2 gap-2 transform-gpu will-change-transform" style={{
+              WebkitBackfaceVisibility: 'hidden',
+              WebkitTransform: 'translateZ(0) scale(1.0, 1.0)',
+              transform: 'translateZ(0)'
+            }}>
               {currentQuestion.options?.map((option) => (
                 <div key={option.value} className="flex items-center space-x-2 p-2 border rounded-md">
                   <Checkbox
@@ -635,7 +645,14 @@ const FinanceDiagnosisPage = () => {
           <RadioGroup
             value={currentRadioValue}
             onValueChange={handleRadioChange}
-            className="grid grid-cols-2 gap-4"
+            className="grid grid-cols-2 gap-4 transform-gpu will-change-transform"
+            style={{
+              WebkitBackfaceVisibility: 'hidden',
+              WebkitTransform: 'translateZ(0) scale(1.0, 1.0)',
+              transform: 'translateZ(0)',
+              WebkitPerspective: '1000px',
+              perspective: '1000px'
+            }}
           >
             {currentQuestion.options?.map((option) => (
               <Label
@@ -655,14 +672,27 @@ const FinanceDiagnosisPage = () => {
         );
       case 'target-amount':
         return (
-          <div className="flex items-center w-full max-w-xs relative">
+          <div className="flex items-center w-full max-w-xs relative transform-gpu will-change-transform" style={{
+            WebkitBackfaceVisibility: 'hidden',
+            WebkitTransform: 'translateZ(0) scale(1.0, 1.0)',
+            transform: 'translateZ(0)',
+            WebkitPerspective: '1000px',
+            perspective: '1000px'
+          }}>
             <Input
               ref={inputRef}
               type="number"
               value={currentInput}
               onChange={(e) => setCurrentInput(e.target.value)}
               placeholder={placeholder}
-              className="border-gray-300 focus:border-orange-500 focus:ring-orange-500 pr-24"
+              className="border-gray-300 focus:border-orange-500 focus:ring-orange-500 pr-24 transform-gpu will-change-transform"
+              style={{
+                WebkitBackfaceVisibility: 'hidden',
+                WebkitTransform: 'translateZ(0) scale(1.0, 1.0)',
+                transform: 'translateZ(0)',
+                WebkitFontSmoothing: 'antialiased',
+                MozOsxFontSmoothing: 'grayscale'
+              }}
               onKeyPress={(e) => e.key === 'Enter' && handleNext()}
             />
             <span className="absolute right-12 top-1/2 transform -translate-y-1/2 text-gray-700 text-sm font-semibold bg-gray-100 px-2 py-1 rounded">
@@ -686,14 +716,27 @@ const FinanceDiagnosisPage = () => {
         );
       case 'amount':
         return (
-          <div className="flex items-center w-full max-w-xs relative">
+          <div className="flex items-center w-full max-w-xs relative transform-gpu will-change-transform" style={{
+            WebkitBackfaceVisibility: 'hidden',
+            WebkitTransform: 'translateZ(0) scale(1.0, 1.0)',
+            transform: 'translateZ(0)',
+            WebkitPerspective: '1000px',
+            perspective: '1000px'
+          }}>
             <Input
               ref={inputRef}
               type="number"
               value={currentInput}
               onChange={(e) => setCurrentInput(e.target.value)}
               placeholder={placeholder}
-              className="border-gray-300 focus:border-orange-500 focus:ring-orange-500 pr-24"
+              className="border-gray-300 focus:border-orange-500 focus:ring-orange-500 pr-24 transform-gpu will-change-transform"
+              style={{
+                WebkitBackfaceVisibility: 'hidden',
+                WebkitTransform: 'translateZ(0) scale(1.0, 1.0)',
+                transform: 'translateZ(0)',
+                WebkitFontSmoothing: 'antialiased',
+                MozOsxFontSmoothing: 'grayscale'
+              }}
               onKeyPress={(e) => e.key === 'Enter' && handleNext()}
             />
             <span className="absolute right-12 top-1/2 transform -translate-y-1/2 text-gray-700 text-sm font-semibold bg-gray-100 px-2 py-1 rounded">
@@ -717,14 +760,27 @@ const FinanceDiagnosisPage = () => {
         );
       default:
         return (
-          <div className="flex items-center w-full max-w-xs">
+          <div className="flex items-center w-full max-w-xs transform-gpu will-change-transform" style={{
+            WebkitBackfaceVisibility: 'hidden',
+            WebkitTransform: 'translateZ(0) scale(1.0, 1.0)',
+            transform: 'translateZ(0)',
+            WebkitPerspective: '1000px',
+            perspective: '1000px'
+          }}>
             <Input
               ref={inputRef}
               type={currentQuestion.inputType}
               value={currentInput}
               onChange={(e) => setCurrentInput(e.target.value)}
               placeholder={placeholder}
-              className="border-gray-300 focus:border-orange-500 focus:ring-orange-500"
+              className="border-gray-300 focus:border-orange-500 focus:ring-orange-500 transform-gpu will-change-transform"
+              style={{
+                WebkitBackfaceVisibility: 'hidden',
+                WebkitTransform: 'translateZ(0) scale(1.0, 1.0)',
+                transform: 'translateZ(0)',
+                WebkitFontSmoothing: 'antialiased',
+                MozOsxFontSmoothing: 'grayscale'
+              }}
               onKeyPress={(e) => e.key === 'Enter' && handleNext()}
             />
             <Button
@@ -751,10 +807,24 @@ const FinanceDiagnosisPage = () => {
   return (
     <>
       <Header />
-      <div className="flex flex-col h-[calc(100vh-80px)] bg-gray-50">
+      <div className="flex flex-col h-[calc(100vh-80px)] bg-gray-50 transform-gpu will-change-transform" style={{
+        WebkitBackfaceVisibility: 'hidden',
+        WebkitTransform: 'translateZ(0) scale(1.0, 1.0)',
+        transform: 'translateZ(0)',
+        WebkitPerspective: '1000px',
+        perspective: '1000px'
+      }}>
         {/* 상단 버튼 영역 */}
-        <div className="p-4 bg-white border-b">
-          <div className="max-w-3xl mx-auto flex justify-between items-center">
+        <div className="p-4 bg-white border-b transform-gpu will-change-transform" style={{
+          WebkitBackfaceVisibility: 'hidden',
+          WebkitTransform: 'translateZ(0) scale(1.0, 1.0)',
+          transform: 'translateZ(0)'
+        }}>
+          <div className="max-w-3xl mx-auto flex justify-between items-center transform-gpu will-change-transform" style={{
+            WebkitBackfaceVisibility: 'hidden',
+            WebkitTransform: 'translateZ(0) scale(1.0, 1.0)',
+            transform: 'translateZ(0)'
+          }}>
             <div className="text-sm text-gray-600">
               {currentStep > 0 && `진단 진행률: ${Math.round((currentStep / questions.length) * 100)}%`}
             </div>
@@ -776,8 +846,18 @@ const FinanceDiagnosisPage = () => {
           </div>
         </div>
         
-        <main className="flex-1 overflow-y-auto p-4 md:p-6">
-          <div className="max-w-3xl mx-auto space-y-6">
+        <main className="flex-1 overflow-y-auto p-4 md:p-6 transform-gpu will-change-transform" style={{
+          WebkitBackfaceVisibility: 'hidden',
+          WebkitTransform: 'translateZ(0) scale(1.0, 1.0)',
+          transform: 'translateZ(0)',
+          WebkitPerspective: '1000px',
+          perspective: '1000px'
+        }}>
+          <div className="max-w-3xl mx-auto space-y-6 transform-gpu will-change-transform" style={{
+            WebkitBackfaceVisibility: 'hidden',
+            WebkitTransform: 'translateZ(0) scale(1.0, 1.0)',
+            transform: 'translateZ(0)'
+          }}>
             {messages.map((message, index) => (
               <div key={message.id} className={`flex items-start gap-4 ${message.type === 'user' ? 'justify-end' : ''} transform-gpu will-change-transform`} style={{
                 WebkitBackfaceVisibility: 'hidden',
