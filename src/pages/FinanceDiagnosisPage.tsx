@@ -617,7 +617,14 @@ const FinanceDiagnosisPage = () => {
             <Button
               onClick={() => handleNext()}
               disabled={currentCheckboxes.length === 0}
-              className="bg-orange-500 hover:bg-orange-600 text-white w-full mt-4 font-semibold"
+              className="bg-orange-500 hover:bg-orange-600 text-white w-full mt-4 font-semibold transform-gpu will-change-transform"
+              style={{
+                WebkitBackfaceVisibility: 'hidden',
+                WebkitTransform: 'translateZ(0) scale(1.0, 1.0)',
+                transform: 'translateZ(0)',
+                WebkitFontSmoothing: 'antialiased',
+                MozOsxFontSmoothing: 'grayscale'
+              }}
             >
               <Check className="mr-2 h-4 w-4" /> 확인
             </Button>
@@ -664,7 +671,14 @@ const FinanceDiagnosisPage = () => {
             <Button
               onClick={() => handleNext()}
               disabled={!currentInput.trim()}
-              className="bg-orange-500 hover:bg-orange-600 text-white font-semibold"
+              className="bg-orange-500 hover:bg-orange-600 text-white font-semibold transform-gpu will-change-transform"
+              style={{
+                WebkitBackfaceVisibility: 'hidden',
+                WebkitTransform: 'translateZ(0) scale(1.0, 1.0)',
+                transform: 'translateZ(0)',
+                WebkitFontSmoothing: 'antialiased',
+                MozOsxFontSmoothing: 'grayscale'
+              }}
             >
               <Send className="h-4 w-4" />
             </Button>
@@ -688,7 +702,14 @@ const FinanceDiagnosisPage = () => {
             <Button
               onClick={() => handleNext()}
               disabled={!currentInput.trim()}
-              className="bg-orange-500 hover:bg-orange-600 text-white font-semibold"
+              className="bg-orange-500 hover:bg-orange-600 text-white font-semibold transform-gpu will-change-transform"
+              style={{
+                WebkitBackfaceVisibility: 'hidden',
+                WebkitTransform: 'translateZ(0) scale(1.0, 1.0)',
+                transform: 'translateZ(0)',
+                WebkitFontSmoothing: 'antialiased',
+                MozOsxFontSmoothing: 'grayscale'
+              }}
             >
               <Send className="h-4 w-4" />
             </Button>
@@ -709,7 +730,14 @@ const FinanceDiagnosisPage = () => {
             <Button
               onClick={() => handleNext()}
               disabled={!currentInput.trim()}
-              className="bg-orange-500 hover:bg-orange-600 text-white font-semibold"
+              className="bg-orange-500 hover:bg-orange-600 text-white font-semibold transform-gpu will-change-transform"
+              style={{
+                WebkitBackfaceVisibility: 'hidden',
+                WebkitTransform: 'translateZ(0) scale(1.0, 1.0)',
+                transform: 'translateZ(0)',
+                WebkitFontSmoothing: 'antialiased',
+                MozOsxFontSmoothing: 'grayscale'
+              }}
             >
               <Send className="h-4 w-4" />
             </Button>
@@ -734,7 +762,14 @@ const FinanceDiagnosisPage = () => {
               onClick={handleRestart}
               variant="outline"
               size="sm"
-              className="text-gray-600 hover:text-red-600"
+              className="text-gray-600 hover:text-red-600 transform-gpu will-change-transform"
+              style={{
+                WebkitBackfaceVisibility: 'hidden',
+                WebkitTransform: 'translateZ(0) scale(1.0, 1.0)',
+                transform: 'translateZ(0)',
+                WebkitFontSmoothing: 'antialiased',
+                MozOsxFontSmoothing: 'grayscale'
+              }}
             >
               진단 다시 시작
             </Button>
@@ -744,7 +779,11 @@ const FinanceDiagnosisPage = () => {
         <main className="flex-1 overflow-y-auto p-4 md:p-6">
           <div className="max-w-3xl mx-auto space-y-6">
             {messages.map((message, index) => (
-              <div key={message.id} className={`flex items-start gap-4 ${message.type === 'user' ? 'justify-end' : ''}`}>
+              <div key={message.id} className={`flex items-start gap-4 ${message.type === 'user' ? 'justify-end' : ''} transform-gpu will-change-transform`} style={{
+                WebkitBackfaceVisibility: 'hidden',
+                WebkitTransform: 'translateZ(0) scale(1.0, 1.0)',
+                transform: 'translateZ(0)'
+              }}>
                 {message.type === 'bot' && (
                   <div className="w-10 h-10 rounded-full bg-orange-500 flex items-center justify-center text-white">
                     <Bot size={24} />
@@ -765,7 +804,11 @@ const FinanceDiagnosisPage = () => {
               </div>
             ))}
             {isLoading && (
-              <div className="flex items-start gap-4">
+              <div className="flex items-start gap-4 transform-gpu will-change-transform" style={{
+                WebkitBackfaceVisibility: 'hidden',
+                WebkitTransform: 'translateZ(0) scale(1.0, 1.0)',
+                transform: 'translateZ(0)'
+              }}>
                 <div className="w-10 h-10 rounded-full bg-orange-500 flex items-center justify-center text-white">
                   <Bot size={24} />
                 </div>
@@ -782,7 +825,11 @@ const FinanceDiagnosisPage = () => {
         </main>
         
         {!isAllCompleted && (
-          <div ref={inputAreaRef} className="p-4 bg-white border-t">
+          <div ref={inputAreaRef} className="p-4 bg-white border-t transform-gpu will-change-transform" style={{
+            WebkitBackfaceVisibility: 'hidden',
+            WebkitTransform: 'translateZ(0) scale(1.0, 1.0)',
+            transform: 'translateZ(0)'
+          }}>
             <div className="max-w-3xl mx-auto flex justify-center">
               {renderInput()}
             </div>
