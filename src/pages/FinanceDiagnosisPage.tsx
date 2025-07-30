@@ -597,7 +597,9 @@ const FinanceDiagnosisPage = () => {
             WebkitTransform: 'translateZ(0) scale(1.0, 1.0)',
             transform: 'translateZ(0)',
             WebkitPerspective: '1000px',
-            perspective: '1000px'
+            perspective: '1000px',
+            width: '400px',
+            minHeight: '200px'
           }}>
             <div className="grid grid-cols-2 gap-2 transform-gpu will-change-transform" style={{
               WebkitBackfaceVisibility: 'hidden',
@@ -651,7 +653,9 @@ const FinanceDiagnosisPage = () => {
               WebkitTransform: 'translateZ(0) scale(1.0, 1.0)',
               transform: 'translateZ(0)',
               WebkitPerspective: '1000px',
-              perspective: '1000px'
+              perspective: '1000px',
+              width: '400px',
+              minHeight: '120px'
             }}
           >
             {currentQuestion.options?.map((option) => (
@@ -677,7 +681,9 @@ const FinanceDiagnosisPage = () => {
             WebkitTransform: 'translateZ(0) scale(1.0, 1.0)',
             transform: 'translateZ(0)',
             WebkitPerspective: '1000px',
-            perspective: '1000px'
+            perspective: '1000px',
+            width: '320px',
+            height: '48px'
           }}>
             <Input
               ref={inputRef}
@@ -691,7 +697,11 @@ const FinanceDiagnosisPage = () => {
                 WebkitTransform: 'translateZ(0) scale(1.0, 1.0)',
                 transform: 'translateZ(0)',
                 WebkitFontSmoothing: 'antialiased',
-                MozOsxFontSmoothing: 'grayscale'
+                MozOsxFontSmoothing: 'grayscale',
+                width: '240px',
+                height: '48px',
+                minWidth: '240px',
+                maxWidth: '240px'
               }}
               onKeyPress={(e) => e.key === 'Enter' && handleNext()}
             />
@@ -707,7 +717,11 @@ const FinanceDiagnosisPage = () => {
                 WebkitTransform: 'translateZ(0) scale(1.0, 1.0)',
                 transform: 'translateZ(0)',
                 WebkitFontSmoothing: 'antialiased',
-                MozOsxFontSmoothing: 'grayscale'
+                MozOsxFontSmoothing: 'grayscale',
+                width: '48px',
+                height: '48px',
+                minWidth: '48px',
+                maxWidth: '48px'
               }}
             >
               <Send className="h-4 w-4" />
@@ -721,7 +735,9 @@ const FinanceDiagnosisPage = () => {
             WebkitTransform: 'translateZ(0) scale(1.0, 1.0)',
             transform: 'translateZ(0)',
             WebkitPerspective: '1000px',
-            perspective: '1000px'
+            perspective: '1000px',
+            width: '320px',
+            height: '48px'
           }}>
             <Input
               ref={inputRef}
@@ -735,7 +751,11 @@ const FinanceDiagnosisPage = () => {
                 WebkitTransform: 'translateZ(0) scale(1.0, 1.0)',
                 transform: 'translateZ(0)',
                 WebkitFontSmoothing: 'antialiased',
-                MozOsxFontSmoothing: 'grayscale'
+                MozOsxFontSmoothing: 'grayscale',
+                width: '240px',
+                height: '48px',
+                minWidth: '240px',
+                maxWidth: '240px'
               }}
               onKeyPress={(e) => e.key === 'Enter' && handleNext()}
             />
@@ -751,7 +771,11 @@ const FinanceDiagnosisPage = () => {
                 WebkitTransform: 'translateZ(0) scale(1.0, 1.0)',
                 transform: 'translateZ(0)',
                 WebkitFontSmoothing: 'antialiased',
-                MozOsxFontSmoothing: 'grayscale'
+                MozOsxFontSmoothing: 'grayscale',
+                width: '48px',
+                height: '48px',
+                minWidth: '48px',
+                maxWidth: '48px'
               }}
             >
               <Send className="h-4 w-4" />
@@ -765,7 +789,9 @@ const FinanceDiagnosisPage = () => {
             WebkitTransform: 'translateZ(0) scale(1.0, 1.0)',
             transform: 'translateZ(0)',
             WebkitPerspective: '1000px',
-            perspective: '1000px'
+            perspective: '1000px',
+            width: '320px',
+            height: '48px'
           }}>
             <Input
               ref={inputRef}
@@ -779,7 +805,11 @@ const FinanceDiagnosisPage = () => {
                 WebkitTransform: 'translateZ(0) scale(1.0, 1.0)',
                 transform: 'translateZ(0)',
                 WebkitFontSmoothing: 'antialiased',
-                MozOsxFontSmoothing: 'grayscale'
+                MozOsxFontSmoothing: 'grayscale',
+                width: '240px',
+                height: '48px',
+                minWidth: '240px',
+                maxWidth: '240px'
               }}
               onKeyPress={(e) => e.key === 'Enter' && handleNext()}
             />
@@ -792,7 +822,11 @@ const FinanceDiagnosisPage = () => {
                 WebkitTransform: 'translateZ(0) scale(1.0, 1.0)',
                 transform: 'translateZ(0)',
                 WebkitFontSmoothing: 'antialiased',
-                MozOsxFontSmoothing: 'grayscale'
+                MozOsxFontSmoothing: 'grayscale',
+                width: '48px',
+                height: '48px',
+                minWidth: '48px',
+                maxWidth: '48px'
               }}
             >
               <Send className="h-4 w-4" />
