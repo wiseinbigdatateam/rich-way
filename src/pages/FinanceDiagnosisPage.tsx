@@ -614,13 +614,18 @@ const FinanceDiagnosisPage = () => {
               maxWidth: '480px'
             }}>
               {currentQuestion.options?.map((option) => (
-                <div key={option.value} className="flex items-center space-x-2 p-2 border rounded-md">
+                <div key={option.value} className={`flex items-center space-x-3 p-4 border-2 rounded-lg transition-all duration-200 cursor-pointer ${
+                  currentCheckboxes.includes(option.value)
+                    ? 'border-orange-500 bg-orange-50 shadow-md'
+                    : 'border-gray-200 hover:border-orange-300 hover:bg-orange-25'
+                }`} onClick={() => handleCheckboxChange(option.value, !currentCheckboxes.includes(option.value))}>
                   <Checkbox
                     id={option.value}
                     checked={currentCheckboxes.includes(option.value)}
                     onCheckedChange={(checked) => handleCheckboxChange(option.value, !!checked)}
+                    className="data-[state=checked]:bg-orange-500 data-[state=checked]:border-orange-500"
                   />
-                  <Label htmlFor={option.value} className="flex-1 cursor-pointer">{option.label}</Label>
+                  <Label htmlFor={option.value} className="flex-1 cursor-pointer font-medium text-gray-700">{option.label}</Label>
                 </div>
               ))}
             </div>
@@ -676,10 +681,10 @@ const FinanceDiagnosisPage = () => {
               <Label
                 key={option.value}
                 htmlFor={option.value}
-                className={`flex items-center justify-center p-4 border rounded-lg cursor-pointer transition-colors ${
+                className={`flex items-center justify-center p-4 border-2 rounded-lg cursor-pointer transition-all duration-200 font-medium ${
                   currentRadioValue === option.value
-                    ? 'bg-orange-500 border-orange-500 text-white'
-                    : 'bg-white hover:bg-orange-50'
+                    ? 'bg-orange-500 border-orange-500 text-white shadow-md'
+                    : 'bg-white border-gray-200 hover:border-orange-300 hover:bg-orange-25 text-gray-700'
                 }`}
               >
                 <RadioGroupItem value={option.value} id={option.value} className="sr-only" />
@@ -726,7 +731,7 @@ const FinanceDiagnosisPage = () => {
               }}
               onKeyPress={(e) => e.key === 'Enter' && handleNext()}
             />
-            <span className="absolute right-16 top-1/2 transform -translate-y-1/2 text-white text-sm font-semibold bg-orange-500 px-3 py-1 rounded-md flex items-center gap-1">
+            <span className="absolute right-14 top-1/2 transform -translate-y-1/2 text-white text-sm font-semibold bg-orange-500 px-3 py-1 rounded-md flex items-center gap-1 z-10">
               <span className="text-xs">→</span>
               억원
             </span>
@@ -763,7 +768,8 @@ const FinanceDiagnosisPage = () => {
             height: '48px',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center'
+            justifyContent: 'center',
+            position: 'relative'
           }}>
             <Input
               ref={inputRef}
@@ -788,7 +794,7 @@ const FinanceDiagnosisPage = () => {
               }}
               onKeyPress={(e) => e.key === 'Enter' && handleNext()}
             />
-            <span className="absolute right-16 top-1/2 transform -translate-y-1/2 text-white text-sm font-semibold bg-orange-500 px-3 py-1 rounded-md flex items-center gap-1">
+            <span className="absolute right-14 top-1/2 transform -translate-y-1/2 text-white text-sm font-semibold bg-orange-500 px-3 py-1 rounded-md flex items-center gap-1 z-10">
               <span className="text-xs">→</span>
               만원
             </span>
@@ -924,7 +930,7 @@ const FinanceDiagnosisPage = () => {
           WebkitPerspective: '1000px',
           perspective: '1000px'
         }}>
-          <div className="max-w-3xl mx-auto space-y-6 transform-gpu will-change-transform" style={{
+          <div className="max-w-4xl mx-auto space-y-6 transform-gpu will-change-transform" style={{
             WebkitBackfaceVisibility: 'hidden',
             WebkitTransform: 'translateZ(0) scale(1.0, 1.0)',
             transform: 'translateZ(0)'
@@ -940,12 +946,12 @@ const FinanceDiagnosisPage = () => {
                     <Bot size={24} />
                   </div>
                 )}
-                <div className={`p-4 rounded-xl max-w-[80%] ${
+                <div className={`p-4 rounded-xl max-w-[85%] ${
                   message.type === 'bot'
                     ? 'bg-white text-gray-800 rounded-tl-none shadow'
                     : 'bg-orange-500 text-white rounded-br-none shadow'
                 }`}>
-                  <p className="whitespace-pre-wrap">{message.content}</p>
+                  <p className="whitespace-pre-wrap text-base leading-relaxed">{message.content}</p>
                 </div>
                 {message.type === 'user' && (
                   <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center text-gray-600">
@@ -980,13 +986,19 @@ const FinanceDiagnosisPage = () => {
             WebkitBackfaceVisibility: 'hidden',
             WebkitTransform: 'translateZ(0) scale(1.0, 1.0)',
             transform: 'translateZ(0)',
-            minHeight: '120px',
+            minHeight: '140px',
+            height: '140px',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center'
+            justifyContent: 'center',
+            position: 'relative'
           }}>
             <div className="w-full max-w-2xl mx-auto flex justify-center items-center" style={{
-              minHeight: '80px'
+              height: '80px',
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)'
             }}>
               {renderInput()}
             </div>
