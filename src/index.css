@@ -109,4 +109,22 @@
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
+  
+  /* 버튼 안정화 스타일 - 움직임 방지 */
+  .button-stable {
+    -webkit-backface-visibility: hidden;
+    -webkit-transform: translateZ(0) scale(1.0, 1.0);
+    transform: translateZ(0);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    will-change: transform;
+  }
+  
+  /* 애니메이션 요소 안정화 */
+  .animation-stable {
+    -webkit-backface-visibility: hidden;
+    -webkit-transform: translateZ(0) scale(1.0, 1.0);
+    transform: translateZ(0);
+    will-change: transform;
+  }
 }
