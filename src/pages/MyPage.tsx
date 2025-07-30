@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,12 +14,11 @@ import MyPosts from "@/components/mypage/MyPosts";
 import MembersLoginDialog from "@/components/MembersLoginDialog";
 import { User, Activity, Users, BookOpen, ShoppingBag, MessageSquare, LogIn } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useNavigate } from "react-router-dom";
 
 const MyPage = () => {
   const { user, loading, login } = useAuth();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState("info");
   const [showLoginDialog, setShowLoginDialog] = useState(false);
 
@@ -30,6 +29,14 @@ const MyPage = () => {
       setActiveTab(tabParam);
     }
   }, [searchParams]);
+
+  // 탭 변경 시 URL 업데이트
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    const newSearchParams = new URLSearchParams(searchParams);
+    newSearchParams.set('tab', value);
+    setSearchParams(newSearchParams);
+  };
 
   // 디버깅용 로그
   console.log('🔍 MyPage 상태:', { user: !!user, loading, showLoginDialog, activeTab });
@@ -124,7 +131,7 @@ const MyPage = () => {
           {/* 사이드바 */}
           <Card className="lg:col-span-1">
             <CardContent className="p-0">
-              <Tabs value={activeTab} onValueChange={setActiveTab} orientation="vertical">
+              <Tabs value={activeTab} onValueChange={handleTabChange} orientation="vertical">
                 <TabsList className="flex flex-col h-auto w-full bg-transparent p-2">
                   {tabs.map((tab) => {
                     const IconComponent = tab.icon;
@@ -146,7 +153,7 @@ const MyPage = () => {
 
           {/* 메인 콘텐츠 */}
           <div className="lg:col-span-3">
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <Tabs value={activeTab} onValueChange={handleTabChange}>
               {tabs.map((tab) => {
                 const Component = tab.component;
                 return (

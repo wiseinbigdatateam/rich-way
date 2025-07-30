@@ -88,10 +88,10 @@ const MyDiagnosis: React.FC = () => {
   }
 
   const financialData = {
-    totalAssets: financialOverview?.totalAssets || 50000000,
-    monthlyIncome: financialOverview?.monthlyIncome || 4500000,
-    monthlyExpense: financialOverview?.monthlyExpense || 3200000,
-    savingsRate: financialOverview?.savingsRate || 28.9,
+    totalAssets: financialOverview?.totalAssets || 0,
+    monthlyIncome: financialOverview?.monthlyIncome || 0,
+    monthlyExpense: financialOverview?.monthlyExpense || 0,
+    savingsRate: financialOverview?.savingsRate || 0,
   };
 
   return (
@@ -105,7 +105,10 @@ const MyDiagnosis: React.FC = () => {
               <div>
                 <p className="text-sm font-medium text-gray-600 mb-1">총 자산</p>
                 <p className="text-xl font-bold text-gray-900">
-                  {(financialData.totalAssets / 10000).toFixed(0)}만원
+                  {financialData.totalAssets > 0 
+                    ? `${(financialData.totalAssets / 10000).toFixed(0)}만원`
+                    : "-"
+                  }
                 </p>
               </div>
               <div className="p-2 bg-blue-100 rounded-lg">
@@ -122,7 +125,10 @@ const MyDiagnosis: React.FC = () => {
               <div>
                 <p className="text-sm font-medium text-gray-600 mb-1">월 수입</p>
                 <p className="text-xl font-bold text-gray-900">
-                  {(financialData.monthlyIncome / 10000).toFixed(0)}만원
+                  {financialData.monthlyIncome > 0 
+                    ? `${(financialData.monthlyIncome / 10000).toFixed(0)}만원`
+                    : "-"
+                  }
                 </p>
               </div>
               <div className="p-2 bg-green-100 rounded-lg">
@@ -139,7 +145,10 @@ const MyDiagnosis: React.FC = () => {
               <div>
                 <p className="text-sm font-medium text-gray-600 mb-1">월 지출</p>
                 <p className="text-xl font-bold text-gray-900">
-                  {(financialData.monthlyExpense / 10000).toFixed(0)}만원
+                  {financialData.monthlyExpense > 0 
+                    ? `${(financialData.monthlyExpense / 10000).toFixed(0)}만원`
+                    : "-"
+                  }
                 </p>
               </div>
               <div className="p-2 bg-orange-100 rounded-lg">
@@ -156,7 +165,10 @@ const MyDiagnosis: React.FC = () => {
               <div>
                 <p className="text-sm font-medium text-gray-600 mb-1">저축률</p>
                 <p className="text-xl font-bold text-gray-900">
-                  {financialData.savingsRate}%
+                  {financialData.savingsRate > 0 
+                    ? `${financialData.savingsRate}%`
+                    : "-"
+                  }
                 </p>
               </div>
               <div className="p-2 bg-purple-100 rounded-lg">
@@ -312,8 +324,7 @@ const MyDiagnosis: React.FC = () => {
                 <Button
                   className="w-full"
                   onClick={() => {
-                    // TODO: 투자 성향 진단 페이지로 이동
-                    console.log("투자 성향 진단 시작");
+                    navigate('/diagnosis/mbti');
                   }}
                 >
                   진단 시작하기
@@ -338,8 +349,7 @@ const MyDiagnosis: React.FC = () => {
                   className="w-full"
                   variant="outline"
                   onClick={() => {
-                    // TODO: 부채 관리 진단 페이지로 이동
-                    console.log("부채 관리 진단 시작");
+                    navigate('/diagnosis/finance');
                   }}
                 >
                   진단 시작하기
