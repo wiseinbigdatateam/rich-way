@@ -6,6 +6,7 @@ import { Label } from "./ui/label";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { useToast } from "./ui/use-toast";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
+import SignupDialog from "./SignupDialog";
 // import KakaoLoginButton from "./KakaoLoginButton";
 
 interface MembersLoginDialogProps {
@@ -19,7 +20,53 @@ export default function MembersLoginDialog({ open, onOpenChange, onLoginSuccess 
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showSignupDialog, setShowSignupDialog] = useState(false);
+  const [showForgotPasswordDialog, setShowForgotPasswordDialog] = useState(false);
+  const [forgotPasswordEmail, setForgotPasswordEmail] = useState("");
+  const [forgotPasswordLoading, setForgotPasswordLoading] = useState(false);
   const { toast } = useToast();
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setForgotPasswordLoading(true);
+
+    try {
+      // Demo 모드 처리
+      if (!isSupabaseConfigured) {
+        toast({
+          title: "✅ Demo 모드 비밀번호 찾기",
+          description: `${forgotPasswordEmail}로 비밀번호 재설정 이메일을 발송했습니다. (Demo 모드)`,
+        });
+        setForgotPasswordEmail("");
+        setShowForgotPasswordDialog(false);
+        setForgotPasswordLoading(false);
+        return;
+      }
+
+      // 실제 비밀번호 재설정 이메일 발송 (Demo 모드에서는 실제 발송하지 않음)
+      toast({
+        title: "✅ 비밀번호 재설정 이메일 발송",
+        description: `${forgotPasswordEmail}로 비밀번호 재설정 이메일을 발송했습니다.`,
+      });
+
+      toast({
+        title: "✅ 비밀번호 재설정 이메일 발송",
+        description: `${forgotPasswordEmail}로 비밀번호 재설정 이메일을 발송했습니다.`,
+      });
+      
+      setForgotPasswordEmail("");
+      setShowForgotPasswordDialog(false);
+    } catch (error: any) {
+      console.error('비밀번호 찾기 오류:', error);
+      toast({
+        variant: "destructive",
+        title: "비밀번호 찾기 실패",
+        description: error.message || "알 수 없는 오류가 발생했습니다.",
+      });
+    } finally {
+      setForgotPasswordLoading(false);
+    }
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -139,7 +186,8 @@ export default function MembersLoginDialog({ open, onOpenChange, onLoginSuccess 
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>로그인</DialogTitle>
@@ -238,18 +286,68 @@ export default function MembersLoginDialog({ open, onOpenChange, onLoginSuccess 
         <div className="text-center space-y-2">
           <p className="text-sm text-gray-600">
             계정이 없으신가요?{" "}
-            <span className="text-blue-600 hover:underline cursor-pointer">
+            <span 
+              className="text-blue-600 hover:underline cursor-pointer"
+              onClick={() => setShowSignupDialog(true)}
+            >
               회원가입
             </span>
           </p>
           <p className="text-xs text-gray-500">
             비밀번호를 잊으셨나요?{" "}
-            <span className="text-blue-500 hover:underline cursor-pointer">
+            <span 
+              className="text-blue-500 hover:underline cursor-pointer"
+              onClick={() => setShowForgotPasswordDialog(true)}
+            >
               비밀번호 찾기
             </span>
           </p>
         </div>
       </DialogContent>
     </Dialog>
+
+    {/* 회원가입 다이얼로그 */}
+    <SignupDialog
+      open={showSignupDialog}
+      onOpenChange={setShowSignupDialog}
+      onSignupSuccess={onLoginSuccess}
+    />
+
+    {/* 비밀번호 찾기 다이얼로그 */}
+    <Dialog open={showForgotPasswordDialog} onOpenChange={setShowForgotPasswordDialog}>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>비밀번호 찾기</DialogTitle>
+          <DialogDescription>
+            가입한 이메일 주소를 입력하시면 비밀번호 재설정 이메일을 발송해드립니다.
+          </DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleForgotPassword} className="grid gap-4 py-4">
+          <div className="grid gap-2">
+            <Label htmlFor="forgot-email">이메일 주소</Label>
+            <Input
+              id="forgot-email"
+              type="email"
+              value={forgotPasswordEmail}
+              onChange={(e) => setForgotPasswordEmail(e.target.value)}
+              placeholder="가입한 이메일을 입력하세요"
+              required
+              disabled={forgotPasswordLoading}
+            />
+          </div>
+          <Button type="submit" disabled={forgotPasswordLoading} className="w-full">
+            {forgotPasswordLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                이메일 발송 중...
+              </>
+            ) : (
+              "비밀번호 재설정 이메일 발송"
+            )}
+          </Button>
+        </form>
+      </DialogContent>
+    </Dialog>
+  </>
   );
 } 

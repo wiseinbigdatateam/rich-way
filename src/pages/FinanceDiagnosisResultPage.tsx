@@ -7,6 +7,7 @@ import { Progress } from '@/components/ui/progress';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useAuth } from '@/contexts/AuthContext';
 import MembersLoginDialog from '@/components/MembersLoginDialog';
+import SaveResultModal from '@/components/SaveResultModal';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { 
   ArrowLeft, 
@@ -189,154 +190,6 @@ interface AnalysisReport {
   simulation: SimulationData;
 }
 
-// 더미 데이터
-const dummyReport: AnalysisReport = {
-  personalInfo: {
-    name: '김철수',
-    gender: '남성',
-    age: 35,
-    familyType: '부부+자녀1명'
-  },
-  assetInfo: {
-    savings: 50000000,
-    investments: 30000000,
-    realEstate: 200000000,
-    car: 15000000,
-    retirement: 25000000,
-    otherAssets: 10000000,
-    creditLoan: 0,
-    depositLoan: 0,
-    mortgageLoan: 0,
-    studentLoan: 0,
-    otherDebt: 0,
-
-  },
-  expenseInfo: {
-    housingCost: 1200000,
-    utilityCost: 300000,
-    foodCost: 800000,
-    educationCost: 500000,
-    leisureCost: 400000,
-    loanPayment: 800000,
-    insuranceCost: 300000
-  },
-  incomeInfo: {
-    monthlyIncome: 5000000,
-    spouseIncome: 3000000,
-    otherIncome: 500000
-  },
-  summary: {
-    targetAmount: 500000000,
-    targetDate: '2030년 12월',
-    netWorth: 320000000,
-    monthlySavings: 1500000,
-    financialHealth: {
-      level: 'good',
-      score: 75,
-      description: '안정적인 재무 상태를 유지하고 있습니다.'
-    }
-  },
-  spendingAnalysis: [
-    {
-      category: '주거비',
-      actualAmount: 1200000,
-      benchmarkAmount: 1050000,
-      difference: 150000,
-      status: 'warning',
-      icon: <Home className="w-5 h-5" />,
-      color: '#3B82F6'
-    },
-    {
-      category: '식비',
-      actualAmount: 800000,
-      benchmarkAmount: 700000,
-      difference: 100000,
-      status: 'warning',
-      icon: <CreditCard className="w-5 h-5" />,
-      color: '#10B981'
-    },
-    {
-      category: '교통비',
-      actualAmount: 300000,
-      benchmarkAmount: 350000,
-      difference: -50000,
-      status: 'good',
-      icon: <Car className="w-5 h-5" />,
-      color: '#F59E0B'
-    },
-    {
-      category: '교육비',
-      actualAmount: 500000,
-      benchmarkAmount: 600000,
-      difference: -100000,
-      status: 'good',
-      icon: <BookOpen className="w-5 h-5" />,
-      color: '#8B5CF6'
-    },
-    {
-      category: '여가비',
-      actualAmount: 400000,
-      benchmarkAmount: 420000,
-      difference: -20000,
-      status: 'good',
-      icon: <ShoppingBag className="w-5 h-5" />,
-      color: '#EC4899'
-    },
-    {
-      category: '의료/보험',
-      actualAmount: 300000,
-      benchmarkAmount: 280000,
-      difference: 20000,
-      status: 'good',
-      icon: <ShieldIcon className="w-5 h-5" />,
-      color: '#EF4444'
-    }
-  ],
-  recommendations: [
-    {
-      id: '1',
-      name: 'KB스타정기예금',
-      type: 'savings',
-      category: '정기예금',
-      return: 3.5,
-      riskLevel: 'low',
-      minAmount: 1000000,
-      description: '안정적인 수익률을 제공하는 정기예금 상품',
-      reason: '비상금 확보 및 단기 목표 달성에 적합'
-    },
-    {
-      id: '2',
-      name: 'NH-Amundi KOSPI200 ETF',
-      type: 'fund',
-      category: 'ETF',
-      return: 8.5,
-      riskLevel: 'medium',
-      minAmount: 100000,
-      description: 'KOSPI200 지수를 추종하는 ETF 상품',
-      reason: '장기 투자 및 자산 증식에 최적'
-    },
-    {
-      id: '3',
-      name: '개인연금저축',
-      type: 'pension',
-      category: '연금',
-      return: 5.5,
-      riskLevel: 'low',
-      minAmount: 300000,
-      description: '노후 준비를 위한 세제혜택 연금상품',
-      reason: '세제혜택과 안정적 수익을 동시에'
-    }
-  ],
-  simulation: {
-    years: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-    basicAssets: [338000000, 356000000, 374000000, 392000000, 410000000, 428000000, 446000000, 464000000, 482000000, 500000000],
-    recommendedAssets: [338000000, 367000000, 398000000, 432000000, 468000000, 508000000, 551000000, 598000000, 649000000, 704000000],
-    targetAmount: 500000000,
-    basicYears: 10,
-    recommendedYears: 7
-  }
-};
-
 const FinanceDiagnosisResultPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -350,6 +203,75 @@ const FinanceDiagnosisResultPage = () => {
   const { user, isAuthenticated, login } = useAuth();
   const [showAuthPrompt, setShowAuthPrompt] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
+  const [showSaveResultModal, setShowSaveResultModal] = useState(false);
+  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
+
+  // 페이지 이탈 감지
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (!user) {
+        e.preventDefault();
+        setPendingAction(() => () => window.close());
+        setShowSaveResultModal(true);
+        return '';
+      }
+    };
+
+    const handlePopState = () => {
+      if (!user) {
+        setPendingAction(() => () => window.history.back());
+        setShowSaveResultModal(true);
+        // 브라우저 뒤로가기 방지
+        window.history.pushState(null, '', window.location.href);
+      }
+    };
+
+    // 페이지 이탈 시 모달 표시 함수
+    const handlePageLeave = () => {
+      if (!user) {
+        setShowSaveResultModal(true);
+      }
+    };
+
+    if (!user) {
+      window.addEventListener('beforeunload', handleBeforeUnload);
+      window.addEventListener('popstate', handlePopState);
+      // 브라우저 뒤로가기 방지를 위한 히스토리 추가
+      window.history.pushState(null, '', window.location.href);
+    }
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [user]);
+
+  // 다른 페이지로 이동 감지
+  useEffect(() => {
+    if (!user) {
+      const handleClick = (e: MouseEvent) => {
+        const target = e.target as HTMLElement;
+        const link = target.closest('a[href]') || target.closest('[data-navigate]');
+        
+        if (link && !link.getAttribute('href')?.startsWith('#')) {
+          // 외부 링크나 다른 페이지로 이동하는 링크인 경우
+          const href = link.getAttribute('href');
+          if (href && !href.startsWith('http') && !href.startsWith('mailto:') && !href.startsWith('tel:')) {
+            setPendingAction(() => () => window.location.href = href);
+            setShowSaveResultModal(true);
+            e.preventDefault();
+            e.stopPropagation();
+          }
+        }
+      };
+
+      document.addEventListener('click', handleClick, true);
+      
+      return () => {
+        document.removeEventListener('click', handleClick, true);
+      };
+    }
+  }, [user]);
 
   useEffect(() => {
     // location.state에서 리포트 확인
@@ -378,13 +300,21 @@ const FinanceDiagnosisResultPage = () => {
           setReport(parsedReport);
         } catch (error) {
           console.error('저장된 리포트 파싱 오류:', error);
+          // 에러 발생 시 빈 리포트로 설정
+          setReport(null);
         }
+      } else {
+        // 저장된 데이터가 없으면 빈 리포트로 설정
+        setReport(null);
       }
     }
     setLoading(false);
   }, [location]);
 
   const formatCurrency = (amount: number) => {
+    if (amount === 0 || amount === null || amount === undefined) {
+      return "-";
+    }
     if (amount >= 100000000) {
       return `${(amount / 100000000).toFixed(1)}억원`;
     } else if (amount >= 10000) {
@@ -392,6 +322,34 @@ const FinanceDiagnosisResultPage = () => {
     } else {
       return `${amount.toLocaleString()}원`;
     }
+  };
+
+  const formatPercentage = (value: number) => {
+    if (value === 0 || value === null || value === undefined) {
+      return "-";
+    }
+    return `${value.toFixed(1)}%`;
+  };
+
+  const formatTargetAmount = (amount: number) => {
+    if (amount === 0 || amount === null || amount === undefined) {
+      return "-";
+    }
+    return `${(amount / 100000000).toFixed(1)}억`;
+  };
+
+  const formatDate = (date: string) => {
+    if (!date || date === '미정') {
+      return "-";
+    }
+    return date;
+  };
+
+  const formatScore = (score: number) => {
+    if (score === 0 || score === null || score === undefined) {
+      return "-";
+    }
+    return `${score}점`;
   };
 
   // 개인 상황에 따른 권장 저축률 계산
@@ -680,22 +638,63 @@ const FinanceDiagnosisResultPage = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-navy-900 to-navy-800 flex items-center justify-center">
-        <div className="text-white text-xl">분석 결과를 불러오는 중...</div>
+        <div className="text-center text-white">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gold-500 mx-auto mb-4"></div>
+          <p className="text-xl">재무진단 결과를 불러오는 중...</p>
+        </div>
       </div>
     );
   }
 
+  // 재무진단 데이터가 없는 경우
   if (!report) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-navy-900 to-navy-800 flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-white text-xl mb-4">재무진단 결과를 찾을 수 없습니다.</div>
-          <Button 
-            onClick={() => navigate('/diagnosis/finance')}
-            className="bg-gold-500 hover:bg-gold-600 text-white"
-          >
-            재무진단 다시하기
-          </Button>
+      <div className="min-h-screen bg-gradient-to-br from-navy-900 to-navy-800 font-['Noto_Sans']">
+        <Header />
+        <div className="container mx-auto px-4 py-8">
+          <div className="mb-8">
+            <Button
+              onClick={() => navigate(-1)}
+              variant="ghost"
+              className="text-white hover:bg-navy-700 mb-4"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              뒤로가기
+            </Button>
+          </div>
+          
+          <div className="bg-white rounded-2xl p-8 shadow-2xl text-center">
+            <div className="mb-6">
+              <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <BarChart3 className="w-12 h-12 text-gray-400" />
+              </div>
+              <h1 className="text-2xl font-bold text-gray-900 mb-2">
+                재무진단을 먼저 진행해주세요
+              </h1>
+              <p className="text-gray-600 mb-6">
+                재무진단 결과를 확인하려면 먼저 재무진단을 완료해야 합니다.
+              </p>
+            </div>
+            
+            <div className="space-y-4">
+              <Button
+                onClick={() => navigate('/finance-diagnosis')}
+                className="bg-navy-600 hover:bg-navy-700 text-white px-8 py-3 rounded-lg font-semibold"
+              >
+                재무진단 시작하기
+              </Button>
+              
+              <div className="text-sm text-gray-500">
+                <p>재무진단을 통해 다음과 같은 정보를 확인할 수 있습니다:</p>
+                <ul className="mt-2 space-y-1 text-left max-w-md mx-auto">
+                  <li>• 현재 재무 상태 분석</li>
+                  <li>• 목표 달성 가능성 평가</li>
+                  <li>• 맞춤형 투자 상품 추천</li>
+                  <li>• 자산 증식 시뮬레이션</li>
+                </ul>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -724,7 +723,7 @@ const FinanceDiagnosisResultPage = () => {
                   {report?.personalInfo?.name || '사용자'}님의 목표달성을 위한 재무전략 리포트
                 </h1>
                 <p className="text-gray-600">
-                  목표: {report?.summary?.targetAmount || 0}억 • 달성시점: {report?.summary?.targetDate || '미정'}년
+                  목표: {formatTargetAmount(report?.summary?.targetAmount || 0)} • 달성시점: {formatDate(report?.summary?.targetDate || '미정')}년
                 </p>
               </div>
               <div className="flex justify-end items-center gap-4 mb-6">
@@ -828,9 +827,17 @@ const FinanceDiagnosisResultPage = () => {
                 </div>
               </div>
               <div className="text-center p-4 bg-gold-50 rounded-xl">
-                <div className="text-4xl font-bold text-gold-600 mb-2">{report?.summary?.financialHealth?.score || 0}점</div>
-                <div className="text-lg text-gray-600 font-medium">재무건전성</div>
-                <div className="text-sm text-gray-500 mt-1">종합 평가 점수</div>
+                <div className="text-4xl font-bold text-gold-600 mb-2">{formatScore(report?.summary?.financialHealth?.score || 0)}</div>
+                <div className="text-lg font-semibold text-gray-700 mb-1">
+                  {report?.summary?.financialHealth?.level ? (
+                    report.summary.financialHealth.level === 'excellent' ? '매우 양호' :
+                    report.summary.financialHealth.level === 'good' ? '양호' :
+                    report.summary.financialHealth.level === 'fair' ? '보통' : '개선 필요'
+                  ) : '-'}
+                </div>
+                <div className="text-sm text-gray-600">
+                  {report?.summary?.financialHealth?.description || '재무 상태를 평가합니다.'}
+                </div>
                 <Button
                   variant="outline"
                   size="sm"
@@ -862,15 +869,15 @@ const FinanceDiagnosisResultPage = () => {
                 </div>
                 <div className="flex justify-between p-3">
                   <span className="text-gray-700 font-medium text-sm">성별</span>
-                  <span className="font-semibold text-black">{getGenderDisplayName(report?.personalInfo?.gender || '')}</span>
+                  <span className="font-semibold text-black">{report?.personalInfo?.gender ? getGenderDisplayName(report.personalInfo.gender) : '-'}</span>
                 </div>
                 <div className="flex justify-between p-3">
                   <span className="text-gray-700 font-medium text-sm">나이</span>
-                  <span className="font-semibold text-black">{report?.personalInfo?.age || 0}세</span>
+                  <span className="font-semibold text-black">{report?.personalInfo?.age ? `${report.personalInfo.age}세` : '-'}</span>
                 </div>
                 <div className="flex justify-between p-3">
                   <span className="text-gray-700 font-medium text-sm">가족구성</span>
-                  <span className="font-semibold text-black">{getFamilyDisplayName(report?.personalInfo?.familyType || '')}</span>
+                  <span className="font-semibold text-black">{report?.personalInfo?.familyType ? getFamilyDisplayName(report.personalInfo.familyType) : '-'}</span>
                 </div>
               </div>
             </CardContent>
@@ -2282,33 +2289,47 @@ const FinanceDiagnosisResultPage = () => {
         <div className="mt-8 mb-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
             {/* 부자상품 카드 */}
-            <Link to="/products">
-              <div className="bg-gradient-to-br from-orange-400 to-orange-500 hover:from-orange-500 hover:to-orange-600 text-white rounded-2xl p-8 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 flex flex-col items-center justify-center min-h-[260px]">
-                <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mb-4">
-                  <TrendingUp className="w-10 h-10 text-white" />
-                </div>
-                <h4 className="text-2xl font-bold mb-2">부자상품</h4>
-                <p className="text-base mb-6">맞춤형 투자 상품으로 자산을 증대시키세요</p>
-                <button className="mt-auto bg-white/30 hover:bg-white/40 text-white font-semibold px-6 py-3 rounded-full flex items-center gap-2 text-base transition">
-                  상품 둘러보기
-                  <ArrowLeft className="w-5 h-5 rotate-180" />
-                </button>
+            <div 
+              onClick={() => {
+                if (!user) {
+                  setShowAuthPrompt(true);
+                } else {
+                  navigate('/products');
+                }
+              }}
+              className="bg-gradient-to-br from-orange-400 to-orange-500 hover:from-orange-500 hover:to-orange-600 text-white rounded-2xl p-8 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 flex flex-col items-center justify-center min-h-[260px] cursor-pointer"
+            >
+              <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mb-4">
+                <TrendingUp className="w-10 h-10 text-white" />
               </div>
-            </Link>
+              <h4 className="text-2xl font-bold mb-2">부자상품</h4>
+              <p className="text-base mb-6">맞춤형 투자 상품으로 자산을 증대시키세요</p>
+              <button className="mt-auto bg-white/30 hover:bg-white/40 text-white font-semibold px-6 py-3 rounded-full flex items-center gap-2 text-base transition">
+                상품 둘러보기
+                <ArrowLeft className="w-5 h-5 rotate-180" />
+              </button>
+            </div>
             {/* 부자코칭 카드 */}
-            <Link to="/coaching">
-              <div className="bg-gradient-to-br from-slate-700 to-slate-800 hover:from-slate-800 hover:to-slate-900 text-white rounded-2xl p-8 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 flex flex-col items-center justify-center min-h-[260px]">
-                <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mb-4">
-                  <User className="w-10 h-10 text-white" />
-                </div>
-                <h4 className="text-2xl font-bold mb-2">부자코칭</h4>
-                <p className="text-base mb-6">전문가와 함께 맞춤형 재무 계획을 세우세요</p>
-                <button className="mt-auto bg-white/20 hover:bg-white/30 text-white font-semibold px-6 py-3 rounded-full flex items-center gap-2 text-base transition">
-                  코칭 신청하기
-                  <ArrowLeft className="w-5 h-5 rotate-180" />
-                </button>
+            <div 
+              onClick={() => {
+                if (!user) {
+                  setShowAuthPrompt(true);
+                } else {
+                  navigate('/coaching');
+                }
+              }}
+              className="bg-gradient-to-br from-slate-700 to-slate-800 hover:from-slate-800 hover:to-slate-900 text-white rounded-2xl p-8 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 flex flex-col items-center justify-center min-h-[260px] cursor-pointer"
+            >
+              <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mb-4">
+                <User className="w-10 h-10 text-white" />
               </div>
-            </Link>
+              <h4 className="text-2xl font-bold mb-2">부자코칭</h4>
+              <p className="text-base mb-6">전문가와 함께 맞춤형 재무 계획을 세우세요</p>
+              <button className="mt-auto bg-white/20 hover:bg-white/30 text-white font-semibold px-6 py-3 rounded-full flex items-center gap-2 text-base transition">
+                코칭 신청하기
+                <ArrowLeft className="w-5 h-5 rotate-180" />
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -2326,12 +2347,14 @@ const FinanceDiagnosisResultPage = () => {
             {/* 종합 점수 */}
             <div className="text-center p-6 bg-gradient-to-r from-green-50 to-blue-50 rounded-xl">
               <div className="text-4xl font-bold text-green-600 mb-2">
-                {report?.summary?.financialHealth?.score || 0}점
+                {formatScore(report?.summary?.financialHealth?.score || 0)}
               </div>
               <div className="text-lg font-semibold text-gray-700 mb-1">
-                {report?.summary?.financialHealth?.level === 'excellent' ? '매우 양호' :
-                 report?.summary?.financialHealth?.level === 'good' ? '양호' :
-                 report?.summary?.financialHealth?.level === 'fair' ? '보통' : '개선 필요'}
+                {report?.summary?.financialHealth?.level ? (
+                  report.summary.financialHealth.level === 'excellent' ? '매우 양호' :
+                  report.summary.financialHealth.level === 'good' ? '양호' :
+                  report.summary.financialHealth.level === 'fair' ? '보통' : '개선 필요'
+                ) : '-'}
               </div>
               <div className="text-sm text-gray-600">
                 {report?.summary?.financialHealth?.description || '재무 상태를 평가합니다.'}
@@ -2355,7 +2378,7 @@ const FinanceDiagnosisResultPage = () => {
                   <div className="flex justify-between text-sm">
                     <span>현재 저축률:</span>
                     <span className="font-medium">
-                      {report?.summary?.financialHealth?.detail?.savingsRate?.toFixed(1) || 0}%
+                      {formatPercentage(report?.summary?.financialHealth?.detail?.savingsRate || 0)}
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">
@@ -2382,7 +2405,7 @@ const FinanceDiagnosisResultPage = () => {
                   <div className="flex justify-between text-sm">
                     <span>현재 부채비율:</span>
                     <span className="font-medium">
-                      {report?.summary?.financialHealth?.detail?.debtRatio?.toFixed(1) || 0}%
+                      {formatPercentage(report?.summary?.financialHealth?.detail?.debtRatio || 0)}
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">
@@ -2434,17 +2457,20 @@ const FinanceDiagnosisResultPage = () => {
             <div className="p-4 bg-yellow-50 rounded-lg">
               <h4 className="font-semibold text-yellow-900 mb-2">개선 권장사항</h4>
               <ul className="text-sm text-yellow-800 space-y-1">
-                {report?.summary?.financialHealth?.score < 80 && (
+                {report?.summary?.financialHealth?.score && report.summary.financialHealth.score < 80 && (
                   <li>• 저축률을 20% 이상으로 높이기 위해 지출을 점검하세요</li>
                 )}
-                {report?.summary?.financialHealth?.detail?.debtRatio > 40 && (
+                {report?.summary?.financialHealth?.detail?.debtRatio && report.summary.financialHealth.detail.debtRatio > 40 && (
                   <li>• 부채비율이 높습니다. 부채 상환을 우선시하세요</li>
                 )}
-                {report?.summary?.financialHealth?.detail?.savingRatio < 20 && (
+                {report?.summary?.financialHealth?.detail?.savingRatio && report.summary.financialHealth.detail.savingRatio < 20 && (
                   <li>• 월 저축 가능액을 늘리기 위해 수입 증대나 지출 절감을 고려하세요</li>
                 )}
-                {report?.summary?.financialHealth?.score >= 80 && (
+                {report?.summary?.financialHealth?.score && report.summary.financialHealth.score >= 80 && (
                   <li>• 현재 양호한 재무 상태를 유지하세요</li>
+                )}
+                {!report?.summary?.financialHealth?.score && (
+                  <li>• 재무진단을 완료하여 상세한 분석 결과를 확인하세요</li>
                 )}
               </ul>
             </div>
@@ -2463,6 +2489,17 @@ const FinanceDiagnosisResultPage = () => {
           </DialogContent>
         </Dialog>
                  <MembersLoginDialog open={showLogin} onOpenChange={setShowLogin} onLoginSuccess={handleLoginSuccess} />
+        
+        {/* 결과 저장 안내 모달 */}
+        <SaveResultModal
+          isOpen={showSaveResultModal}
+          onClose={() => {
+            setShowSaveResultModal(false);
+            setPendingAction(null);
+          }}
+          onLoginSuccess={handleLoginSuccess}
+          onSkip={pendingAction}
+        />
     </div>
   );
 };

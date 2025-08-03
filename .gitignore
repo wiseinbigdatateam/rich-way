@@ -50,3 +50,6 @@ env.production
 # 임시 파일
 temp/
 tmp/
+
+# cursor
+.cursor/mcp.json

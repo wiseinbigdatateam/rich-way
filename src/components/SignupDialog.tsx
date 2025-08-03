@@ -6,7 +6,7 @@ import { Label } from "./ui/label";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { useToast } from "./ui/use-toast";
 
-export default function SignupDialog({ open, onOpenChange }: { open?: boolean, onOpenChange?: (open: boolean) => void } = {}) {
+export default function SignupDialog({ open, onOpenChange, onSignupSuccess }: { open?: boolean, onOpenChange?: (open: boolean) => void, onSignupSuccess?: (userData: any) => void } = {}) {
   const [name, setName] = useState("");
   const [nickname, setNickname] = useState("");
   const [email, setEmail] = useState("");
@@ -218,6 +218,16 @@ export default function SignupDialog({ open, onOpenChange }: { open?: boolean, o
     if (!isSupabaseConfigured) {
       console.log('🟡 Demo 모드 회원가입');
       
+      const demoUser = {
+        id: 'demo-user-id',
+        user_id: nickname,
+        name: name,
+        email: email,
+        phone: '',
+        signup_type: 'email',
+        created_at: new Date().toISOString()
+      };
+
       toast({
         title: "✅ Demo 회원가입 성공!",
         description: `${name}님 (${nickname}) 환영합니다! (Demo 모드) 이제 로그인할 수 있습니다.`,
@@ -232,6 +242,10 @@ export default function SignupDialog({ open, onOpenChange }: { open?: boolean, o
       setNicknameChecked(false);
       setEmailAvailable(null);
       setEmailChecked(false);
+      
+      if (onSignupSuccess) {
+        onSignupSuccess(demoUser);
+      }
       onOpenChange?.(false);
       return;
     }
@@ -255,6 +269,16 @@ export default function SignupDialog({ open, onOpenChange }: { open?: boolean, o
 
       if (insertError) throw insertError;
 
+      const newUser = {
+        id: 'new-user-id',
+        user_id: nickname,
+        name: name,
+        email: email,
+        phone: '',
+        signup_type: 'email',
+        created_at: new Date().toISOString()
+      };
+
       toast({
         title: "회원가입 성공!",
         description: `${name}님 (${nickname}) 환영합니다! 이제 로그인할 수 있습니다.`,
@@ -270,6 +294,9 @@ export default function SignupDialog({ open, onOpenChange }: { open?: boolean, o
       setEmailAvailable(null);
       setEmailChecked(false);
       
+      if (onSignupSuccess) {
+        onSignupSuccess(newUser);
+      }
       onOpenChange?.(false);
     } catch (error) {
       console.error('Signup error:', error);

@@ -50,11 +50,11 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LabelList } 
 import { motion } from "framer-motion";
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
-import LoginDialog from '@/components/LoginDialog';
 import SignupDialog from '@/components/SignupDialog';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { useAuth } from '@/contexts/AuthContext';
 import MembersLoginDialog from '@/components/MembersLoginDialog';
+import SaveResultModal from '@/components/SaveResultModal';
 
 // MBTI 유형별 데이터 정의
 const mbtiTypes = {
@@ -450,6 +450,57 @@ const MbtiDiagnosisResultPage = () => {
   const [showAuthPrompt, setShowAuthPrompt] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
   const [showSignup, setShowSignup] = useState(false);
+  const [showSaveResultModal, setShowSaveResultModal] = useState(false);
+  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
+
+  // 페이지 이탈 감지
+  useEffect(() => {
+    const handlePopState = () => {
+      if (!user) {
+        setPendingAction(() => () => window.history.back());
+        setShowSaveResultModal(true);
+        // 브라우저 뒤로가기 방지
+        window.history.pushState(null, '', window.location.href);
+      }
+    };
+
+    if (!user) {
+      window.addEventListener('popstate', handlePopState);
+      // 브라우저 뒤로가기 방지를 위한 히스토리 추가
+      window.history.pushState(null, '', window.location.href);
+    }
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [user]);
+
+  // 다른 페이지로 이동 감지
+  useEffect(() => {
+    if (!user) {
+      const handleClick = (e: MouseEvent) => {
+        const target = e.target as HTMLElement;
+        const link = target.closest('a[href]') || target.closest('[data-navigate]');
+        
+        if (link && !link.getAttribute('href')?.startsWith('#')) {
+          // 외부 링크나 다른 페이지로 이동하는 링크인 경우
+          const href = link.getAttribute('href');
+          if (href && !href.startsWith('http') && !href.startsWith('mailto:') && !href.startsWith('tel:')) {
+            setPendingAction(() => () => window.location.href = href);
+            setShowSaveResultModal(true);
+            e.preventDefault();
+            e.stopPropagation();
+          }
+        }
+      };
+
+      document.addEventListener('click', handleClick, true);
+      
+      return () => {
+        document.removeEventListener('click', handleClick, true);
+      };
+    }
+  }, [user]);
 
   // 출력 버튼 핸들러
   const handlePrintWithAuth = () => {
@@ -1116,18 +1167,45 @@ const MbtiDiagnosisResultPage = () => {
         </motion.div>
         {/* 리포트 하단 바로가기 버튼 */}
         <div className="flex flex-col md:flex-row justify-center items-center gap-6 mb-16">
-          <a href="/products" className="flex items-center gap-3 px-10 py-6 rounded-2xl bg-gradient-to-r from-pink-500 to-purple-500 text-white font-bold text-2xl shadow-2xl hover:scale-105 hover:from-pink-600 hover:to-purple-600 transition min-w-[260px] justify-center">
+          <button 
+            onClick={() => {
+              if (!user) {
+                setShowAuthPrompt(true);
+              } else {
+                navigate('/products');
+              }
+            }}
+            className="flex items-center gap-3 px-10 py-6 rounded-2xl bg-gradient-to-r from-pink-500 to-purple-500 text-white font-bold text-2xl shadow-2xl hover:scale-105 hover:from-pink-600 hover:to-purple-600 transition min-w-[260px] justify-center"
+          >
             <svg xmlns="http://www.w3.org/2000/svg" className="w-9 h-9" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 7h18M9 7V5a3 3 0 116 0v2m-9 4h12l-1.5 9h-9L6 11z" /></svg>
             부자상품 가기
-          </a>
-          <a href="/coaching" className="flex items-center gap-3 px-10 py-6 rounded-2xl bg-gradient-to-r from-blue-500 to-indigo-500 text-white font-bold text-2xl shadow-2xl hover:scale-105 hover:from-blue-600 hover:to-indigo-600 transition min-w-[260px] justify-center">
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-9 h-9" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m9-4a4 4 0 10-8 0 4 4 0 008 0zm6 4v2a2 2 0 01-2 2h-1.5M3 16v2a2 2 0 002 2h1.5" /></svg>
+          </button>
+          <button 
+            onClick={() => {
+              if (!user) {
+                setShowAuthPrompt(true);
+              } else {
+                navigate('/coaching');
+              }
+            }}
+            className="flex items-center gap-3 px-10 py-6 rounded-2xl bg-gradient-to-r from-blue-500 to-indigo-500 text-white font-bold text-2xl shadow-2xl hover:scale-105 hover:from-blue-600 hover:to-indigo-600 transition min-w-[260px] justify-center"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-9 h-9" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m9-4a4 4 0 10-8 0 4 4 0 008 0zm6 4v2a2 2 0 01-2 2h1.5M3 16v2a2 2 0 002 2h1.5" /></svg>
             고수 코칭받기
-          </a>
-          <a href="/education" className="flex items-center gap-3 px-10 py-6 rounded-2xl bg-gradient-to-r from-green-400 to-blue-400 text-white font-bold text-2xl shadow-2xl hover:scale-105 hover:from-green-500 hover:to-blue-500 transition min-w-[260px] justify-center">
+          </button>
+          <button 
+            onClick={() => {
+              if (!user) {
+                setShowAuthPrompt(true);
+              } else {
+                navigate('/education');
+              }
+            }}
+            className="flex items-center gap-3 px-10 py-6 rounded-2xl bg-gradient-to-r from-green-400 to-blue-400 text-white font-bold text-2xl shadow-2xl hover:scale-105 hover:from-green-500 hover:to-blue-500 transition min-w-[260px] justify-center"
+          >
             <svg xmlns="http://www.w3.org/2000/svg" className="w-9 h-9" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 14l9-5-9-5-9 5 9 5zm0 0v6m0 0H7m5 0h5" /></svg>
             부자교육 받기
-          </a>
+          </button>
         </div>
         {/* 인증/저장 다이얼로그 */}
         <Dialog open={showAuthPrompt} onOpenChange={setShowAuthPrompt}>
@@ -1141,6 +1219,17 @@ const MbtiDiagnosisResultPage = () => {
         </Dialog>
         <MembersLoginDialog open={showLogin} onOpenChange={setShowLogin} onLoginSuccess={handleLoginSuccess} />
         <SignupDialog open={showSignup} onOpenChange={setShowSignup} onSignupSuccess={handleLoginSuccess} />
+        
+        {/* 결과 저장 안내 모달 */}
+        <SaveResultModal
+          isOpen={showSaveResultModal}
+          onClose={() => {
+            setShowSaveResultModal(false);
+            setPendingAction(null);
+          }}
+          onLoginSuccess={handleLoginSuccess}
+          onSkip={pendingAction}
+        />
       </motion.div>
     </div>
   );

@@ -87,11 +87,19 @@ const MyDiagnosis: React.FC = () => {
     );
   }
 
-  const financialData = {
-    totalAssets: financialOverview?.totalAssets || 50000000,
-    monthlyIncome: financialOverview?.monthlyIncome || 4500000,
-    monthlyExpense: financialOverview?.monthlyExpense || 3200000,
-    savingsRate: financialOverview?.savingsRate || 28.9,
+  // 포맷팅 함수들
+  const formatCurrency = (amount: number | null | undefined) => {
+    if (amount === null || amount === undefined || amount === 0) {
+      return "-";
+    }
+    return `${(amount / 10000).toFixed(0)}만원`;
+  };
+
+  const formatPercentage = (value: number | null | undefined) => {
+    if (value === null || value === undefined || value === 0) {
+      return "-";
+    }
+    return `${value.toFixed(1)}%`;
   };
 
   return (
@@ -105,7 +113,7 @@ const MyDiagnosis: React.FC = () => {
               <div>
                 <p className="text-sm font-medium text-gray-600 mb-1">총 자산</p>
                 <p className="text-xl font-bold text-gray-900">
-                  {(financialData.totalAssets / 10000).toFixed(0)}만원
+                  {formatCurrency(financialOverview?.totalAssets)}
                 </p>
               </div>
               <div className="p-2 bg-blue-100 rounded-lg">
@@ -122,7 +130,7 @@ const MyDiagnosis: React.FC = () => {
               <div>
                 <p className="text-sm font-medium text-gray-600 mb-1">월 수입</p>
                 <p className="text-xl font-bold text-gray-900">
-                  {(financialData.monthlyIncome / 10000).toFixed(0)}만원
+                  {formatCurrency(financialOverview?.monthlyIncome)}
                 </p>
               </div>
               <div className="p-2 bg-green-100 rounded-lg">
@@ -139,7 +147,7 @@ const MyDiagnosis: React.FC = () => {
               <div>
                 <p className="text-sm font-medium text-gray-600 mb-1">월 지출</p>
                 <p className="text-xl font-bold text-gray-900">
-                  {(financialData.monthlyExpense / 10000).toFixed(0)}만원
+                  {formatCurrency(financialOverview?.monthlyExpense)}
                 </p>
               </div>
               <div className="p-2 bg-orange-100 rounded-lg">
@@ -156,7 +164,7 @@ const MyDiagnosis: React.FC = () => {
               <div>
                 <p className="text-sm font-medium text-gray-600 mb-1">저축률</p>
                 <p className="text-xl font-bold text-gray-900">
-                  {financialData.savingsRate}%
+                  {formatPercentage(financialOverview?.savingsRate)}
                 </p>
               </div>
               <div className="p-2 bg-purple-100 rounded-lg">
@@ -166,6 +174,8 @@ const MyDiagnosis: React.FC = () => {
           </CardContent>
         </Card>
       </div>
+
+
 
       {/* 2. 진단 이력 (Diagnosis History) */}
       <Card>
@@ -280,76 +290,106 @@ const MyDiagnosis: React.FC = () => {
             </div>
           ) : (
             <div className="text-center py-8 text-gray-500">
-              <p>아직 진단 이력이 없습니다.</p>
-              <p className="text-sm mt-1">진단을 진행해보세요!</p>
+              <div className="mb-4">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <FileText className="w-8 h-8 text-gray-400" />
+                </div>
+                <p className="text-lg font-medium text-gray-700 mb-2">아직 진단 이력이 없습니다</p>
+                <p className="text-sm text-gray-500 mb-4">
+                  재무진단이나 MBTI 진단을 통해 나의 현재 상태를 파악해보세요.
+                </p>
+              </div>
+              <div className="flex gap-3 justify-center">
+                <Button
+                  onClick={() => {
+                    console.log('재무진단 시작 버튼 클릭됨');
+                    navigate('/diagnosis/finance');
+                  }}
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  재무진단 시작
+                </Button>
+                <Button
+                  onClick={() => {
+                    console.log('MBTI 진단 시작 버튼 클릭됨');
+                    navigate('/diagnosis/mbti');
+                  }}
+                  variant="outline"
+                  className="border-blue-600 text-blue-600 hover:bg-blue-50"
+                >
+                  MBTI 진단 시작
+                </Button>
+              </div>
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* 3. 추천 진단 (Recommended Diagnoses) */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-xl font-semibold flex items-center gap-2">
-            <Brain className="w-5 h-5" />
-            추천 진단
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* 투자 성향 진단 */}
-            <Card className="border-2 border-gray-100 hover:border-blue-200 transition-colors">
-              <CardContent className="pt-6">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="p-2 bg-blue-100 rounded-lg">
-                    <TrendingUp className="w-5 h-5 text-blue-600" />
+      {/* 3. 추천 진단 (Recommended Diagnoses) - 진단 이력이 있을 때만 표시 */}
+      {hasDiagnosisHistory && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-xl font-semibold flex items-center gap-2">
+              <Brain className="w-5 h-5" />
+              추천 진단
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* 투자 성향 진단 */}
+              <Card className="border-2 border-gray-100 hover:border-blue-200 transition-colors">
+                <CardContent className="pt-6">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="p-2 bg-blue-100 rounded-lg">
+                      <TrendingUp className="w-5 h-5 text-blue-600" />
+                    </div>
                   </div>
-                </div>
-                <h3 className="font-semibold text-gray-900 mb-2">투자 성향 진단</h3>
-                <p className="text-sm text-gray-600 mb-4">
-                  당신의 투자 성향을 파악하여 맞춤형 투자 전략을 제안해드립니다.
-                </p>
-                <Button
-                  className="w-full"
-                  onClick={() => {
-                    // TODO: 투자 성향 진단 페이지로 이동
-                    console.log("투자 성향 진단 시작");
-                  }}
-                >
-                  진단 시작하기
-                  <ArrowRight className="w-4 h-4 ml-2" />
-                </Button>
-              </CardContent>
-            </Card>
+                  <h3 className="font-semibold text-gray-900 mb-2">투자 성향 진단</h3>
+                  <p className="text-sm text-gray-600 mb-4">
+                    당신의 투자 성향을 파악하여 맞춤형 투자 전략을 제안해드립니다.
+                  </p>
+                  <Button
+                    className="w-full"
+                    onClick={() => {
+                      console.log("투자 성향 진단 시작");
+                      navigate('/diagnosis/mbti');
+                    }}
+                  >
+                    진단 시작하기
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </Button>
+                </CardContent>
+              </Card>
 
-            {/* 부채 관리 진단 */}
-            <Card className="border-2 border-gray-100 hover:border-green-200 transition-colors">
-              <CardContent className="pt-6">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="p-2 bg-green-100 rounded-lg">
-                    <Calculator className="w-5 h-5 text-green-600" />
+              {/* 부채 관리 진단 */}
+              <Card className="border-2 border-gray-100 hover:border-green-200 transition-colors">
+                <CardContent className="pt-6">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="p-2 bg-green-100 rounded-lg">
+                      <Calculator className="w-5 h-5 text-green-600" />
+                    </div>
                   </div>
-                </div>
-                <h3 className="font-semibold text-gray-900 mb-2">부채 관리 진단</h3>
-                <p className="text-sm text-gray-600 mb-4">
-                  현재 부채 상황을 분석하고 효율적인 관리 방법을 알아보세요.
-                </p>
-                <Button
-                  className="w-full"
-                  variant="outline"
-                  onClick={() => {
-                    // TODO: 부채 관리 진단 페이지로 이동
-                    console.log("부채 관리 진단 시작");
-                  }}
-                >
-                  진단 시작하기
-                  <ArrowRight className="w-4 h-4 ml-2" />
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-        </CardContent>
-      </Card>
+                  <h3 className="font-semibold text-gray-900 mb-2">부채 관리 진단</h3>
+                  <p className="text-sm text-gray-600 mb-4">
+                    현재 부채 상황을 분석하고 효율적인 관리 방법을 알아보세요.
+                  </p>
+                  <Button
+                    className="w-full"
+                    variant="outline"
+                    onClick={() => {
+                      console.log("부채 관리 진단 시작");
+                      navigate('/diagnosis/finance');
+                    }}
+                  >
+                    진단 시작하기
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };
