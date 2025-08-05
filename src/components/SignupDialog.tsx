@@ -5,8 +5,16 @@ import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { useToast } from "./ui/use-toast";
+import TermsAgreementDialog from "./TermsAgreementDialog";
 
 export default function SignupDialog({ open, onOpenChange, onSignupSuccess }: { open?: boolean, onOpenChange?: (open: boolean) => void, onSignupSuccess?: (userData: any) => void } = {}) {
+  const [currentStep, setCurrentStep] = useState<'terms' | 'signup'>('terms');
+  const [agreements, setAgreements] = useState({
+    termsOfService: false,
+    privacyPolicy: false,
+    marketing: false,
+  });
+  
   const [name, setName] = useState("");
   const [nickname, setNickname] = useState("");
   const [email, setEmail] = useState("");
@@ -18,6 +26,34 @@ export default function SignupDialog({ open, onOpenChange, onSignupSuccess }: { 
   const [emailAvailable, setEmailAvailable] = useState<boolean | null>(null);
   const [emailChecked, setEmailChecked] = useState(false); // 이메일 중복확인 완료 여부
   const { toast } = useToast();
+
+  // 약관 동의 완료 처리
+  const handleAgreementComplete = (agreedTerms: typeof agreements) => {
+    setAgreements(agreedTerms);
+    setCurrentStep('signup');
+  };
+
+  // 회원가입 다이얼로그 닫기 시 초기화
+  const handleOpenChange = (newOpen: boolean) => {
+    if (!newOpen) {
+      // 다이얼로그가 닫힐 때 상태 초기화
+      setCurrentStep('terms');
+      setAgreements({
+        termsOfService: false,
+        privacyPolicy: false,
+        marketing: false,
+      });
+      setName("");
+      setNickname("");
+      setEmail("");
+      setPassword("");
+      setNicknameAvailable(null);
+      setNicknameChecked(false);
+      setEmailAvailable(null);
+      setEmailChecked(false);
+    }
+    onOpenChange?.(newOpen);
+  };
 
   // 닉네임 중복 확인 함수
   const checkNicknameAvailability = async (nicknameToCheck: string) => {
@@ -246,7 +282,7 @@ export default function SignupDialog({ open, onOpenChange, onSignupSuccess }: { 
       if (onSignupSuccess) {
         onSignupSuccess(demoUser);
       }
-      onOpenChange?.(false);
+      handleOpenChange(false);
       return;
     }
 
@@ -297,7 +333,7 @@ export default function SignupDialog({ open, onOpenChange, onSignupSuccess }: { 
       if (onSignupSuccess) {
         onSignupSuccess(newUser);
       }
-      onOpenChange?.(false);
+      handleOpenChange(false);
     } catch (error) {
       console.error('Signup error:', error);
       toast({
@@ -308,14 +344,41 @@ export default function SignupDialog({ open, onOpenChange, onSignupSuccess }: { 
     }
   };
 
+  // 약관 동의 단계
+  if (currentStep === 'terms') {
+    return (
+      <TermsAgreementDialog
+        open={open}
+        onOpenChange={handleOpenChange}
+        onAgreementComplete={handleAgreementComplete}
+      />
+    );
+  }
+
+  // 회원가입 정보 입력 단계
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>회원가입</DialogTitle>
-          <DialogDescription>
-            새 계정을 만들기 위해 필요한 정보를 입력하세요.
-          </DialogDescription>
+          <div className="text-center mb-4">
+            <div className="flex items-center justify-center mb-2">
+              <div className="w-6 h-6 bg-gray-300 text-gray-600 rounded-full flex items-center justify-center text-sm font-bold">1</div>
+              <div className="w-8 h-1 bg-green-600 mx-2"></div>
+              <div className="w-6 h-6 bg-green-600 text-white rounded-full flex items-center justify-center text-sm font-bold">2</div>
+            </div>
+            <DialogTitle className="text-xl font-bold">회원가입</DialogTitle>
+            <p className="text-sm text-gray-500 mt-1">2단계: 회원 정보 입력</p>
+          </div>
+          <div className="flex justify-end">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setCurrentStep('terms')}
+              className="text-gray-500 hover:text-gray-700"
+            >
+              ← 약관으로
+            </Button>
+          </div>
         </DialogHeader>
         <form onSubmit={handleSignup} className="grid gap-4 py-4">
           <div className="grid gap-2">
