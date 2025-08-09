@@ -30,16 +30,31 @@ export interface PaginationInfo {
 export const useMyDiagnosis = (userId: string | undefined, page: number = 1, itemsPerPage: number = 3) => {
   const [diagnosisHistory, setDiagnosisHistory] = useState<DiagnosisHistoryItem[]>([]);
   const [financialOverview, setFinancialOverview] = useState<FinancialOverview | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pagination, setPagination] = useState<PaginationInfo>({
-    currentPage: 1,
-    totalPages: 1,
+    currentPage: page,
+    totalPages: 0,
     totalItems: 0,
-    itemsPerPage: 3,
+    itemsPerPage,
     hasNextPage: false,
     hasPreviousPage: false
   });
+
+  // 사용자 ID가 변경될 때마다 데이터 리셋
+  useEffect(() => {
+    setDiagnosisHistory([]);
+    setFinancialOverview(null);
+    setError(null);
+    setPagination({
+      currentPage: page,
+      totalPages: 0,
+      totalItems: 0,
+      itemsPerPage,
+      hasNextPage: false,
+      hasPreviousPage: false
+    });
+  }, [userId]);
 
   useEffect(() => {
     if (!userId) {
@@ -58,8 +73,8 @@ export const useMyDiagnosis = (userId: string | undefined, page: number = 1, ite
         // MBTI 진단 이력 조회
         const { data: mbtiHistory, error: mbtiError } = await (supabase as any)
           .from("mbti_diagnosis")
-          .select("id, user_id, result_type, created_at, report_content")
-          .eq("user_id", userId)
+          .select("id, user, result_type, created_at, report_content")
+          .eq("user", userId)
           .order("created_at", { ascending: false });
 
         console.log("MBTI 진단 결과:", mbtiHistory, mbtiError);
@@ -67,8 +82,8 @@ export const useMyDiagnosis = (userId: string | undefined, page: number = 1, ite
         // 재무 진단 이력 조회
         const { data: financeHistory, error: financeError } = await (supabase as any)
           .from("finance_diagnosis")
-          .select("id, user_id, created_at, report_content, responses")
-          .eq("user_id", userId)
+          .select("id, user, created_at, report_content, responses")
+          .eq("user", userId)
           .order("created_at", { ascending: false });
 
         console.log("재무 진단 결과:", financeHistory, financeError);

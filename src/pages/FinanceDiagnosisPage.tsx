@@ -74,19 +74,29 @@ const FinanceDiagnosisPage = () => {
       // 저장된 메시지 복원
       if (savedMessages) {
         setMessages(JSON.parse(savedMessages));
+      } else {
+        // 기본 메시지 설정
+        setMessages([
+          {
+            id: 1,
+            type: 'bot',
+            content: '귀하의 재무 목표를 달성하기 위한 최상의 플랜을 제공합니다. 금융 전문가의 자산관리 컨설팅 리포트를 무료로 받아보세요. 부자가 되는 첫 걸음입니다! 먼저 어떤 목표로 돈을 모우고자 하시는지 알려주세요.',
+            inputType: 'checkbox',
+            field: 'goals',
+            options: [
+              { value: 'emergency', label: '생활비 / 비상금 확보' },
+              { value: 'housing', label: '전세금 / 내 집 마련' },
+              { value: 'family', label: '결혼 / 출산 / 육아 준비' },
+              { value: 'investment', label: '종잣돈 / 투자금 만들기' },
+              { value: 'education', label: '자녀 교육비' },
+              { value: 'retirement', label: '은퇴 / 노후 준비' },
+              { value: 'lifestyle', label: '여행, 차 구입 등 라이프 이벤트' },
+              { value: 'other', label: '기타' }
+            ]
+          }
+        ]);
       }
     }
-    
-    // 페이지 로드 시 스크롤을 첫 번째 질문이 중앙에 오도록 조정
-    setTimeout(() => {
-      const mainElement = document.querySelector('main');
-      if (mainElement) {
-        const mainHeight = mainElement.offsetHeight;
-        const windowHeight = window.innerHeight;
-        const scrollPosition = mainHeight / 2 - windowHeight / 2;
-        window.scrollTo(0, Math.max(0, scrollPosition));
-      }
-    }, 100);
   }, []);
 
   // 데이터 자동 저장 (매번 저장)
@@ -113,7 +123,7 @@ const FinanceDiagnosisPage = () => {
   const questions = [
     {
       field: 'goals',
-      question: '귀하의 재무 목표를 달성하기 위한 최상의 플랜을 제공합니다. 금융 전문가의 자산관리 컨설팅 리포트를 무료로 받아보세요. 부자가 되는 첫 걸음입니다! 먼저 어떤 목표로 돈을 모우고자 하시는지 알려주세요.',
+      question: '어떤 목표로 돈을 모우고자 하시는지 해당하는 것을 모두 선택해주세요.',
       inputType: 'checkbox' as const,
       options: [
         { value: 'emergency', label: '생활비 / 비상금 확보' },
@@ -385,7 +395,7 @@ const FinanceDiagnosisPage = () => {
       {
         id: 1,
         type: 'bot',
-        content: '어떤 목표로 돈을 모우고자 하시는지 해당하는 것을 모두 선택해주세요.',
+        content: '귀하의 재무 목표를 달성하기 위한 최상의 플랜을 제공합니다. 금융 전문가의 자산관리 컨설팅 리포트를 무료로 받아보세요. 부자가 되는 첫 걸음입니다! 먼저 어떤 목표로 돈을 모우고자 하시는지 알려주세요.',
         inputType: 'checkbox',
         field: 'goals',
         options: [
@@ -406,17 +416,6 @@ const FinanceDiagnosisPage = () => {
     localStorage.removeItem('financeDiagnosisFormData');
     localStorage.removeItem('financeDiagnosisCurrentStep');
     localStorage.removeItem('financeDiagnosisMessages');
-    
-    // 다시 시작 시 스크롤을 첫 번째 질문이 중앙에 오도록 조정
-    setTimeout(() => {
-      const mainElement = document.querySelector('main');
-      if (mainElement) {
-        const mainHeight = mainElement.offsetHeight;
-        const windowHeight = window.innerHeight;
-        const scrollPosition = mainHeight / 2 - windowHeight / 2;
-        window.scrollTo(0, Math.max(0, scrollPosition));
-      }
-    }, 100);
   };
 
   const handleNext = async (valueOverride?: string) => {
@@ -593,21 +592,16 @@ const FinanceDiagnosisPage = () => {
     switch (currentQuestion.inputType) {
       case 'checkbox':
         return (
-          <div className="w-full max-w-3xl mx-auto">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
+          <div className="w-full max-w-md mx-auto">
+            <div className="grid grid-cols-2 gap-2">
               {currentQuestion.options?.map((option) => (
-                <div key={option.value} className={`flex items-center space-x-3 p-4 border-2 rounded-xl transition-all duration-200 cursor-pointer ${
-                  currentCheckboxes.includes(option.value)
-                    ? 'border-blue-500 bg-blue-50 shadow-lg'
-                    : 'border-gray-200 hover:border-blue-300 hover:bg-blue-25 bg-white'
-                }`} onClick={() => handleCheckboxChange(option.value, !currentCheckboxes.includes(option.value))}>
+                <div key={option.value} className="flex items-center space-x-2 p-2 border rounded-md">
                   <Checkbox
                     id={option.value}
                     checked={currentCheckboxes.includes(option.value)}
                     onCheckedChange={(checked) => handleCheckboxChange(option.value, !!checked)}
-                    className="data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500"
                   />
-                  <Label htmlFor={option.value} className="flex-1 cursor-pointer font-medium text-gray-700">{option.label}</Label>
+                  <Label htmlFor={option.value} className="flex-1 cursor-pointer">{option.label}</Label>
                 </div>
               ))}
             </div>
@@ -617,19 +611,15 @@ const FinanceDiagnosisPage = () => {
                 value={otherInput}
                 onChange={(e) => setOtherInput(e.target.value)}
                 placeholder="기타 목표를 입력하세요"
-                className="mb-6 border-2 border-gray-200 focus:border-blue-500 focus:ring-blue-500 rounded-xl"
+                className="mt-2"
               />
             )}
             <Button
               onClick={() => handleNext()}
               disabled={currentCheckboxes.length === 0}
-<<<<<<< HEAD
-              className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white w-full py-4 font-semibold text-lg rounded-xl shadow-lg"
-=======
               className="bg-orange-500 hover:bg-orange-600 text-white w-full mt-4 font-semibold button-stable"
->>>>>>> feature/database-schema-migration
             >
-              <Check className="mr-2 h-5 w-5" /> 확인
+              <Check className="mr-2 h-4 w-4" /> 확인
             </Button>
           </div>
         );
@@ -638,22 +628,16 @@ const FinanceDiagnosisPage = () => {
           <RadioGroup
             value={currentRadioValue}
             onValueChange={handleRadioChange}
-            className={`grid gap-3 max-w-3xl mx-auto ${
-              currentQuestion.field === 'incomeType' || currentQuestion.field === 'incomeVariability' 
-                ? 'grid-cols-4' 
-                : currentQuestion.field === 'familyType'
-                ? 'grid-cols-5'
-                : 'grid-cols-1 md:grid-cols-2'
-            }`}
+            className="grid grid-cols-2 gap-4"
           >
             {currentQuestion.options?.map((option) => (
               <Label
                 key={option.value}
                 htmlFor={option.value}
-                className={`flex items-center justify-center p-4 border-2 rounded-xl cursor-pointer transition-all duration-200 font-medium ${
+                className={`flex items-center justify-center p-4 border rounded-lg cursor-pointer transition-colors ${
                   currentRadioValue === option.value
-                    ? 'bg-gradient-to-r from-blue-500 to-purple-600 border-blue-500 text-white shadow-lg'
-                    : 'bg-white border-gray-200 hover:border-blue-300 hover:bg-blue-25 text-gray-700'
+                    ? 'bg-orange-500 border-orange-500 text-white'
+                    : 'bg-white hover:bg-orange-50'
                 }`}
               >
                 <RadioGroupItem value={option.value} id={option.value} className="sr-only" />
@@ -664,28 +648,23 @@ const FinanceDiagnosisPage = () => {
         );
       case 'target-amount':
         return (
-          <div className="flex items-center w-full max-w-md relative">
+          <div className="flex items-center w-full max-w-xs relative">
             <Input
               ref={inputRef}
               type="number"
               value={currentInput}
               onChange={(e) => setCurrentInput(e.target.value)}
               placeholder={placeholder}
-              className="border-2 border-gray-200 focus:border-blue-500 focus:ring-blue-500 pr-24 rounded-xl py-3 text-lg"
+              className="border-gray-300 focus:border-orange-500 focus:ring-orange-500 pr-24"
               onKeyPress={(e) => e.key === 'Enter' && handleNext()}
             />
-            <span className="absolute right-16 top-1/2 transform -translate-y-1/2 text-white text-sm font-semibold bg-gradient-to-r from-blue-500 to-purple-600 px-3 py-1 rounded-lg flex items-center gap-1 z-10">
-              <span className="text-xs">→</span>
+            <span className="absolute right-12 top-1/2 transform -translate-y-1/2 text-gray-700 text-sm font-semibold bg-gray-100 px-2 py-1 rounded">
               억원
             </span>
             <Button
               onClick={() => handleNext()}
               disabled={!currentInput.trim()}
-<<<<<<< HEAD
-              className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold rounded-xl shadow-lg"
-=======
               className="bg-orange-500 hover:bg-orange-600 text-white font-semibold button-stable"
->>>>>>> feature/database-schema-migration
             >
               <Send className="h-4 w-4" />
             </Button>
@@ -693,28 +672,23 @@ const FinanceDiagnosisPage = () => {
         );
       case 'amount':
         return (
-          <div className="flex items-center w-full max-w-md relative">
+          <div className="flex items-center w-full max-w-xs relative">
             <Input
               ref={inputRef}
               type="number"
               value={currentInput}
               onChange={(e) => setCurrentInput(e.target.value)}
               placeholder={placeholder}
-              className="border-2 border-gray-200 focus:border-blue-500 focus:ring-blue-500 pr-24 rounded-xl py-3 text-lg"
+              className="border-gray-300 focus:border-orange-500 focus:ring-orange-500 pr-24"
               onKeyPress={(e) => e.key === 'Enter' && handleNext()}
             />
-            <span className="absolute right-16 top-1/2 transform -translate-y-1/2 text-white text-sm font-semibold bg-gradient-to-r from-blue-500 to-purple-600 px-3 py-1 rounded-lg flex items-center gap-1 z-10">
-              <span className="text-xs">→</span>
+            <span className="absolute right-12 top-1/2 transform -translate-y-1/2 text-gray-700 text-sm font-semibold bg-gray-100 px-2 py-1 rounded">
               만원
             </span>
             <Button
               onClick={() => handleNext()}
               disabled={!currentInput.trim()}
-<<<<<<< HEAD
-              className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold rounded-xl shadow-lg"
-=======
               className="bg-orange-500 hover:bg-orange-600 text-white font-semibold button-stable"
->>>>>>> feature/database-schema-migration
             >
               <Send className="h-4 w-4" />
             </Button>
@@ -722,24 +696,20 @@ const FinanceDiagnosisPage = () => {
         );
       default:
         return (
-          <div className="flex items-center w-full max-w-md space-x-3">
+          <div className="flex items-center w-full max-w-xs">
             <Input
               ref={inputRef}
               type={currentQuestion.inputType}
               value={currentInput}
               onChange={(e) => setCurrentInput(e.target.value)}
               placeholder={placeholder}
-              className="border-2 border-gray-200 focus:border-blue-500 focus:ring-blue-500 rounded-xl py-3 text-lg flex-1"
+              className="border-gray-300 focus:border-orange-500 focus:ring-orange-500"
               onKeyPress={(e) => e.key === 'Enter' && handleNext()}
             />
             <Button
               onClick={() => handleNext()}
               disabled={!currentInput.trim()}
-<<<<<<< HEAD
-              className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold rounded-xl shadow-lg px-6"
-=======
               className="bg-orange-500 hover:bg-orange-600 text-white font-semibold button-stable"
->>>>>>> feature/database-schema-migration
             >
               <Send className="h-4 w-4" />
             </Button>
@@ -753,45 +723,13 @@ const FinanceDiagnosisPage = () => {
   return (
     <>
       <Header />
-      <div className="flex flex-col h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-        {/* 상단 헤더 */}
-        <div className="fixed top-28 left-0 right-0 z-30 bg-white/80 backdrop-blur-sm border-b border-gray-200/50">
-          <div className="max-w-4xl mx-auto px-6 py-4">
-            <div className="flex justify-between items-center">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center">
-                  <PiggyBank className="w-5 h-5 text-white" />
-                </div>
-                <div>
-                  <h1 className="text-lg font-semibold text-gray-900">재무진단 AI</h1>
-                  <p className="text-sm text-gray-600">맞춤형 자산관리 컨설팅</p>
-                </div>
-              </div>
-              <div className="flex items-center space-x-4">
-                {/* 진행률 영역 - 다시 시작 버튼 옆에 배치 */}
-                <div className="flex items-center space-x-3">
-                  <div className="text-sm text-gray-600">
-                    {currentStep > 0 ? `${Math.round((currentStep / questions.length) * 100)}%` : '시작'}
-                  </div>
-                  <div className="w-20 bg-gray-200 rounded-full h-2">
-                    <div 
-                      className="bg-gradient-to-r from-blue-500 to-purple-600 h-2 rounded-full transition-all duration-300"
-                      style={{ width: `${Math.round((currentStep / questions.length) * 100)}%` }}
-                    ></div>
-                  </div>
-                </div>
-                <Button
-                  onClick={handleRestart}
-                  variant="outline"
-                  size="sm"
-                  className="text-gray-600 hover:text-red-600 border-gray-300"
-                >
-                  다시 시작
-                </Button>
-              </div>
+      <div className="flex flex-col h-[calc(100vh-80px)] bg-gray-50">
+        {/* 상단 버튼 영역 */}
+        <div className="p-4 bg-white border-b">
+          <div className="max-w-3xl mx-auto flex justify-between items-center">
+            <div className="text-sm text-gray-600">
+              {currentStep > 0 && `진단 진행률: ${Math.round((currentStep / questions.length) * 100)}%`}
             </div>
-<<<<<<< HEAD
-=======
             <Button
               onClick={handleRestart}
               variant="outline"
@@ -800,60 +738,41 @@ const FinanceDiagnosisPage = () => {
             >
               진단 다시 시작
             </Button>
->>>>>>> feature/database-schema-migration
           </div>
         </div>
         
-        {/* 메시지 영역 - 스크롤 가능 */}
-        <main className="flex-1 overflow-y-auto px-4 py-6 pt-48" style={{ paddingBottom: '120px' }}>
+        <main className="flex-1 overflow-y-auto p-4 md:p-6">
           <div className="max-w-3xl mx-auto space-y-6">
             {messages.map((message, index) => (
-<<<<<<< HEAD
-              <div key={message.id} className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}>
-=======
               <div key={message.id} className={`flex items-start gap-4 ${message.type === 'user' ? 'justify-end' : ''} animation-stable`}>
->>>>>>> feature/database-schema-migration
                 {message.type === 'bot' && (
-                  <div className="flex items-start space-x-3 max-w-[80%]">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center shadow-lg flex-shrink-0">
-                      <Bot className="w-5 h-5 text-white" />
-                    </div>
-                    <div className="bg-white rounded-2xl rounded-tl-md px-6 py-4 shadow-lg border border-gray-100">
-                      <p className="text-gray-800 text-base leading-relaxed">{message.content}</p>
-                    </div>
+                  <div className="w-10 h-10 rounded-full bg-orange-500 flex items-center justify-center text-white">
+                    <Bot size={24} />
                   </div>
                 )}
+                <div className={`p-4 rounded-xl max-w-[80%] ${
+                  message.type === 'bot'
+                    ? 'bg-white text-gray-800 rounded-tl-none shadow'
+                    : 'bg-orange-500 text-white rounded-br-none shadow'
+                }`}>
+                  <p className="whitespace-pre-wrap">{message.content}</p>
+                </div>
                 {message.type === 'user' && (
-                  <div className="flex items-start space-x-3 max-w-[80%]">
-                    <div className="bg-gradient-to-r from-orange-500 to-red-500 rounded-2xl rounded-tr-md px-6 py-4 shadow-lg">
-                      <p className="text-white text-base leading-relaxed">{message.content}</p>
-                    </div>
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-r from-gray-500 to-gray-600 flex items-center justify-center shadow-lg flex-shrink-0">
-                      <User className="w-5 h-5 text-white" />
-                    </div>
+                  <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center text-gray-600">
+                    <User size={24} />
                   </div>
                 )}
               </div>
             ))}
             {isLoading && (
-<<<<<<< HEAD
-              <div className="flex items-start space-x-3 max-w-[80%]">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center shadow-lg">
-                  <Bot className="w-5 h-5 text-white" />
-=======
               <div className="flex items-start gap-4 animation-stable">
                 <div className="w-10 h-10 rounded-full bg-orange-500 flex items-center justify-center text-white">
                   <Bot size={24} />
->>>>>>> feature/database-schema-migration
                 </div>
-                <div className="bg-white rounded-2xl rounded-tl-md px-6 py-4 shadow-lg border border-gray-100">
-                  <div className="flex items-center space-x-3">
-                    <div className="flex space-x-1">
-                      <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce"></div>
-                      <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                      <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                    </div>
-                    <span className="text-gray-600 text-sm font-medium">분석 중...</span>
+                <div className="p-4 rounded-xl max-w-[80%] bg-white text-gray-800 rounded-tl-none shadow">
+                  <div className="flex items-center space-x-2">
+                    <Loader2 className="h-5 w-5 animate-spin text-orange-500" />
+                    <p>리포트를 생성 중입니다...</p>
                   </div>
                 </div>
               </div>
@@ -862,37 +781,24 @@ const FinanceDiagnosisPage = () => {
           </div>
         </main>
         
-<<<<<<< HEAD
-        {/* 답변 영역과 푸터 컨테이너 */}
-        <div className="mt-auto">
-          {/* 답변 영역 - fixed로 설정하여 화면 제일 밑에 고정 */}
-          {!isAllCompleted && (
-            <div ref={inputAreaRef} className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-sm border-t border-gray-200/50 shadow-xl z-20">
-              <div className="max-w-4xl mx-auto p-6 mb-0">
-                <div className="flex justify-center">
-                  {renderInput()}
-                </div>
-              </div>
-=======
         {!isAllCompleted && (
           <div ref={inputAreaRef} className="p-4 bg-white border-t animation-stable">
             <div className="max-w-3xl mx-auto flex justify-center">
               {renderInput()}
->>>>>>> feature/database-schema-migration
             </div>
-          )}
+          </div>
+        )}
 
-          {error && (
-            <div className="sticky bottom-0 bg-red-50 border-t border-red-200 z-30">
-              <div className="max-w-4xl mx-auto p-4">
-                <div className="flex items-center justify-center text-red-600">
-                  <span className="text-sm">⚠️ {error}</span>
-                </div>
-              </div>
+        {error && (
+          <div className="p-4 bg-red-100 border-t">
+            <div className="max-w-3xl mx-auto flex justify-center text-red-600">
+              {error}
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
+      
+      <Footer />
     </>
   );
 };
