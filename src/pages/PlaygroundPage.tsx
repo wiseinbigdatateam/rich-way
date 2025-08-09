@@ -10,7 +10,7 @@ import { Pagination, PaginationContent, PaginationItem, PaginationLink, Paginati
 import { MessageSquare, Heart, Eye, Search, PlusCircle, TrendingUp, Clock, User, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase, isSupabaseConfigured } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/ui/use-toast";
 
 interface CommunityPost {
@@ -48,89 +48,29 @@ const PlaygroundPage = () => {
     try {
       setLoading(true);
 
-      if (!isSupabaseConfigured) {
-        // Demo 모드: 하드코딩된 데이터 사용
-        const demoData: CommunityPost[] = [
-          {
-            id: 'demo-1',
-            category: '투자정보',
-            title: '주식 투자 초보자를 위한 완벽 가이드',
-            content: '주식 투자를 시작하려는 분들을 위한 기본적인 가이드입니다. 먼저 투자 목표를 설정하고, 자신의 위험 감수 능력을 파악하는 것이 중요합니다.',
-            views: 1234,
-            likes: 89,
-            answers_count: 23,
-            member_user_id: '투자고수',
-            created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-            ishot: true
-          },
-          {
-            id: 'demo-2',
-            category: '부동산',
-            title: '부동산 투자 vs 주식 투자, 어떤 것이 더 나을까?',
-            content: '많은 분들이 궁금해하시는 부동산과 주식 투자의 장단점을 비교해보겠습니다.',
-            views: 856,
-            likes: 67,
-            answers_count: 15,
-            member_user_id: '부자되기',
-            created_at: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
-            ishot: false
-          },
-          {
-            id: 'demo-3',
-            category: '성공사례',
-            title: '월급쟁이 재테크 성공담 - 10년만에 1억 모으기',
-            content: '평범한 월급쟁이였던 제가 어떻게 10년 만에 1억을 모을 수 있었는지 공유합니다.',
-            views: 2156,
-            likes: 234,
-            answers_count: 67,
-            member_user_id: '절약왕',
-            created_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-            ishot: true
-          }
-        ];
-        setPosts(demoData);
-        console.log('🟡 Demo 모드: 하드코딩 데이터 로드');
-        return;
-      }
-
       // 실제 Supabase에서 데이터 가져오기
-      let { data, error } = await supabase
+      const { data, error } = await supabase
         .from('community_posts')
         .select('*')
-        .order('created_at', { ascending: false })
-        .limit(20);
-
-      // 카테고리 필터링이 있는 경우 재쿼리
-      if (selectedCategory !== '전체') {
-        const result = await supabase
-          .from('community_posts')
-          .select('*')
-          .eq('category', selectedCategory)
-          .order('created_at', { ascending: false })
-          .limit(20);
-        
-        if (result.data) {
-        data = result.data;
-        }
-      }
+        .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('Error fetching posts:', error);
+        console.error('게시글 조회 오류:', error);
         toast({
-          title: "오류",
-          description: "게시글을 불러오는데 실패했습니다.",
           variant: "destructive",
+          title: "데이터 로드 실패",
+          description: "게시글을 불러오는데 실패했습니다.",
         });
         return;
       }
 
       setPosts(data || []);
     } catch (error) {
-      console.error('Error:', error);
+      console.error('게시글 조회 중 오류:', error);
       toast({
-        title: "오류",
-        description: "게시글을 불러오는데 실패했습니다.",
         variant: "destructive",
+        title: "데이터 로드 실패",
+        description: "게시글을 불러오는데 실패했습니다.",
       });
     } finally {
       setLoading(false);

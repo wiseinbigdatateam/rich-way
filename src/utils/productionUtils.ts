@@ -21,6 +21,21 @@ export const setupProductionConsole = () => {
     window.onerror = () => true;
     window.addEventListener('error', () => {});
     window.addEventListener('unhandledrejection', () => {});
+  } else {
+    // 개발 환경에서 Chrome 확장 프로그램 오류 필터링
+    const originalError = console.error;
+    console.error = (...args) => {
+      const message = args.join(' ');
+      // Chrome 확장 프로그램 관련 오류는 무시
+      if (message.includes('chrome-extension://') || 
+          message.includes('ERR_FILE_NOT_FOUND') ||
+          message.includes('utils.js') ||
+          message.includes('extensionState.js') ||
+          message.includes('heuristicsRedefinitions.js')) {
+        return;
+      }
+      originalError.apply(console, args);
+    };
   }
 };
 

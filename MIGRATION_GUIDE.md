@@ -272,3 +272,168 @@ npm run db:sync
 2. **문서 참조**: 위의 추가 자료들
 3. **단계별 확인**: 각 단계별로 개별 테스트
 4. **백업 활용**: 개발 DB 백업 후 재시도 
+
+# 🗄️ 개발서버 → 운영서버 DB 스키마 마이그레이션 가이드
+
+## 📋 개요
+이 가이드는 개발서버의 최신 DB 스키마를 운영서버에 적용하는 방법을 설명합니다.
+
+## ⚠️ 주의사항
+- **백업 필수**: 운영서버 데이터를 반드시 백업 후 진행
+- **다운타임 고려**: 스키마 변경 시 서비스 중단 가능성
+- **데이터 손실 위험**: 기존 데이터와 호환성 확인 필요
+
+## 🔄 단계별 진행
+
+### 1단계: 개발서버 스키마 추출
+
+#### 1-1. 개발 Supabase Dashboard 접속
+1. https://supabase.com/dashboard 접속
+2. 개발 프로젝트 선택
+3. 좌측 메뉴에서 'SQL Editor' 클릭
+
+#### 1-2. 테이블 목록 확인
+SQL Editor에서 다음 쿼리 실행:
+```sql
+SELECT 
+    schemaname,
+    tablename,
+    tableowner
+FROM pg_tables 
+WHERE schemaname = 'public' 
+ORDER BY tablename;
+```
+
+#### 1-3. 스키마 추출
+`sql/extract_dev_schema.sql` 파일의 내용을 SQL Editor에 복사하여 실행:
+- 각 테이블별 CREATE TABLE 문 생성
+- 인덱스 정보 조회
+- 제약조건 정보 조회
+
+#### 1-4. 결과 저장
+각 쿼리 결과를 복사하여 `sql/dev_schema_extracted.sql` 파일로 저장
+
+### 2단계: 운영서버 백업
+
+#### 2-1. 운영 Supabase Dashboard 접속
+1. https://supabase.com/dashboard 접속
+2. 운영 프로젝트 선택
+
+#### 2-2. 현재 스키마 백업
+SQL Editor에서 다음 쿼리 실행:
+```sql
+-- 현재 테이블 목록 백업
+SELECT 
+    schemaname,
+    tablename,
+    tableowner
+FROM pg_tables 
+WHERE schemaname = 'public' 
+ORDER BY tablename;
+```
+
+#### 2-3. 데이터 백업 (필요시)
+중요한 데이터가 있다면 Export 기능을 사용하여 백업
+
+### 3단계: 운영서버 스키마 적용
+
+#### 3-1. 기존 테이블 삭제 (주의!)
+```sql
+-- 기존 테이블들을 순서대로 삭제
+DROP TABLE IF EXISTS post_likes CASCADE;
+DROP TABLE IF EXISTS community_comments CASCADE;
+DROP TABLE IF EXISTS community_posts CASCADE;
+DROP TABLE IF EXISTS coaching_applications CASCADE;
+DROP TABLE IF EXISTS expert_products CASCADE;
+DROP TABLE IF EXISTS experts CASCADE;
+DROP TABLE IF EXISTS finance_diagnosis CASCADE;
+DROP TABLE IF EXISTS mbti_diagnosis CASCADE;
+DROP TABLE IF EXISTS member_settings CASCADE;
+DROP TABLE IF EXISTS members CASCADE;
+```
+
+#### 3-2. 새 스키마 적용
+1단계에서 추출한 CREATE TABLE 문들을 SQL Editor에 복사하여 실행
+
+#### 3-3. 인덱스 및 제약조건 적용
+1단계에서 추출한 인덱스와 제약조건 정보를 적용
+
+### 4단계: 검증
+
+#### 4-1. 테이블 생성 확인
+```sql
+SELECT table_name FROM information_schema.tables 
+WHERE table_schema = 'public' 
+ORDER BY table_name;
+```
+
+#### 4-2. 컬럼 구조 확인
+```sql
+SELECT table_name, column_name, data_type, is_nullable 
+FROM information_schema.columns 
+WHERE table_schema = 'public' 
+ORDER BY table_name, ordinal_position;
+```
+
+#### 4-3. 제약조건 확인
+```sql
+SELECT 
+    tc.table_name,
+    tc.constraint_name,
+    tc.constraint_type
+FROM information_schema.table_constraints tc
+WHERE tc.table_schema = 'public'
+ORDER BY tc.table_name, tc.constraint_name;
+```
+
+### 5단계: 애플리케이션 테스트
+
+#### 5-1. 로컬 테스트
+```bash
+npm run dev
+# http://localhost:8080 접속하여 기능 테스트
+```
+
+#### 5-2. 개발 서버 테스트
+```bash
+./scripts/deploy-dev.sh
+# http://dev.rich-way.co.kr 접속하여 기능 테스트
+```
+
+#### 5-3. 운영 서버 테스트
+```bash
+./scripts/deploy-prod.sh
+# http://rich-way.co.kr 접속하여 기능 테스트
+```
+
+## 🚨 문제 해결
+
+### 문제 1: 외래키 제약조건 오류
+- 테이블 생성 순서 확인
+- CASCADE 옵션 사용 고려
+
+### 문제 2: 데이터 타입 불일치
+- 기존 데이터와 새 스키마 호환성 확인
+- 데이터 마이그레이션 스크립트 작성
+
+### 문제 3: 인덱스 충돌
+- 기존 인덱스 삭제 후 새 인덱스 생성
+
+## 📞 지원
+문제 발생 시 다음 정보를 준비하여 문의:
+- 오류 메시지
+- 실행한 SQL 쿼리
+- 현재 스키마 상태
+- 예상 결과와 실제 결과
+
+## ✅ 체크리스트
+
+- [ ] 개발서버 스키마 추출 완료
+- [ ] 운영서버 백업 완료
+- [ ] 기존 테이블 삭제 완료
+- [ ] 새 스키마 적용 완료
+- [ ] 인덱스 및 제약조건 적용 완료
+- [ ] 스키마 검증 완료
+- [ ] 로컬 테스트 완료
+- [ ] 개발 서버 테스트 완료
+- [ ] 운영 서버 테스트 완료 

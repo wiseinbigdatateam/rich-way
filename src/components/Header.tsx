@@ -69,13 +69,11 @@ const Header = () => {
           <div className="flex items-center justify-between">
             {/* 로고 및 브랜드명 */}
             <Link to="/" className="flex items-center space-x-2 min-w-0 flex-shrink-0">
-              <a href="/" tabIndex={0} aria-label="홈으로 이동" onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') window.location.href = '/'; }}>
-                <img
-                  src="/richway_logo_back_x.png"
-                  alt="Rich Way 로고"
-                  className="h-12 sm:h-16 lg:h-20 w-auto"
-                />
-              </a>
+              <img
+                src="/richway_logo_back_x.png"
+                alt="Rich Way 로고"
+                className="h-12 sm:h-16 lg:h-20 w-auto"
+              />
               <h1 className="text-sm sm:text-lg lg:text-xl font-bold text-slate-900 hidden sm:block">부자되는 플랫폼</h1>
             </Link>
 
@@ -106,7 +104,13 @@ const Header = () => {
             {/* 인증 상태에 따른 오른쪽 메뉴 */}
             <div className="hidden md:flex items-center space-x-2 lg:space-x-4">
               {loading ? (
-                <div className="text-slate-600 text-sm">로딩중...</div>
+                <div className="flex items-center space-x-2 text-slate-600 text-sm">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                  <span>로딩중...</span>
+                  {process.env.NODE_ENV === 'development' && (
+                    <span className="text-xs text-gray-400">(Auth 초기화 중)</span>
+                  )}
+                </div>
               ) : user ? (
                 // 로그인된 상태
                 <>
@@ -207,7 +211,10 @@ const Header = () => {
                 </Link>
                 <div className="flex flex-col space-y-2 pt-4">
                   {loading ? (
-                    <div className="text-slate-600">로딩중...</div>
+                    <div className="flex items-center space-x-2 text-slate-600">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                      <span>로딩중...</span>
+                    </div>
                   ) : user ? (
                     // 로그인된 상태 (모바일)
                     <>

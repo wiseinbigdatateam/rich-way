@@ -50,8 +50,6 @@ const getSupabaseConfig = () => {
     };
   }
   
-  // 기존 설정은 더 이상 사용하지 않음 (환경별 분리 완료)
-  
   return null;
 };
 
@@ -73,50 +71,22 @@ if (config) {
     console.log('   🟢 운영 환경: 운영 DB에 연결됨');
   }
 } else {
-  console.warn('⚠️ Supabase 환경변수가 설정되지 않았습니다.');
-  console.warn('📋 환경별 설정 방법:');
-  console.warn('   개발: VITE_SUPABASE_URL_DEV, VITE_SUPABASE_ANON_KEY_DEV');
-  console.warn('   운영: VITE_SUPABASE_URL_PROD, VITE_SUPABASE_ANON_KEY_PROD');
-  console.warn('');
-  console.warn('💡 현재 Demo 모드로 작동합니다:');
-  console.warn('   이메일: kerow@hanmail.net');
-  console.warn('   비밀번호: 1q2w3e$R');
+  console.error('❌ Supabase 환경변수가 설정되지 않았습니다.');
+  console.error('📋 환경별 설정 방법:');
+  console.error('   개발: VITE_SUPABASE_URL_DEV, VITE_SUPABASE_ANON_KEY_DEV');
+  console.error('   운영: VITE_SUPABASE_URL_PROD, VITE_SUPABASE_ANON_KEY_PROD');
+  throw new Error('Supabase 환경변수가 설정되지 않았습니다. .env.local 파일을 확인해주세요.');
 }
 
-// Mock Supabase 클라이언트 (Demo 모드용)
-const createMockSupabase = () => ({
+// Supabase 클라이언트 생성
+export const supabase = createClient(config!.url, config!.key, {
   auth: {
-    signUp: async () => ({ data: null, error: new Error('Demo 모드 - 실제 요청 차단') }),
-    signInWithPassword: async () => ({ data: null, error: new Error('Demo 모드 - 실제 요청 차단') }),
-    signOut: async () => ({ error: null }),
-    getUser: async () => ({ data: null, error: null }),
-    onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } })
-  },
-  from: () => ({
-    insert: async () => ({ data: null, error: new Error('Demo 모드 - 실제 요청 차단') }),
-    select: async () => ({ data: null, error: new Error('Demo 모드 - 실제 요청 차단') }),
-    update: async () => ({ data: null, error: new Error('Demo 모드 - 실제 요청 차단') }),
-    delete: async () => ({ data: null, error: new Error('Demo 모드 - 실제 요청 차단') })
-  }),
-  storage: {
-    from: () => ({
-      upload: async () => ({ data: null, error: new Error('Demo 모드 - 실제 요청 차단') }),
-      getPublicUrl: () => ({ data: { publicUrl: '' } }),
-    }),
-  },
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: true
+  }
 });
 
-// 환경변수에 따라 실제 클라이언트 또는 Mock 클라이언트 생성
-export const supabase = config 
-  ? createClient(config.url, config.key, {
-      auth: {
-        autoRefreshToken: true,
-        persistSession: true,
-        detectSessionInUrl: true
-      }
-    })
-  : createMockSupabase();
-
 // 환경변수 상태 export
-export const isSupabaseConfigured = !!config;
-export const currentEnvironment = config?.environment || 'demo'; 
+export const isSupabaseConfigured = true;
+export const currentEnvironment = config!.environment; 

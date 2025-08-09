@@ -27,7 +27,7 @@ const MyDiagnosis: React.FC = () => {
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(1);
   const { diagnosisHistory, financialOverview, loading, error, pagination } = useMyDiagnosis(
-    user?.user_id,
+    user?.id,
     currentPage,
     3
   );

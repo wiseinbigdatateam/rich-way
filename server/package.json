@@ -1,0 +1,28 @@
+{
+  "name": "rich-way-email-server",
+  "version": "1.0.0",
+  "description": "Rich Way 이메일 발송 서버",
+  "main": "email-api.js",
+  "scripts": {
+    "start": "node email-api.js",
+    "dev": "nodemon email-api.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "multer": "^2.0.2",
+    "nodemailer": "^6.9.7"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  },
+  "keywords": [
+    "email",
+    "password-reset",
+    "rich-way"
+  ],
+  "author": "Rich Way Team",
+  "license": "MIT"
+}

@@ -583,7 +583,7 @@ const FinanceDiagnosisResultPage = () => {
       // responses는 JSONB 타입이므로 객체 그대로 저장
       // report_content는 text 타입이므로 JSON 문자열로 저장
       const payload = {
-        user_id: user.user_id,
+        user_id: user.id, // UUID 사용
         responses: report, // JSONB 타입이므로 객체 그대로
         report_content: JSON.stringify(report), // text 타입이므로 문자열로
       };

@@ -148,41 +148,6 @@ const PlaygroundPostPage = () => {
     try {
       setLoading(true);
 
-      if (!isSupabaseConfigured) {
-        // Demo 모드: 하드코딩된 데이터 사용
-        const demoPost: CommunityPost = {
-          id: id,
-          category: '투자정보',
-          title: '주식 투자 초보자를 위한 완벽 가이드',
-          content: `주식 투자를 시작하려는 분들을 위한 기본적인 가이드입니다.
-
-## 1. 투자 목표 설정하기
-먼저 자신만의 투자 목표를 명확히 설정해야 합니다. 단기적 수익을 원하는지, 장기적 자산 증식을 원하는지에 따라 투자 전략이 달라집니다.
-
-## 2. 기본 지식 습득
-- **재무제표 읽는 법**: 기업의 건전성을 파악하는 기본
-- **PER, PBR 등 투자지표**: 주식의 적정가치 판단
-- **시장 동향 파악**: 경제 흐름과 업종별 특성 이해
-
-## 3. 리스크 관리
-투자에는 항상 위험이 따릅니다. 분산투자를 통해 리스크를 줄이고, 자신이 감당할 수 있는 범위 내에서 투자하는 것이 중요합니다.
-
-## 4. 실전 투자 시작
-이론만으로는 부족합니다. 소액으로라도 실제 투자를 시작해보며 경험을 쌓는 것이 중요합니다.
-
-여러분의 투자 여정에 도움이 되길 바랍니다!`,
-          member_user_id: '투자고수',
-          views: 1234,
-          likes: 89,
-          answers_count: 23,
-          created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-          ishot: true
-        };
-        setPost(demoPost);
-        console.log('🟡 Demo 모드: 하드코딩 게시글 데이터 로드');
-        return;
-      }
-
       // 실제 Supabase에서 데이터 가져오기
       const { data, error } = await supabase
         .from('community_posts')
@@ -194,38 +159,19 @@ const PlaygroundPostPage = () => {
         console.error('게시글 조회 오류:', error);
         toast({
           variant: "destructive",
-          title: "게시글 로드 실패",
-          description: "게시글을 불러오는 중 오류가 발생했습니다.",
-        });
-        return;
-      }
-
-      if (!data) {
-        toast({
-          variant: "destructive",
-          title: "게시글을 찾을 수 없습니다",
-          description: "요청한 게시글이 존재하지 않습니다.",
+          title: "데이터 로드 실패",
+          description: "게시글을 불러오는데 실패했습니다.",
         });
         return;
       }
 
       setPost(data);
-      console.log('🟢 실제 게시글 데이터 로드 완료:', data);
-
-      // 조회수 증가 (실제 환경에서만)
-      if (isSupabaseConfigured) {
-        await supabase
-          .from('community_posts')
-          .update({ views: data.views + 1 })
-          .eq('id', id);
-      }
-
     } catch (error) {
-      console.error('게시글 조회 오류:', error);
+      console.error('게시글 조회 중 오류:', error);
       toast({
         variant: "destructive",
-        title: "게시글 로드 실패",
-        description: "게시글을 불러오는 중 오류가 발생했습니다.",
+        title: "데이터 로드 실패",
+        description: "게시글을 불러오는데 실패했습니다.",
       });
     } finally {
       setLoading(false);
@@ -333,51 +279,6 @@ const PlaygroundPostPage = () => {
     
     try {
       setCommentsLoading(true);
-
-      if (!isSupabaseConfigured) {
-        // Demo 모드: 하드코딩된 댓글 데이터
-        const demoComments: CommunityComment[] = [
-          {
-            id: 'demo-comment-1',
-            post_id: id,
-            parent_comment_id: null,
-            member_user_id: '재테크마스터',
-            content: '정말 유용한 정보네요! 특히 리스크 관리 부분이 인상적입니다.',
-            likes: 15,
-            is_deleted: false,
-            created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-            updated_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-            replies: [
-              {
-                id: 'demo-reply-1',
-                post_id: id,
-                parent_comment_id: 'demo-comment-1',
-                member_user_id: '투자고수',
-                content: '감사합니다! 리스크 관리가 정말 중요하죠.',
-                likes: 3,
-                is_deleted: false,
-                created_at: new Date(Date.now() - 1.5 * 60 * 60 * 1000).toISOString(),
-                updated_at: new Date(Date.now() - 1.5 * 60 * 60 * 1000).toISOString()
-              }
-            ]
-          },
-          {
-            id: 'demo-comment-2',
-            post_id: id,
-            parent_comment_id: null,
-            member_user_id: '주식초보',
-            content: '초보자 입장에서 정말 이해하기 쉽게 설명해주셨네요. 감사합니다!',
-            likes: 8,
-            is_deleted: false,
-            created_at: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
-            updated_at: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
-            replies: []
-          }
-        ];
-        setComments(demoComments);
-        console.log('🟡 Demo 모드: 하드코딩 댓글 데이터 로드');
-        return;
-      }
 
       // 실제 Supabase에서 댓글 데이터 가져오기
       const { data, error } = await supabase
@@ -509,31 +410,6 @@ const PlaygroundPostPage = () => {
     try {
       setCommentSubmitting(true);
 
-      // Demo 모드에서는 로컬 상태에만 추가
-      if (!isSupabaseConfigured) {
-        const newCommentObj: CommunityComment = {
-          id: `comment-${Date.now()}`,
-          post_id: post.id,
-          parent_comment_id: null,
-          member_user_id: currentUser.user_id || currentUser.name || currentUser.email || 'Anonymous',
-          content: newComment.trim(),
-          likes: 0,
-          is_deleted: false,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          replies: []
-        };
-
-        setComments(prev => [...prev, newCommentObj]);
-        setNewComment("");
-        
-        toast({
-          title: "댓글 작성 완료!",
-          description: "댓글이 성공적으로 작성되었습니다.",
-        });
-        return;
-      }
-
       // 실제 Supabase 모드 - 직접 Supabase 클라이언트 사용
       const { error } = await supabase
         .from('community_comments')
@@ -593,38 +469,6 @@ const PlaygroundPostPage = () => {
     if (!post) return;
 
     try {
-      // Demo 모드에서는 로컬 상태에만 추가
-      if (!isSupabaseConfigured) {
-        const newReply: CommunityComment = {
-          id: `reply-${Date.now()}`,
-          post_id: post.id,
-          parent_comment_id: commentId,
-          member_user_id: currentUser.user_id || currentUser.name || currentUser.email || 'Anonymous',
-          content: replyText.trim(),
-          likes: 0,
-          is_deleted: false,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        };
-
-        setComments(prev => 
-          prev.map(comment => 
-            comment.id === commentId 
-              ? { ...comment, replies: [...(comment.replies || []), newReply] }
-              : comment
-          )
-        );
-
-        setReplyText("");
-        setReplyingTo(null);
-        
-        toast({
-          title: "대댓글 작성 완료!",
-          description: "대댓글이 성공적으로 작성되었습니다.",
-        });
-        return;
-      }
-
       // 실제 Supabase 모드 - 직접 Supabase 클라이언트 사용
       const { error } = await supabase
         .from('community_comments')

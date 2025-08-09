@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "./ui/dialog";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
-import { supabase, isSupabaseConfigured } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
 import { useToast } from "./ui/use-toast";
+import { Check, X, Loader2 } from "lucide-react";
 import TermsAgreementDialog from "./TermsAgreementDialog";
 
 export default function SignupDialog({ open, onOpenChange, onSignupSuccess }: { open?: boolean, onOpenChange?: (open: boolean) => void, onSignupSuccess?: (userData: any) => void } = {}) {
@@ -25,6 +26,7 @@ export default function SignupDialog({ open, onOpenChange, onSignupSuccess }: { 
   const [emailChecking, setEmailChecking] = useState(false);
   const [emailAvailable, setEmailAvailable] = useState<boolean | null>(null);
   const [emailChecked, setEmailChecked] = useState(false); // 이메일 중복확인 완료 여부
+  const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
   // 약관 동의 완료 처리
@@ -74,31 +76,25 @@ export default function SignupDialog({ open, onOpenChange, onSignupSuccess }: { 
     setNicknameChecking(true);
     
           try {
-        if (!isSupabaseConfigured) {
-          // Demo 모드: 기본적으로 사용 가능하다고 가정
+        // 실제 DB에서 중복 확인
+        const { data, error } = await supabase
+          .from('members')
+          .select('user_id')
+          .eq('user_id', nicknameToCheck)
+          .single();
+
+        if (error && error.code === 'PGRST116') {
+          // 데이터가 없음 = 사용 가능
           setNicknameAvailable(true);
           setNicknameChecked(true);
+        } else if (data) {
+          // 데이터가 있음 = 이미 사용 중
+          setNicknameAvailable(false);
+          setNicknameChecked(true);
         } else {
-          // 실제 DB에서 중복 확인
-          const { data, error } = await (supabase as any)
-            .from('members')
-            .select('user_id')
-            .eq('user_id', nicknameToCheck)
-            .single();
-
-          if (error && error.code === 'PGRST116') {
-            // 데이터가 없음 = 사용 가능
-            setNicknameAvailable(true);
-            setNicknameChecked(true);
-          } else if (data) {
-            // 데이터가 있음 = 이미 사용 중
-            setNicknameAvailable(false);
-            setNicknameChecked(true);
-          } else {
-            console.error('닉네임 확인 오류:', error);
-            setNicknameAvailable(false);
-            setNicknameChecked(false);
-          }
+          console.error('닉네임 확인 오류:', error);
+          setNicknameAvailable(false);
+          setNicknameChecked(false);
         }
       } catch (error) {
         console.error('닉네임 확인 중 오류:', error);
@@ -142,31 +138,25 @@ export default function SignupDialog({ open, onOpenChange, onSignupSuccess }: { 
     setEmailChecking(true);
     
     try {
-      if (!isSupabaseConfigured) {
-        // Demo 모드: 기본적으로 사용 가능하다고 가정
+      // 실제 DB에서 중복 확인
+      const { data, error } = await supabase
+        .from('members')
+        .select('email')
+        .eq('email', emailToCheck)
+        .single();
+
+      if (error && error.code === 'PGRST116') {
+        // 데이터가 없음 = 사용 가능
         setEmailAvailable(true);
         setEmailChecked(true);
+      } else if (data) {
+        // 데이터가 있음 = 이미 사용 중
+        setEmailAvailable(false);
+        setEmailChecked(true);
       } else {
-        // 실제 DB에서 중복 확인
-        const { data, error } = await (supabase as any)
-          .from('members')
-          .select('email')
-          .eq('email', emailToCheck)
-          .single();
-
-        if (error && error.code === 'PGRST116') {
-          // 데이터가 없음 = 사용 가능
-          setEmailAvailable(true);
-          setEmailChecked(true);
-        } else if (data) {
-          // 데이터가 있음 = 이미 사용 중
-          setEmailAvailable(false);
-          setEmailChecked(true);
-        } else {
-          console.error('이메일 확인 오류:', error);
-          setEmailAvailable(false);
-          setEmailChecked(false);
-        }
+        console.error('이메일 확인 오류:', error);
+        setEmailAvailable(false);
+        setEmailChecked(false);
       }
     } catch (error) {
       console.error('이메일 확인 중 오류:', error);
@@ -193,133 +183,106 @@ export default function SignupDialog({ open, onOpenChange, onSignupSuccess }: { 
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // 닉네임 유효성 검사
-    if (!nickname.trim()) {
-      toast({
-        variant: "destructive",
-        title: "닉네임 오류",
-        description: "닉네임을 입력해주세요.",
-      });
-      return;
-    }
-
-    if (!nicknameChecked) {
-      toast({
-        variant: "destructive",
-        title: "닉네임 확인 필요",
-        description: "닉네임 중복확인을 먼저 해주세요.",
-      });
-      return;
-    }
-
-    if (nicknameAvailable !== true) {
-      toast({
-        variant: "destructive",
-        title: "닉네임 오류",
-        description: "사용 가능한 닉네임을 입력해주세요.",
-      });
-      return;
-    }
-
-    // 이메일 유효성 검사
-    if (!email.trim()) {
-      toast({
-        variant: "destructive",
-        title: "이메일 오류",
-        description: "이메일을 입력해주세요.",
-      });
-      return;
-    }
-
-    if (!emailChecked) {
-      toast({
-        variant: "destructive",
-        title: "이메일 확인 필요",
-        description: "이메일 중복확인을 먼저 해주세요.",
-      });
-      return;
-    }
-
-    if (emailAvailable !== true) {
-      toast({
-        variant: "destructive",
-        title: "이메일 오류",
-        description: "사용 가능한 이메일을 입력해주세요.",
-      });
-      return;
-    }
-    
-    // Demo 모드 처리 (환경변수가 설정되지 않은 경우)
-    if (!isSupabaseConfigured) {
-      console.log('🟡 Demo 모드 회원가입');
-      
-      const demoUser = {
-        id: 'demo-user-id',
-        user_id: nickname,
-        name: name,
-        email: email,
-        phone: '',
-        signup_type: 'email',
-        created_at: new Date().toISOString()
-      };
-
-      toast({
-        title: "✅ Demo 회원가입 성공!",
-        description: `${name}님 (${nickname}) 환영합니다! (Demo 모드) 이제 로그인할 수 있습니다.`,
-      });
-      
-      // 입력 필드 초기화
-      setName("");
-      setNickname("");
-      setEmail("");
-      setPassword("");
-      setNicknameAvailable(null);
-      setNicknameChecked(false);
-      setEmailAvailable(null);
-      setEmailChecked(false);
-      
-      if (onSignupSuccess) {
-        onSignupSuccess(demoUser);
-      }
-      handleOpenChange(false);
-      return;
-    }
+    setLoading(true);
 
     try {
-      // members 테이블에 직접 저장 (닉네임을 user_id로 사용)
-      const { error: insertError } = await (supabase as any)
-        .from('members')
-        .insert([
-          {
-            user_id: nickname,       // 닉네임을 user_id로 사용
-            name: name,              // 이름 → name 컬럼
-            email: email,            // 이메일 → email 컬럼
-            password: password,      // 비밀번호 → password 컬럼
-            phone: '',
-            signup_type: 'email',
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          }
-        ]);
+      // 입력값 검증
+      if (!name.trim() || !nickname.trim() || !email.trim() || !password.trim()) {
+        toast({
+          variant: "destructive",
+          title: "회원가입 실패",
+          description: "모든 필드를 입력해주세요.",
+        });
+        return;
+      }
 
-      if (insertError) throw insertError;
+      if (password.length < 6) {
+        toast({
+          variant: "destructive",
+          title: "회원가입 실패",
+          description: "비밀번호는 6자 이상이어야 합니다.",
+        });
+        return;
+      }
 
-      const newUser = {
-        id: 'new-user-id',
-        user_id: nickname,
-        name: name,
-        email: email,
+      if (!emailAvailable) {
+        toast({
+          variant: "destructive",
+          title: "회원가입 실패",
+          description: "이미 사용 중인 이메일입니다.",
+        });
+        return;
+      }
+
+      if (!nicknameAvailable) {
+        toast({
+          variant: "destructive",
+          title: "회원가입 실패",
+          description: "이미 사용 중인 닉네임입니다.",
+        });
+        return;
+      }
+
+      // 실제 Supabase members 테이블에 데이터 삽입
+      const userData = {
+        user_id: nickname.trim(),
+        name: name.trim(),
+        email: email.trim(),
+        password: password,
         phone: '',
         signup_type: 'email',
         created_at: new Date().toISOString()
       };
 
+      const { data, error } = await supabase.from('members').insert([userData]).select();
+
+      if (error) {
+        console.error('회원가입 오류:', error);
+        
+        // 구체적인 에러 메시지 제공
+        if (error.code === '23505') {
+          if (error.message.includes('user_id')) {
+            toast({
+              variant: "destructive",
+              title: "회원가입 실패",
+              description: "이미 사용 중인 닉네임입니다.",
+            });
+          } else if (error.message.includes('email')) {
+            toast({
+              variant: "destructive",
+              title: "회원가입 실패",
+              description: "이미 사용 중인 이메일입니다.",
+            });
+          } else {
+            toast({
+              variant: "destructive",
+              title: "회원가입 실패",
+              description: "이미 등록된 사용자입니다.",
+            });
+          }
+        } else if (error.code === '409') {
+          toast({
+            variant: "destructive",
+            title: "회원가입 실패",
+            description: "데이터 충돌이 발생했습니다. 페이지를 새로고침하고 다시 시도해주세요.",
+          });
+        } else {
+          toast({
+            variant: "destructive",
+            title: "회원가입 실패",
+            description: "회원가입에 실패했습니다. 다시 시도해주세요.",
+          });
+        }
+        return;
+      }
+
+      console.log('✅ 회원가입 성공:', data);
+
       toast({
-        title: "회원가입 성공!",
+        title: "✅ 회원가입 성공!",
         description: `${name}님 (${nickname}) 환영합니다! 이제 로그인할 수 있습니다.`,
       });
-      
+
       // 입력 필드 초기화
       setName("");
       setNickname("");
@@ -329,18 +292,21 @@ export default function SignupDialog({ open, onOpenChange, onSignupSuccess }: { 
       setNicknameChecked(false);
       setEmailAvailable(null);
       setEmailChecked(false);
-      
+
       if (onSignupSuccess) {
-        onSignupSuccess(newUser);
+        onSignupSuccess(data[0]);
       }
       handleOpenChange(false);
+
     } catch (error) {
-      console.error('Signup error:', error);
+      console.error('회원가입 중 오류:', error);
       toast({
         variant: "destructive",
         title: "회원가입 실패",
         description: error instanceof Error ? error.message : "알 수 없는 오류가 발생했습니다.",
       });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -490,7 +456,8 @@ export default function SignupDialog({ open, onOpenChange, onSignupSuccess }: { 
             type="submit" 
             disabled={
               !nickname.trim() || !nicknameChecked || nicknameAvailable !== true ||
-              !email.trim() || !emailChecked || emailAvailable !== true
+              !email.trim() || !emailChecked || emailAvailable !== true ||
+              loading
             }
             className="w-full"
           >

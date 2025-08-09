@@ -1,12 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "./ui/dialog";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
-import { supabase, isSupabaseConfigured } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
 import { useToast } from "./ui/use-toast";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import SignupDialog from "./SignupDialog";
+import { sendPasswordResetEmail } from "@/lib/emailService";
 // import KakaoLoginButton from "./KakaoLoginButton";
 
 interface MembersLoginDialogProps {
@@ -14,6 +15,35 @@ interface MembersLoginDialogProps {
   onOpenChange?: (open: boolean) => void;
   onLoginSuccess?: (user: any) => void;
 }
+
+// 안전한 콘솔 로깅 함수
+const safeLog = (message: string, data?: any) => {
+  if (process.env.NODE_ENV === 'development') {
+    try {
+      if (data) {
+        console.log(message, data);
+      } else {
+        console.log(message);
+      }
+    } catch (error) {
+      // Chrome 확장 프로그램 오류 등으로 인한 콘솔 로그 실패를 무시
+    }
+  }
+};
+
+const safeError = (message: string, error?: any) => {
+  if (process.env.NODE_ENV === 'development') {
+    try {
+      if (error) {
+        console.error(message, error);
+      } else {
+        console.error(message);
+      }
+    } catch (err) {
+      // Chrome 확장 프로그램 오류 등으로 인한 콘솔 에러 실패를 무시
+    }
+  }
+};
 
 export default function MembersLoginDialog({ open, onOpenChange, onLoginSuccess }: MembersLoginDialogProps) {
   const [loginId, setLoginId] = useState(""); // 닉네임 또는 이메일
@@ -24,6 +54,7 @@ export default function MembersLoginDialog({ open, onOpenChange, onLoginSuccess 
   const [showForgotPasswordDialog, setShowForgotPasswordDialog] = useState(false);
   const [forgotPasswordEmail, setForgotPasswordEmail] = useState("");
   const [forgotPasswordLoading, setForgotPasswordLoading] = useState(false);
+  const [forgotPasswordSuccess, setForgotPasswordSuccess] = useState(false);
   const { toast } = useToast();
 
   const handleForgotPassword = async (e: React.FormEvent) => {
@@ -31,33 +62,68 @@ export default function MembersLoginDialog({ open, onOpenChange, onLoginSuccess 
     setForgotPasswordLoading(true);
 
     try {
-      // Demo 모드 처리
-      if (!isSupabaseConfigured) {
+      // 실제 Supabase Auth를 사용한 비밀번호 재설정 이메일 발송
+      safeLog('📧 비밀번호 재설정 이메일 발송 시도:', forgotPasswordEmail);
+      
+      // 먼저 사용자가 존재하는지 확인
+      const { data: existingUser, error: userError } = await (supabase as any)
+        .from('members')
+        .select('email')
+        .eq('email', forgotPasswordEmail)
+        .single();
+
+      if (userError || !existingUser) {
+        safeError('❌ 사용자를 찾을 수 없음:', userError);
         toast({
-          title: "✅ Demo 모드 비밀번호 찾기",
-          description: `${forgotPasswordEmail}로 비밀번호 재설정 이메일을 발송했습니다. (Demo 모드)`,
+          variant: "destructive",
+          title: "비밀번호 찾기 실패",
+          description: "해당 이메일로 가입된 계정을 찾을 수 없습니다.",
         });
-        setForgotPasswordEmail("");
-        setShowForgotPasswordDialog(false);
-        setForgotPasswordLoading(false);
         return;
       }
 
-      // 실제 비밀번호 재설정 이메일 발송 (Demo 모드에서는 실제 발송하지 않음)
-      toast({
-        title: "✅ 비밀번호 재설정 이메일 발송",
-        description: `${forgotPasswordEmail}로 비밀번호 재설정 이메일을 발송했습니다.`,
-      });
+      // 커스텀 이메일 서비스를 사용하여 비밀번호 재설정 이메일 발송
+      const token = Date.now();
+      const resetLink = `${window.location.origin}/reset-password?token=${token}&email=${encodeURIComponent(forgotPasswordEmail)}`;
+      const result = await sendPasswordResetEmail(forgotPasswordEmail, resetLink);
 
+      if (!result.success) {
+        safeError('❌ 비밀번호 재설정 이메일 발송 실패:', result.error);
+        toast({
+          variant: "destructive",
+          title: "비밀번호 찾기 실패",
+          description: result.message || "이메일 발송에 실패했습니다. 다시 시도해주세요.",
+        });
+        return;
+      }
+
+      safeLog('✅ 비밀번호 재설정 이메일 발송 성공:', result);
+      
+      // 성공 메시지 - 더 상세한 안내 포함
       toast({
-        title: "✅ 비밀번호 재설정 이메일 발송",
-        description: `${forgotPasswordEmail}로 비밀번호 재설정 이메일을 발송했습니다.`,
+        title: "✅ 비밀번호 재설정 이메일 발송 완료",
+        description: (
+          <div className="space-y-2">
+            <p className="font-medium">{forgotPasswordEmail}로 비밀번호 재설정 이메일을 발송했습니다.</p>
+            <div className="text-sm text-gray-600 space-y-1">
+              <p>• 이메일을 확인하여 비밀번호 재설정 링크를 클릭해주세요</p>
+              <p>• 스팸 메일함도 확인해보세요</p>
+              <p>• 링크는 24시간 동안 유효합니다</p>
+            </div>
+          </div>
+        ),
+        duration: 5000, // 5초간 표시
       });
       
-      setForgotPasswordEmail("");
-      setShowForgotPasswordDialog(false);
+      setForgotPasswordSuccess(true);
+      // 다이얼로그는 잠시 후 닫기 (사용자가 확인 메시지를 볼 수 있도록)
+      setTimeout(() => {
+        setShowForgotPasswordDialog(false);
+        setForgotPasswordSuccess(false);
+        setForgotPasswordEmail("");
+      }, 3000);
     } catch (error: any) {
-      console.error('비밀번호 찾기 오류:', error);
+      safeError('비밀번호 찾기 오류:', error);
       toast({
         variant: "destructive",
         title: "비밀번호 찾기 실패",
@@ -73,50 +139,21 @@ export default function MembersLoginDialog({ open, onOpenChange, onLoginSuccess 
     setLoading(true);
 
     try {
-      // Demo 모드 처리
-      if (!isSupabaseConfigured) {
-        console.log('🟡 Demo 모드 로그인 시도');
-        
-        // Demo 계정 확인 (닉네임 또는 이메일로)
-        if ((loginId === 'kerow@hanmail.net' || loginId === 'kerow_hanmail') && password === '1q2w3e$R') {
-          const demoUser = {
-            id: 'demo-user-id',
-            user_id: 'kerow_hanmail',
-            name: '김진성',
-            email: 'kerow@hanmail.net',
-            phone: '010-1234-5678',
-            signup_type: 'email',
-            created_at: new Date().toISOString()
-          };
-          
-          toast({
-            title: "✅ Demo 로그인 성공!",
-            description: "김진성님 환영합니다! (Demo 모드)",
-          });
-          
-          if (onLoginSuccess) {
-            onLoginSuccess(demoUser);
-          }
-          
-          setLoginId("");
-          setPassword("");
-          setLoading(false);
-          return;
-        } else {
-          toast({
-            variant: "destructive",
-            title: "Demo 로그인 실패",
-            description: "Demo 계정: kerow@hanmail.net 또는 kerow_hanmail / 1q2w3e$R",
-          });
-          setLoading(false);
-          return;
-        }
+      // 입력값 검증
+      if (!loginId.trim() || !password.trim()) {
+        toast({
+          variant: "destructive",
+          title: "로그인 실패",
+          description: "닉네임/이메일과 비밀번호를 모두 입력해주세요.",
+        });
+        return;
       }
 
       // 실제 Supabase members 테이블에서 사용자 확인
-      console.log('🔍 DB에서 사용자 확인 중...');
-      console.log('🆔 로그인 시도 ID:', loginId);
-      console.log('🔑 로그인 시도 비밀번호:', password);
+      if (process.env.NODE_ENV === 'development') {
+        safeLog('🔍 DB에서 사용자 확인 중...');
+        safeLog('🆔 로그인 시도 ID:', loginId);
+      }
       
       let users = null;
       let error = null;
@@ -127,38 +164,57 @@ export default function MembersLoginDialog({ open, onOpenChange, onLoginSuccess 
         const response = await (supabase as any)
           .from('members')
           .select('*')
-          .eq(isEmail ? 'email' : 'user_id', loginId)
+          .eq(isEmail ? 'email' : 'user_id', loginId.trim())
           .eq('password', password) // 실제 환경에서는 해시 비교 필요
           .limit(1);
         
         users = response.data;
         error = response.error;
         
-        console.log('📋 DB 조회 결과:', users);
-        console.log('❌ DB 조회 오류:', error);
+        if (process.env.NODE_ENV === 'development') {
+          safeLog('📋 DB 조회 결과:', users ? `${users.length}명의 사용자 발견` : '사용자 없음');
+          if (error) {
+            safeError('❌ DB 조회 오류:', error);
+          }
+        }
       } catch (queryError) {
-        console.error('🚨 DB 쿼리 예외:', queryError);
+        if (process.env.NODE_ENV === 'development') {
+          safeError('🚨 DB 쿼리 예외:', queryError);
+        }
         error = queryError;
       }
 
       if (error) {
-        console.error('로그인 쿼리 오류:', error);
-        throw new Error('서버 오류가 발생했습니다.');
+        if (process.env.NODE_ENV === 'development') {
+          safeError('로그인 쿼리 오류:', error);
+        }
+        toast({
+          variant: "destructive",
+          title: "로그인 실패",
+          description: "서버 연결에 문제가 발생했습니다. 잠시 후 다시 시도해주세요.",
+        });
+        return;
       }
 
       if (!users || users.length === 0) {
-        console.log('❌ 로그인 실패 - 사용자를 찾을 수 없음');
+        if (process.env.NODE_ENV === 'development') {
+          safeLog('❌ 로그인 실패 - 사용자를 찾을 수 없음');
+        }
         toast({
           variant: "destructive",
           title: "로그인 실패",
           description: "이메일 또는 비밀번호가 올바르지 않습니다. (또는 탈퇴한 계정)",
         });
-        setLoading(false);
         return;
       }
 
       const user = users[0];
 
+      // 로그인 성공 처리
+      if (process.env.NODE_ENV === 'development') {
+        safeLog('✅ 로그인 성공:', user.name);
+      }
+      
       toast({
         title: "✅ 로그인 성공!",
         description: `${user.name}님 환영합니다!`,
@@ -174,7 +230,9 @@ export default function MembersLoginDialog({ open, onOpenChange, onLoginSuccess 
       setPassword("");
 
     } catch (error) {
-      console.error('로그인 오류:', error);
+      if (process.env.NODE_ENV === 'development') {
+        safeError('로그인 오류:', error);
+      }
       toast({
         variant: "destructive",
         title: "로그인 실패",
@@ -240,16 +298,6 @@ export default function MembersLoginDialog({ open, onOpenChange, onLoginSuccess 
             </div>
           </div>
 
-          {/* Demo 모드 안내 */}
-          {!isSupabaseConfigured && (
-            <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3">
-              <p className="text-sm text-yellow-800">
-                <strong>Demo 모드</strong><br />
-                테스트 계정: kerow@hanmail.net / 1q2w3e$R
-              </p>
-            </div>
-          )}
-
           <Button type="submit" disabled={loading} className="w-full">
             {loading ? (
               <>
@@ -314,38 +362,85 @@ export default function MembersLoginDialog({ open, onOpenChange, onLoginSuccess 
     />
 
     {/* 비밀번호 찾기 다이얼로그 */}
-    <Dialog open={showForgotPasswordDialog} onOpenChange={setShowForgotPasswordDialog}>
+    <Dialog 
+      open={showForgotPasswordDialog} 
+      onOpenChange={(open) => {
+        setShowForgotPasswordDialog(open);
+        if (!open) {
+          setForgotPasswordSuccess(false);
+          setForgotPasswordEmail("");
+        }
+      }}
+    >
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>비밀번호 찾기</DialogTitle>
           <DialogDescription>
-            가입한 이메일 주소를 입력하시면 비밀번호 재설정 이메일을 발송해드립니다.
+            {forgotPasswordSuccess 
+              ? "비밀번호 재설정 이메일이 발송되었습니다."
+              : "가입한 이메일 주소를 입력하시면 비밀번호 재설정 이메일을 발송해드립니다."
+            }
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleForgotPassword} className="grid gap-4 py-4">
-          <div className="grid gap-2">
-            <Label htmlFor="forgot-email">이메일 주소</Label>
-            <Input
-              id="forgot-email"
-              type="email"
-              value={forgotPasswordEmail}
-              onChange={(e) => setForgotPasswordEmail(e.target.value)}
-              placeholder="가입한 이메일을 입력하세요"
-              required
-              disabled={forgotPasswordLoading}
-            />
+        
+        {forgotPasswordSuccess ? (
+          <div className="grid gap-4 py-4">
+            <div className="bg-green-50 border border-green-200 rounded-md p-4">
+              <div className="flex items-center space-x-2">
+                <div className="flex-shrink-0">
+                  <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium text-green-800">
+                    이메일 발송 완료
+                  </h3>
+                  <div className="mt-2 text-sm text-green-700">
+                    <p className="font-medium">{forgotPasswordEmail}로 비밀번호 재설정 이메일을 발송했습니다.</p>
+                    <div className="mt-2 space-y-1">
+                      <p>• 이메일을 확인하여 비밀번호 재설정 링크를 클릭해주세요</p>
+                      <p>• 스팸 메일함도 확인해보세요</p>
+                      <p>• 링크는 24시간 동안 유효합니다</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="text-center">
+              <p className="text-sm text-gray-500">
+                이 다이얼로그는 잠시 후 자동으로 닫힙니다.
+              </p>
+            </div>
           </div>
-          <Button type="submit" disabled={forgotPasswordLoading} className="w-full">
-            {forgotPasswordLoading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                이메일 발송 중...
-              </>
-            ) : (
-              "비밀번호 재설정 이메일 발송"
-            )}
-          </Button>
-        </form>
+        ) : (
+          <form onSubmit={handleForgotPassword} className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="forgot-email">이메일 주소</Label>
+              <Input
+                id="forgot-email"
+                type="email"
+                value={forgotPasswordEmail}
+                onChange={(e) => setForgotPasswordEmail(e.target.value)}
+                placeholder="가입한 이메일을 입력하세요"
+                required
+                disabled={forgotPasswordLoading}
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button type="submit" disabled={forgotPasswordLoading} className="flex-1">
+                {forgotPasswordLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    이메일 발송 중...
+                  </>
+                ) : (
+                  "비밀번호 재설정 이메일 발송"
+                )}
+              </Button>
+            </div>
+          </form>
+        )}
       </DialogContent>
     </Dialog>
   </>

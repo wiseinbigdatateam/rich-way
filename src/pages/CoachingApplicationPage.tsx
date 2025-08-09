@@ -212,7 +212,7 @@ const CoachingApplicationPage = () => {
     const { data, error } = await supabase.from("coaching_applications").insert([
       {
         expert_user_id: expertId,
-        member_user_id: user.user_id,
+        user_id: user.id, // UUID 사용
         title: form.title,
         content: form.content,
         method: form.method,
@@ -238,7 +238,7 @@ const CoachingApplicationPage = () => {
       try {
         await supabase.from("expert_notifications").insert([
           {
-            expert_user_id: expertId,
+            expert_id: expertId, // UUID 사용
             title: "새로운 코칭 신청",
             message: `${form.name}님께 새로운 코칭 신청이 접수되었습니다.\n\n📋 상담 제목: ${form.title}\n💰 상품: ${selectedProduct.product_name} (${selectedProduct.price === 0 ? '무료' : `${selectedProduct.price.toLocaleString()}원`})\n📞 연락처: ${form.phone}\n📧 이메일: ${form.email}\n\n상담 신청 관리 페이지에서 자세한 내용을 확인하실 수 있습니다.`,
             type: "info",

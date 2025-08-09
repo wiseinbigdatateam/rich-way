@@ -2,9 +2,12 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
-import { AuthProvider } from './contexts/AuthContext.tsx'
-import { startMemoryMonitoring } from './utils/memoryLeakPrevention.ts'
-import { setupProductionConsole, shouldEnableMemoryMonitoring } from './utils/productionUtils.ts'
+import { AuthProvider } from './contexts/AuthContext'
+import { startMemoryMonitoring } from './utils/memoryLeakPrevention'
+import { shouldEnableMemoryMonitoring, setupProductionConsole } from './utils/productionUtils'
+
+// 비밀번호 찾기 테스트 함수 import
+import './utils/testPasswordReset'
 
 // 캐시 무효화 로직
 const clearCache = () => {

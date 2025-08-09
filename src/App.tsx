@@ -5,7 +5,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import Index from "./pages/Index.tsx";
-import DemoModeNotice from "@/components/DemoModeNotice";
 import SessionExpiryAlert from "@/components/SessionExpiryAlert";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import TermsPage from "./pages/TermsPage";
@@ -34,6 +33,7 @@ const ExpertRegistrationPage = lazy(() => import("./pages/ExpertRegistrationPage
 const MyPage = lazy(() => import("./pages/MyPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const FinanceDiagnosisResultPage = lazy(() => import("./pages/FinanceDiagnosisResultPage"));
+const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
 
 const queryClient = new QueryClient();
 
@@ -49,7 +49,6 @@ const App = () => (
               v7_relativeSplatPath: true
             }}
           >
-                      <DemoModeNotice />
           <SessionExpiryAlert />
           <Suspense fallback={<div>Loading...</div>}>
             <Routes>
@@ -78,10 +77,11 @@ const App = () => (
             <Route path="/privacy" element={<PrivacyPolicyPage />} />
             <Route path="/faq" element={<FaqPage />} />
             <Route path="/contact" element={<ContactPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </Suspense>
-      </BrowserRouter>
+        </BrowserRouter>
         </ErrorBoundary>
       </AuthProvider>
     </TooltipProvider>

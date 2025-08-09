@@ -48,7 +48,12 @@ const Footer = () => {
                 </Link>
               </li>
               <li>
-                <Link to="/contact" className="hover:underline focus:outline-none focus:ring-2 focus:ring-green-400" tabIndex={0} aria-label="1:1 문의">
+                <Link 
+                  to="/contact" 
+                  className="hover:underline focus:outline-none focus:ring-2 focus:ring-green-400 text-left w-full"
+                  tabIndex={0}
+                  aria-label="1:1 문의"
+                >
                   1:1 문의
                 </Link>
               </li>

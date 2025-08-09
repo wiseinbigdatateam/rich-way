@@ -526,7 +526,7 @@ const MbtiDiagnosisResultPage = () => {
       if (!answers || !dimensionScores || !factors || !mbtiType) throw new Error('진단 데이터가 올바르지 않습니다.');
       // member_id는 payload에서 제거 (Supabase가 기본값 auth.uid() 자동 사용)
       const payload = {
-        user_id: user.user_id, // 닉네임 등
+        user_id: user.id, // UUID 사용
         responses: JSON.stringify(answers),
         result_type: mbtiType,
         report_content: JSON.stringify({ dimensionScores, factors }),

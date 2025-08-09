@@ -5,7 +5,7 @@ import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Textarea } from "./ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
-import { supabase, isSupabaseConfigured } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
 import { useToast } from "./ui/use-toast";
 import { Loader2, PenTool } from "lucide-react";
 
@@ -63,43 +63,6 @@ export default function CommunityWriteDialog({
     setLoading(true);
 
     try {
-      // Demo 모드 처리
-      if (!isSupabaseConfigured) {
-        console.log('🟡 Demo 모드 글쓰기 시도');
-        
-        const demoPost = {
-          id: `demo-post-${Date.now()}`,
-          category,
-          title: title.trim(),
-          content: content.trim(),
-          views: 0,
-          likes: 0,
-          answers_count: 0,
-          parent_id: null,
-          member_user_id: currentUser.user_id || currentUser.email?.split('@')[0] || 'demo-user',
-          created_at: new Date().toISOString(),
-          ishot: false,
-          author_name: currentUser.user_id || currentUser.name || currentUser.email?.split('@')[0] || '익명'
-        };
-
-        if (onPostSuccess) {
-          onPostSuccess(demoPost);
-        }
-
-        toast({
-          title: "✅ Demo 글쓰기 성공!",
-          description: "게시글이 작성되었습니다! (Demo 모드)",
-        });
-
-        // 폼 초기화
-        setCategory("");
-        setTitle("");
-        setContent("");
-        onOpenChange?.(false);
-        setLoading(false);
-        return;
-      }
-
       // 실제 Supabase community_posts 테이블에 데이터 삽입
       const postData = {
         category,
@@ -109,43 +72,36 @@ export default function CommunityWriteDialog({
         likes: 0,
         answers_count: 0,
         parent_id: null,
-        member_user_id: currentUser.user_id || currentUser.email?.split('@')[0] || 'unknown',
+        user_id: currentUser.id, // UUID 사용
         created_at: new Date().toISOString(),
         ishot: false
       };
 
-      let result = null;
-      let error = null;
-
-      try {
-        const response = await (supabase as any)
-          .from('community_posts')
-          .insert([postData])
-          .select('*')
-          .single();
-        
-        result = response.data;
-        error = response.error;
-      } catch (queryError) {
-        error = queryError;
-      }
+      const { data, error } = await supabase
+        .from('community_posts')
+        .insert([postData])
+        .select()
+        .single();
 
       if (error) {
-        console.error('글쓰기 오류:', error);
-        throw new Error('서버 오류가 발생했습니다.');
+        console.error('게시글 작성 오류:', error);
+        toast({
+          variant: "destructive",
+          title: "글쓰기 실패",
+          description: "게시글 작성에 실패했습니다. 다시 시도해주세요.",
+        });
+        return;
       }
 
-      // 글쓰기 성공
-      if (onPostSuccess && result) {
-        onPostSuccess({
-          ...result,
-          author_name: currentUser.user_id || currentUser.name || currentUser.email?.split('@')[0] || '익명'
-        });
+      console.log('✅ 게시글 작성 성공:', data);
+
+      if (onPostSuccess) {
+        onPostSuccess(data);
       }
 
       toast({
         title: "✅ 글쓰기 성공!",
-        description: "게시글이 성공적으로 작성되었습니다.",
+        description: "게시글이 작성되었습니다!",
       });
 
       // 폼 초기화
@@ -155,7 +111,7 @@ export default function CommunityWriteDialog({
       onOpenChange?.(false);
 
     } catch (error) {
-      console.error('글쓰기 오류:', error);
+      console.error('게시글 작성 중 오류:', error);
       toast({
         variant: "destructive",
         title: "글쓰기 실패",
@@ -245,11 +201,6 @@ export default function CommunityWriteDialog({
               <p className="text-sm text-gray-600">
                 <strong>작성자:</strong> {currentUser.user_id || currentUser.name || currentUser.email?.split('@')[0] || '익명'}
               </p>
-              {!isSupabaseConfigured && (
-                <p className="text-xs text-yellow-600 mt-1">
-                  Demo 모드로 작성됩니다
-                </p>
-              )}
             </div>
           )}
 
