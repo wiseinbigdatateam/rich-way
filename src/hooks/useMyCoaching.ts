@@ -92,7 +92,7 @@ export const useMyCoaching = (userId?: string) => {
         }
 
         // 2-1. 전문가 정보 가져오기 (별도 쿼리)
-        let expertNames: { [key: string]: string } = {};
+        const expertNames: { [key: string]: string } = {};
         if (currentData || (historyData && historyData.length > 0)) {
           const expertIds = [];
           if (currentData) expertIds.push(currentData.expert_user_id);
