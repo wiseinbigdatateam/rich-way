@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabase";
 import { useToast } from "./ui/use-toast";
 import { Check, X, Loader2 } from "lucide-react";
 import TermsAgreementDialog from "./TermsAgreementDialog";
+import { securePassword, validatePasswordStrength } from "@/utils/passwordUtils";
 
 export default function SignupDialog({ open, onOpenChange, onSignupSuccess }: { open?: boolean, onOpenChange?: (open: boolean) => void, onSignupSuccess?: (userData: any) => void } = {}) {
   const [currentStep, setCurrentStep] = useState<'terms' | 'signup'>('terms');
@@ -20,6 +21,8 @@ export default function SignupDialog({ open, onOpenChange, onSignupSuccess }: { 
   const [nickname, setNickname] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [passwordStrength, setPasswordStrength] = useState<'weak' | 'medium' | 'strong' | null>(null);
+  const [passwordErrors, setPasswordErrors] = useState<string[]>([]);
   const [nicknameChecking, setNicknameChecking] = useState(false);
   const [nicknameAvailable, setNicknameAvailable] = useState<boolean | null>(null);
   const [nicknameChecked, setNicknameChecked] = useState(false); // 중복확인 완료 여부
@@ -33,6 +36,20 @@ export default function SignupDialog({ open, onOpenChange, onSignupSuccess }: { 
   const handleAgreementComplete = (agreedTerms: typeof agreements) => {
     setAgreements(agreedTerms);
     setCurrentStep('signup');
+  };
+
+  // 비밀번호 강도 검증
+  const handlePasswordChange = (value: string) => {
+    setPassword(value);
+    
+    if (value.length > 0) {
+      const validation = validatePasswordStrength(value);
+      setPasswordStrength(validation.strength);
+      setPasswordErrors(validation.errors);
+    } else {
+      setPasswordStrength(null);
+      setPasswordErrors([]);
+    }
   };
 
   // 회원가입 다이얼로그 닫기 시 초기화
@@ -49,6 +66,8 @@ export default function SignupDialog({ open, onOpenChange, onSignupSuccess }: { 
       setNickname("");
       setEmail("");
       setPassword("");
+      setPasswordStrength(null);
+      setPasswordErrors([]);
       setNicknameAvailable(null);
       setNicknameChecked(false);
       setEmailAvailable(null);
@@ -196,11 +215,13 @@ export default function SignupDialog({ open, onOpenChange, onSignupSuccess }: { 
         return;
       }
 
-      if (password.length < 6) {
+      // 비밀번호 강도 검증
+      const passwordValidation = validatePasswordStrength(password);
+      if (!passwordValidation.isValid) {
         toast({
           variant: "destructive",
           title: "회원가입 실패",
-          description: "비밀번호는 6자 이상이어야 합니다.",
+          description: `비밀번호가 요구사항을 충족하지 않습니다: ${passwordValidation.errors.join(', ')}`,
         });
         return;
       }
@@ -223,12 +244,23 @@ export default function SignupDialog({ open, onOpenChange, onSignupSuccess }: { 
         return;
       }
 
+      // 비밀번호 암호화
+      const passwordResult = await securePassword(password);
+      if (!passwordResult.success) {
+        toast({
+          variant: "destructive",
+          title: "회원가입 실패",
+          description: `비밀번호 처리 중 오류가 발생했습니다: ${passwordResult.errors?.join(', ')}`,
+        });
+        return;
+      }
+
       // 실제 Supabase members 테이블에 데이터 삽입
       const userData = {
         user_id: nickname.trim(),
         name: name.trim(),
         email: email.trim(),
-        password: password,
+        password: passwordResult.hashedPassword!, // 암호화된 비밀번호 저장
         phone: '',
         signup_type: 'email',
         created_at: new Date().toISOString()
@@ -288,6 +320,8 @@ export default function SignupDialog({ open, onOpenChange, onSignupSuccess }: { 
       setNickname("");
       setEmail("");
       setPassword("");
+      setPasswordStrength(null);
+      setPasswordErrors([]);
       setNicknameAvailable(null);
       setNicknameChecked(false);
       setEmailAvailable(null);
@@ -303,7 +337,7 @@ export default function SignupDialog({ open, onOpenChange, onSignupSuccess }: { 
       toast({
         variant: "destructive",
         title: "회원가입 실패",
-        description: error instanceof Error ? error.message : "알 수 없는 오류가 발생했습니다.",
+        description: "회원가입 중 오류가 발생했습니다. 다시 시도해주세요.",
       });
     } finally {
       setLoading(false);
@@ -447,10 +481,44 @@ export default function SignupDialog({ open, onOpenChange, onSignupSuccess }: { 
               id="password"
               type="password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="비밀번호를 입력하세요"
+              onChange={(e) => handlePasswordChange(e.target.value)}
+              placeholder="비밀번호를 입력하세요 (8자 이상, 대소문자, 숫자, 특수문자 포함)"
               required
+              className={passwordErrors.length > 0 ? "border-red-500" : ""}
             />
+            {passwordStrength && (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-500">비밀번호 강도:</span>
+                <div className="flex gap-1">
+                  <div className={`h-2 w-8 rounded ${
+                    passwordStrength === 'weak' ? 'bg-red-500' : 
+                    passwordStrength === 'medium' ? 'bg-yellow-500' : 'bg-green-500'
+                  }`}></div>
+                  <div className={`h-2 w-8 rounded ${
+                    passwordStrength === 'weak' ? 'bg-gray-300' : 
+                    passwordStrength === 'medium' ? 'bg-yellow-500' : 'bg-green-500'
+                  }`}></div>
+                  <div className={`h-2 w-8 rounded ${
+                    passwordStrength === 'weak' ? 'bg-gray-300' : 
+                    passwordStrength === 'medium' ? 'bg-gray-300' : 'bg-green-500'
+                  }`}></div>
+                </div>
+                <span className={`text-sm font-medium ${
+                  passwordStrength === 'weak' ? 'text-red-500' : 
+                  passwordStrength === 'medium' ? 'text-yellow-600' : 'text-green-600'
+                }`}>
+                  {passwordStrength === 'weak' ? '약함' : 
+                   passwordStrength === 'medium' ? '보통' : '강함'}
+                </span>
+              </div>
+            )}
+            {passwordErrors.length > 0 && (
+              <ul className="text-sm text-red-600 list-disc pl-4 space-y-1">
+                {passwordErrors.map((error, index) => (
+                  <li key={index}>{error}</li>
+                ))}
+              </ul>
+            )}
           </div>
           <Button 
             type="submit" 

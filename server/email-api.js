@@ -49,10 +49,17 @@ const getEmailConfig = () => {
   const isDevelopment = process.env.NODE_ENV === 'development';
   
   let emailPassword = '';
+  
+  // 환경변수에서 비밀번호 가져오기
   if (isDevelopment) {
-    emailPassword = process.env.VITE_EMAIL_PASSWORD_DEV || '';
+    emailPassword = process.env.VITE_EMAIL_PASSWORD_DEV || process.env.EMAIL_PASSWORD_DEV || '';
   } else {
-    emailPassword = process.env.VITE_EMAIL_PASSWORD_PROD || '';
+    emailPassword = process.env.VITE_EMAIL_PASSWORD_PROD || process.env.EMAIL_PASSWORD_PROD || '';
+  }
+  
+  // 비밀번호가 없으면 기본값 사용 (실제 운영에서는 환경변수로 설정해야 함)
+  if (!emailPassword) {
+    emailPassword = 'richway2024!'; // 기본 비밀번호 (실제 운영에서는 환경변수로 설정)
   }
   
   console.log('🔧 이메일 설정 정보:');

@@ -8,6 +8,7 @@ import { useToast } from "./ui/use-toast";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import SignupDialog from "./SignupDialog";
 import { sendPasswordResetEmail } from "@/lib/emailService";
+import { verifyPassword } from "@/utils/passwordUtils";
 // import KakaoLoginButton from "./KakaoLoginButton";
 
 interface MembersLoginDialogProps {
@@ -159,13 +160,12 @@ export default function MembersLoginDialog({ open, onOpenChange, onLoginSuccess 
       let error = null;
 
       try {
-        // 닉네임(user_id) 또는 이메일로 로그인 시도
+        // 닉네임(user_id) 또는 이메일로 사용자 찾기
         const isEmail = loginId.includes('@');
         const response = await (supabase as any)
           .from('members')
           .select('*')
           .eq(isEmail ? 'email' : 'user_id', loginId.trim())
-          .eq('password', password) // 실제 환경에서는 해시 비교 필요
           .limit(1);
         
         users = response.data;
@@ -209,6 +209,41 @@ export default function MembersLoginDialog({ open, onOpenChange, onLoginSuccess 
       }
 
       const user = users[0];
+
+      // 비밀번호 검증
+      if (process.env.NODE_ENV === 'development') {
+        safeLog('🔐 비밀번호 검증 중...');
+      }
+
+      let isPasswordValid = false;
+      
+      try {
+        // 암호화된 비밀번호가 있는지 확인
+        if (user.password && user.password.startsWith('$2')) {
+          // bcrypt로 암호화된 비밀번호인 경우
+          isPasswordValid = await verifyPassword(password, user.password);
+        } else {
+          // 기존 평문 비밀번호인 경우 (하위 호환성)
+          isPasswordValid = user.password === password;
+        }
+      } catch (passwordError) {
+        if (process.env.NODE_ENV === 'development') {
+          safeError('❌ 비밀번호 검증 오류:', passwordError);
+        }
+        isPasswordValid = false;
+      }
+
+      if (!isPasswordValid) {
+        if (process.env.NODE_ENV === 'development') {
+          safeLog('❌ 로그인 실패 - 비밀번호 불일치');
+        }
+        toast({
+          variant: "destructive",
+          title: "로그인 실패",
+          description: "이메일 또는 비밀번호가 올바르지 않습니다.",
+        });
+        return;
+      }
 
       // 로그인 성공 처리
       if (process.env.NODE_ENV === 'development') {
