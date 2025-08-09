@@ -87,6 +87,7 @@ const MyDiagnosis: React.FC = () => {
     );
   }
 
+<<<<<<< HEAD
   // 포맷팅 함수들
   const formatCurrency = (amount: number | null | undefined) => {
     if (amount === null || amount === undefined || amount === 0) {
@@ -100,6 +101,13 @@ const MyDiagnosis: React.FC = () => {
       return "-";
     }
     return `${value.toFixed(1)}%`;
+=======
+  const financialData = {
+    totalAssets: financialOverview?.totalAssets || 0,
+    monthlyIncome: financialOverview?.monthlyIncome || 0,
+    monthlyExpense: financialOverview?.monthlyExpense || 0,
+    savingsRate: financialOverview?.savingsRate || 0,
+>>>>>>> feature/database-schema-migration
   };
 
   return (
@@ -113,7 +121,14 @@ const MyDiagnosis: React.FC = () => {
               <div>
                 <p className="text-sm font-medium text-gray-600 mb-1">총 자산</p>
                 <p className="text-xl font-bold text-gray-900">
+<<<<<<< HEAD
                   {formatCurrency(financialOverview?.totalAssets)}
+=======
+                  {financialData.totalAssets > 0 
+                    ? `${(financialData.totalAssets / 10000).toFixed(0)}만원`
+                    : "-"
+                  }
+>>>>>>> feature/database-schema-migration
                 </p>
               </div>
               <div className="p-2 bg-blue-100 rounded-lg">
@@ -130,7 +145,14 @@ const MyDiagnosis: React.FC = () => {
               <div>
                 <p className="text-sm font-medium text-gray-600 mb-1">월 수입</p>
                 <p className="text-xl font-bold text-gray-900">
+<<<<<<< HEAD
                   {formatCurrency(financialOverview?.monthlyIncome)}
+=======
+                  {financialData.monthlyIncome > 0 
+                    ? `${(financialData.monthlyIncome / 10000).toFixed(0)}만원`
+                    : "-"
+                  }
+>>>>>>> feature/database-schema-migration
                 </p>
               </div>
               <div className="p-2 bg-green-100 rounded-lg">
@@ -147,7 +169,14 @@ const MyDiagnosis: React.FC = () => {
               <div>
                 <p className="text-sm font-medium text-gray-600 mb-1">월 지출</p>
                 <p className="text-xl font-bold text-gray-900">
+<<<<<<< HEAD
                   {formatCurrency(financialOverview?.monthlyExpense)}
+=======
+                  {financialData.monthlyExpense > 0 
+                    ? `${(financialData.monthlyExpense / 10000).toFixed(0)}만원`
+                    : "-"
+                  }
+>>>>>>> feature/database-schema-migration
                 </p>
               </div>
               <div className="p-2 bg-orange-100 rounded-lg">
@@ -164,7 +193,14 @@ const MyDiagnosis: React.FC = () => {
               <div>
                 <p className="text-sm font-medium text-gray-600 mb-1">저축률</p>
                 <p className="text-xl font-bold text-gray-900">
+<<<<<<< HEAD
                   {formatPercentage(financialOverview?.savingsRate)}
+=======
+                  {financialData.savingsRate > 0 
+                    ? `${financialData.savingsRate}%`
+                    : "-"
+                  }
+>>>>>>> feature/database-schema-migration
                 </p>
               </div>
               <div className="p-2 bg-purple-100 rounded-lg">
@@ -344,6 +380,7 @@ const MyDiagnosis: React.FC = () => {
                       <TrendingUp className="w-5 h-5 text-blue-600" />
                     </div>
                   </div>
+<<<<<<< HEAD
                   <h3 className="font-semibold text-gray-900 mb-2">투자 성향 진단</h3>
                   <p className="text-sm text-gray-600 mb-4">
                     당신의 투자 성향을 파악하여 맞춤형 투자 전략을 제안해드립니다.
@@ -360,6 +397,24 @@ const MyDiagnosis: React.FC = () => {
                   </Button>
                 </CardContent>
               </Card>
+=======
+                </div>
+                <h3 className="font-semibold text-gray-900 mb-2">투자 성향 진단</h3>
+                <p className="text-sm text-gray-600 mb-4">
+                  당신의 투자 성향을 파악하여 맞춤형 투자 전략을 제안해드립니다.
+                </p>
+                <Button
+                  className="w-full"
+                  onClick={() => {
+                    navigate('/diagnosis/mbti');
+                  }}
+                >
+                  진단 시작하기
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </Button>
+              </CardContent>
+            </Card>
+>>>>>>> feature/database-schema-migration
 
               {/* 부채 관리 진단 */}
               <Card className="border-2 border-gray-100 hover:border-green-200 transition-colors">
@@ -369,6 +424,7 @@ const MyDiagnosis: React.FC = () => {
                       <Calculator className="w-5 h-5 text-green-600" />
                     </div>
                   </div>
+<<<<<<< HEAD
                   <h3 className="font-semibold text-gray-900 mb-2">부채 관리 진단</h3>
                   <p className="text-sm text-gray-600 mb-4">
                     현재 부채 상황을 분석하고 효율적인 관리 방법을 알아보세요.
@@ -390,6 +446,28 @@ const MyDiagnosis: React.FC = () => {
           </CardContent>
         </Card>
       )}
+=======
+                </div>
+                <h3 className="font-semibold text-gray-900 mb-2">부채 관리 진단</h3>
+                <p className="text-sm text-gray-600 mb-4">
+                  현재 부채 상황을 분석하고 효율적인 관리 방법을 알아보세요.
+                </p>
+                <Button
+                  className="w-full"
+                  variant="outline"
+                  onClick={() => {
+                    navigate('/diagnosis/finance');
+                  }}
+                >
+                  진단 시작하기
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </CardContent>
+      </Card>
+>>>>>>> feature/database-schema-migration
     </div>
   );
 };

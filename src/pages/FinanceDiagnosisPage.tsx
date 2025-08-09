@@ -623,7 +623,11 @@ const FinanceDiagnosisPage = () => {
             <Button
               onClick={() => handleNext()}
               disabled={currentCheckboxes.length === 0}
+<<<<<<< HEAD
               className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white w-full py-4 font-semibold text-lg rounded-xl shadow-lg"
+=======
+              className="bg-orange-500 hover:bg-orange-600 text-white w-full mt-4 font-semibold button-stable"
+>>>>>>> feature/database-schema-migration
             >
               <Check className="mr-2 h-5 w-5" /> 확인
             </Button>
@@ -677,7 +681,11 @@ const FinanceDiagnosisPage = () => {
             <Button
               onClick={() => handleNext()}
               disabled={!currentInput.trim()}
+<<<<<<< HEAD
               className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold rounded-xl shadow-lg"
+=======
+              className="bg-orange-500 hover:bg-orange-600 text-white font-semibold button-stable"
+>>>>>>> feature/database-schema-migration
             >
               <Send className="h-4 w-4" />
             </Button>
@@ -702,7 +710,11 @@ const FinanceDiagnosisPage = () => {
             <Button
               onClick={() => handleNext()}
               disabled={!currentInput.trim()}
+<<<<<<< HEAD
               className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold rounded-xl shadow-lg"
+=======
+              className="bg-orange-500 hover:bg-orange-600 text-white font-semibold button-stable"
+>>>>>>> feature/database-schema-migration
             >
               <Send className="h-4 w-4" />
             </Button>
@@ -723,7 +735,11 @@ const FinanceDiagnosisPage = () => {
             <Button
               onClick={() => handleNext()}
               disabled={!currentInput.trim()}
+<<<<<<< HEAD
               className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold rounded-xl shadow-lg px-6"
+=======
+              className="bg-orange-500 hover:bg-orange-600 text-white font-semibold button-stable"
+>>>>>>> feature/database-schema-migration
             >
               <Send className="h-4 w-4" />
             </Button>
@@ -774,6 +790,17 @@ const FinanceDiagnosisPage = () => {
                 </Button>
               </div>
             </div>
+<<<<<<< HEAD
+=======
+            <Button
+              onClick={handleRestart}
+              variant="outline"
+              size="sm"
+              className="text-gray-600 hover:text-red-600 button-stable"
+            >
+              진단 다시 시작
+            </Button>
+>>>>>>> feature/database-schema-migration
           </div>
         </div>
         
@@ -781,7 +808,11 @@ const FinanceDiagnosisPage = () => {
         <main className="flex-1 overflow-y-auto px-4 py-6 pt-48" style={{ paddingBottom: '120px' }}>
           <div className="max-w-3xl mx-auto space-y-6">
             {messages.map((message, index) => (
+<<<<<<< HEAD
               <div key={message.id} className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}>
+=======
+              <div key={message.id} className={`flex items-start gap-4 ${message.type === 'user' ? 'justify-end' : ''} animation-stable`}>
+>>>>>>> feature/database-schema-migration
                 {message.type === 'bot' && (
                   <div className="flex items-start space-x-3 max-w-[80%]">
                     <div className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center shadow-lg flex-shrink-0">
@@ -805,9 +836,15 @@ const FinanceDiagnosisPage = () => {
               </div>
             ))}
             {isLoading && (
+<<<<<<< HEAD
               <div className="flex items-start space-x-3 max-w-[80%]">
                 <div className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center shadow-lg">
                   <Bot className="w-5 h-5 text-white" />
+=======
+              <div className="flex items-start gap-4 animation-stable">
+                <div className="w-10 h-10 rounded-full bg-orange-500 flex items-center justify-center text-white">
+                  <Bot size={24} />
+>>>>>>> feature/database-schema-migration
                 </div>
                 <div className="bg-white rounded-2xl rounded-tl-md px-6 py-4 shadow-lg border border-gray-100">
                   <div className="flex items-center space-x-3">
@@ -825,6 +862,7 @@ const FinanceDiagnosisPage = () => {
           </div>
         </main>
         
+<<<<<<< HEAD
         {/* 답변 영역과 푸터 컨테이너 */}
         <div className="mt-auto">
           {/* 답변 영역 - fixed로 설정하여 화면 제일 밑에 고정 */}
@@ -835,6 +873,12 @@ const FinanceDiagnosisPage = () => {
                   {renderInput()}
                 </div>
               </div>
+=======
+        {!isAllCompleted && (
+          <div ref={inputAreaRef} className="p-4 bg-white border-t animation-stable">
+            <div className="max-w-3xl mx-auto flex justify-center">
+              {renderInput()}
+>>>>>>> feature/database-schema-migration
             </div>
           )}
 
