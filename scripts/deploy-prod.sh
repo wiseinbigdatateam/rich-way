@@ -35,29 +35,13 @@ log_error() {
 check_ssh_key() {
     log_info "SSH 키 파일 확인 중..."
     
-    # 설정된 키 파일 경로 확인
     if [ -f "$KEY_FILE" ]; then
         log_success "SSH 키 파일 발견: $KEY_FILE"
         return 0
     fi
     
-    
-    
-    for path in "${possible_paths[@]}"; do
-        expanded_path=$(eval echo $path)
-        if [ -f "$expanded_path" ]; then
-            KEY_FILE="$expanded_path"
-            log_success "SSH 키 파일 발견: $expanded_path"
-            return 0
-        fi
-    done
-    
-    log_error "SSH 키 파일을 찾을 수 없습니다!"
-    log_info "다음 경로들을 확인해주세요:"
-    for path in "${possible_paths[@]}"; do
-        echo "  - $path"
-    done
-    log_info "또는 스크립트 상단의 KEY_FILE 변수를 수정해주세요."
+    log_error "SSH 키 파일을 찾을 수 없습니다: $KEY_FILE"
+    log_info "스크립트 상단의 KEY_FILE 변수를 수정해주세요."
     return 1
 }
 
@@ -78,43 +62,66 @@ test_ssh_connection() {
     fi
 }
 
-# ===== 권한 설정 (개선된 버전) =====
+# ===== 메일 서버 설정 및 시작 =====
+setup_mail_server() {
+    log_info "📧 메일 서버 설정 및 시작 중..."
+    
+    # 1. 메일 서버 디렉토리 생성
+    log_info "  1단계: 메일 서버 디렉토리 생성..."
+    ssh -i $KEY_FILE $REMOTE_USER@$EC2_IP "mkdir -p ~/rich-way/mail-server"
+    
+    # 2. 메일 서버 파일 업로드
+    log_info "  2단계: 메일 서버 파일 업로드..."
+    rsync -avz --delete -e "ssh -i $KEY_FILE" server/ $REMOTE_USER@$EC2_IP:~/rich-way/mail-server/
+    
+    # 3. 메일 서버 의존성 설치
+    log_info "  3단계: 메일 서버 의존성 설치..."
+    ssh -i $KEY_FILE $REMOTE_USER@$EC2_IP "cd ~/rich-way/mail-server && npm install"
+    
+    # 4. 환경 변수 파일 생성 (운영 환경용)
+    log_info "  4단계: 환경 변수 설정..."
+    ssh -i $KEY_FILE $REMOTE_USER@$EC2_IP "cat > ~/rich-way/mail-server/.env << 'EOF'
+NODE_ENV=production
+VITE_EMAIL_HOST_PROD=smtp.naverworks.com
+VITE_EMAIL_PORT_PROD=587
+VITE_EMAIL_USER_PROD=rich-way@wiseinc.co.kr
+VITE_EMAIL_PASSWORD_PROD=4xFETu3AbovX
+VITE_EMAIL_FROM_PROD=rich-way@wiseinc.co.kr
+EOF"
+    
+    # 5. 메일 서버 프로세스 종료 (이미 실행 중인 경우)
+    log_info "  5단계: 기존 메일 서버 프로세스 정리..."
+    ssh -i $KEY_FILE $REMOTE_USER@$EC2_IP "pkill -f 'email-api.js' || true"
+    
+    # 6. 메일 서버 시작
+    log_info "  6단계: 메일 서버 시작..."
+    ssh -i $KEY_FILE $REMOTE_USER@$EC2_IP "cd ~/rich-way/mail-server && nohup node email-api.js > email-server.log 2>&1 &"
+    
+    # 7. 메일 서버 상태 확인
+    log_info "  7단계: 메일 서버 상태 확인..."
+    sleep 5
+    if ssh -i $KEY_FILE $REMOTE_USER@$EC2_IP "curl -s http://localhost:3001/api/health" | grep -q "OK"; then
+        log_success "메일 서버 시작 성공"
+    else
+        log_warning "메일 서버 상태 확인 실패 (로그 확인 필요)"
+        ssh -i $KEY_FILE $REMOTE_USER@$EC2_IP "tail -10 ~/rich-way/mail-server/email-server.log"
+    fi
+}
+
+# ===== 권한 설정 =====
 setup_permissions() {
     log_info "🔧 권한 설정 중..."
     
-    # 1단계: 디렉토리 소유권 변경
-    log_info "  1단계: 디렉토리 소유권 변경..."
-    if ssh -i $KEY_FILE $REMOTE_USER@$EC2_IP "sudo chown -R $REMOTE_USER:$REMOTE_USER ~/rich-way-test/" 2>/dev/null; then
-        log_success "  디렉토리 소유권 변경 완료"
-    else
-        log_warning "  디렉토리 소유권 변경 실패 (계속 진행)"
-    fi
+    # 디렉토리 소유권 변경
+    ssh -i $KEY_FILE $REMOTE_USER@$EC2_IP "sudo chown -R $REMOTE_USER:$REMOTE_USER ~/rich-way/"
     
-    # 2단계: 기본 권한 설정
-    log_info "  2단계: 기본 권한 설정..."
-    if ssh -i $KEY_FILE $REMOTE_USER@$EC2_IP "chmod -R 755 ~/rich-way-test/current/" 2>/dev/null; then
-        log_success "  기본 권한 설정 완료"
-    else
-        log_warning "  기본 권한 설정 실패 (계속 진행)"
-    fi
+    # 기본 권한 설정
+    ssh -i $KEY_FILE $REMOTE_USER@$EC2_IP "chmod -R 755 ~/rich-way/current/"
     
-    # 3단계: Nginx 사용자 권한 설정 (선택적)
-    log_info "  3단계: Nginx 사용자 권한 설정..."
-    if ssh -i $KEY_FILE $REMOTE_USER@$EC2_IP "sudo chown -R nginx:nginx ~/rich-way-test/current/" 2>/dev/null; then
-        log_success "  Nginx 사용자 권한 설정 완료"
-    else
-        log_warning "  Nginx 사용자 권한 설정 실패 (계속 진행)"
-    fi
+    # Nginx 사용자 권한 설정
+    ssh -i $KEY_FILE $REMOTE_USER@$EC2_IP "sudo chown -R nginx:nginx ~/rich-way/current/"
     
-    # 4단계: 읽기 권한 확인
-    log_info "  4단계: 읽기 권한 확인..."
-    if ssh -i $KEY_FILE $REMOTE_USER@$EC2_IP "test -r ~/rich-way-test/current/index.html" 2>/dev/null; then
-        log_success "  읽기 권한 확인 완료"
-    else
-        log_warning "  읽기 권한 확인 실패 (Nginx 재시작 후 확인 필요)"
-    fi
-    
-    log_success "권한 설정 프로세스 완료"
+    log_success "권한 설정 완료"
 }
 
 # ===== 메일 발송 함수 =====
@@ -124,7 +131,6 @@ send_deployment_notification() {
     
     log_info "📧 배포 완료 알림 메일 발송 중..."
     
-    # 메일 발송 스크립트 실행
     if [ -f "scripts/send-deployment-email.sh" ]; then
         if [ "$status" = "success" ]; then
             ./scripts/send-deployment-email.sh "prod" "$DOMAIN" "success"
@@ -155,13 +161,9 @@ main() {
     fi
     
     # 1. 현재 배포 백업
-    log_info " 현재 배포 백업 중..."
+    log_info "📦 현재 배포 백업 중..."
     BACKUP_NAME=$(date +%Y%m%d_%H%M%S)
-    if ssh -i $KEY_FILE $REMOTE_USER@$EC2_IP "mkdir -p ~/rich-way/backup && cp -r ~/rich-way/current ~/rich-way/backup/$BACKUP_NAME" 2>/dev/null; then
-        log_success "백업 완료: $BACKUP_NAME"
-    else
-        log_warning "백업 실패 (첫 배포일 수 있음)"
-    fi
+    ssh -i $KEY_FILE $REMOTE_USER@$EC2_IP "mkdir -p ~/rich-way/backup && cp -r ~/rich-way/current ~/rich-way/backup/$BACKUP_NAME" 2>/dev/null || log_warning "백업 실패 (첫 배포일 수 있음)"
     
     # 2. 새 파일 업로드
     log_info "📤 파일 업로드 중..."
@@ -173,10 +175,13 @@ main() {
         exit 1
     fi
     
-    # 3. 권한 설정 (개선된 버전)
+    # 3. 메일 서버 설정 및 시작
+    setup_mail_server
+    
+    # 4. 권한 설정
     setup_permissions
     
-    # 4. Nginx 재시작
+    # 5. Nginx 재시작
     log_info "🔄 Nginx 재시작 중..."
     if ssh -i $KEY_FILE $REMOTE_USER@$EC2_IP "sudo systemctl restart nginx"; then
         log_success "Nginx 재시작 완료"
@@ -186,20 +191,23 @@ main() {
         exit 1
     fi
     
-    # 5. 배포 완료 메시지
-    log_success " 운영 서버 배포 완료!"
+    # 6. 배포 완료 메시지
+    log_success "🚀 운영 서버 배포 완료!"
     echo ""
-    log_info " 접속 정보:"
+    log_info "📋 접속 정보:"
     echo "   웹사이트: http://$DOMAIN"
     echo "   IP 접속: http://$EC2_IP"
     echo ""
-    log_info " 유용한 명령어:"
-    echo "   로그 확인: ssh -i $KEY_FILE $REMOTE_USER@$EC2_IP 'tail -f ~/rich-way/logs/access.log'"
+    log_info "📧 메일 서버 정보:"
+    echo "   상태: http://$EC2_IP:3001/api/health"
+    echo "   로그: ssh -i $KEY_FILE $REMOTE_USER@$EC2_IP 'tail -f ~/rich-way/mail-server/email-server.log'"
+    echo ""
+    log_info "🔧 유용한 명령어:"
     echo "   서버 상태: ssh -i $KEY_FILE $REMOTE_USER@$EC2_IP 'sudo systemctl status nginx'"
     echo "   백업 목록: ssh -i $KEY_FILE $REMOTE_USER@$EC2_IP 'ls -la ~/rich-way/backup/'"
-    echo "   권한 확인: ssh -i $KEY_FILE $REMOTE_USER@$EC2_IP 'ls -la ~/rich-way/current/'"
+    echo "   메일 서버 재시작: ssh -i $KEY_FILE $REMOTE_USER@$EC2_IP 'cd ~/rich-way/mail-server && pkill -f email-api.js && nohup node email-api.js > email-server.log 2>&1 &'"
     
-    # 6. 배포 완료 메일 발송
+    # 7. 배포 완료 메일 발송
     send_deployment_notification "success"
 }
 
