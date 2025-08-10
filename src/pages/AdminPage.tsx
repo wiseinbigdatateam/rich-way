@@ -7,7 +7,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Users, BookOpen, ShoppingBag, LogOut, BarChart3, UserCheck, MessageSquare, GraduationCap, Brain, Calculator, CalendarIcon } from "lucide-react";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import MemberManagement from "@/components/admin/MemberManagement";
@@ -36,6 +35,72 @@ const dailyData = [
   { name: '6일', 회원수: 25, 전문가: 0, 'MBTI진단': 15, '재무진단': 20, 코칭신청: 3, 교육신청: 9 },
   { name: '7일', 회원수: 16, 전문가: 0, 'MBTI진단': 7, '재무진단': 11, 코칭신청: 1, 교육신청: 3 }
 ];
+
+// recharts를 동적으로 import하는 컴포넌트
+const ChartComponent = ({ 
+  chartData, 
+  selectedChart, 
+  getLineColor 
+}: { 
+  chartData: any[]; 
+  selectedChart: string | null; 
+  getLineColor: (cardType: string) => string; 
+}) => {
+  const [ChartComponents, setChartComponents] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadChart = async () => {
+      try {
+        const recharts = await import('recharts');
+        setChartComponents(recharts);
+        setLoading(false);
+      } catch (error) {
+        console.error('Failed to load recharts:', error);
+        setLoading(false);
+      }
+    };
+    loadChart();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
+          <p className="mt-2 text-sm text-gray-600">차트 로딩 중...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!ChartComponents) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <p className="text-sm text-gray-600">차트를 불러올 수 없습니다.</p>
+      </div>
+    );
+  }
+
+  return (
+    <ChartComponents.ResponsiveContainer width="100%" height="100%">
+      <ChartComponents.LineChart data={chartData}>
+        <ChartComponents.CartesianGrid strokeDasharray="3 3" />
+        <ChartComponents.XAxis dataKey="name" />
+        <ChartComponents.YAxis />
+        <ChartComponents.Tooltip />
+        <ChartComponents.Legend />
+        <ChartComponents.Line
+          type="monotone"
+          dataKey={selectedChart}
+          stroke={getLineColor(selectedChart || '')}
+          strokeWidth={2}
+          dot={{ fill: getLineColor(selectedChart || '') }}
+        />
+      </ChartComponents.LineChart>
+    </ChartComponents.ResponsiveContainer>
+  );
+};
 
 const AdminPage = () => {
   const navigate = useNavigate();
@@ -290,22 +355,11 @@ const AdminPage = () => {
               </CardHeader>
               <CardContent>
                 <div className="h-80">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={getChartData()}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" />
-                      <YAxis />
-                      <Tooltip />
-                      <Legend />
-                      <Line
-                        type="monotone"
-                        dataKey={selectedChart}
-                        stroke={getLineColor(selectedChart)}
-                        strokeWidth={2}
-                        dot={{ fill: getLineColor(selectedChart) }}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
+                  <ChartComponent 
+                    chartData={getChartData()} 
+                    selectedChart={selectedChart} 
+                    getLineColor={getLineColor} 
+                  />
                 </div>
               </CardContent>
             </Card>

@@ -117,6 +117,25 @@ setup_permissions() {
     log_success "권한 설정 프로세스 완료"
 }
 
+# ===== 메일 발송 함수 =====
+send_deployment_notification() {
+    local status=$1
+    local error_message=$2
+    
+    log_info "📧 배포 완료 알림 메일 발송 중..."
+    
+    # 메일 발송 스크립트 실행
+    if [ -f "scripts/send-deployment-email.sh" ]; then
+        if [ "$status" = "success" ]; then
+            ./scripts/send-deployment-email.sh "prod" "$DOMAIN" "success"
+        else
+            ./scripts/send-deployment-email.sh "prod" "$DOMAIN" "failure" "$error_message"
+        fi
+    else
+        log_warning "메일 발송 스크립트를 찾을 수 없습니다: scripts/send-deployment-email.sh"
+    fi
+}
+
 # ===== 메인 배포 프로세스 =====
 main() {
     log_info "Rich-Way 운영 서버 배포 시작..."
@@ -125,11 +144,13 @@ main() {
     
     # SSH 키 파일 확인
     if ! check_ssh_key; then
+        send_deployment_notification "failure" "SSH 키 파일을 찾을 수 없습니다"
         exit 1
     fi
     
     # SSH 연결 테스트
     if ! test_ssh_connection; then
+        send_deployment_notification "failure" "SSH 연결에 실패했습니다"
         exit 1
     fi
     
@@ -148,6 +169,7 @@ main() {
         log_success "파일 업로드 완료"
     else
         log_error "파일 업로드 실패"
+        send_deployment_notification "failure" "파일 업로드 중 오류가 발생했습니다"
         exit 1
     fi
     
@@ -160,6 +182,7 @@ main() {
         log_success "Nginx 재시작 완료"
     else
         log_error "Nginx 재시작 실패"
+        send_deployment_notification "failure" "Nginx 재시작 중 오류가 발생했습니다"
         exit 1
     fi
     
@@ -175,6 +198,9 @@ main() {
     echo "   서버 상태: ssh -i $KEY_FILE $REMOTE_USER@$EC2_IP 'sudo systemctl status nginx'"
     echo "   백업 목록: ssh -i $KEY_FILE $REMOTE_USER@$EC2_IP 'ls -la ~/rich-way/backup/'"
     echo "   권한 확인: ssh -i $KEY_FILE $REMOTE_USER@$EC2_IP 'ls -la ~/rich-way/current/'"
+    
+    # 6. 배포 완료 메일 발송
+    send_deployment_notification "success"
 }
 
 # ===== 스크립트 실행 =====

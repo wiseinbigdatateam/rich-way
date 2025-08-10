@@ -17,6 +17,8 @@ interface Member {
   email: string;
   phone: string;
   created_at: string;
+  signup_type?: string;
+  status?: string;
 }
 
 const MemberManagement = () => {
@@ -29,20 +31,50 @@ const MemberManagement = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
-  // 회원 데이터 fetch
+  // 회원 데이터를 가져오는 함수
   const fetchMembers = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from("members")
-      .select("id, name, user_id, email, phone, created_at");
-    if (error) {
-      toast.error("회원 데이터를 불러오지 못했습니다.");
+    
+    console.log('🔍 회원 데이터 로딩 시작...');
+    
+    try {
+      // members 테이블에서 모든 회원 데이터 가져오기
+      const { data: membersData, error: membersError } = await supabase
+        .from('members')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (membersError) {
+        console.error('❌ 회원 데이터 조회 실패:', membersError);
+        toast.error("회원 데이터를 불러오지 못했습니다.");
+        setMembers([]);
+        return;
+      }
+      
+      console.log('✅ 회원 데이터 조회 성공:', membersData?.length || 0, '개');
+      
+      // 데이터 포맷팅
+      const formattedMembers: Member[] = (membersData || []).map((member: any) => ({
+        id: member.id,
+        name: member.name || '이름 없음',
+        user_id: member.user_id || '',
+        email: member.email || '',
+        phone: member.phone || '',
+        created_at: member.created_at ? new Date(member.created_at).toLocaleDateString('ko-KR') : '',
+        signup_type: member.signup_type || 'email',
+        status: member.status || 'pending'
+      }));
+      
+      console.log('✅ 회원 데이터 포맷팅 완료:', formattedMembers.length, '개');
+      setMembers(formattedMembers);
+      
+    } catch (error) {
+      console.error('❌ 회원 데이터 조회 중 예외 발생:', error);
+      toast.error("회원 데이터를 불러오는 중 오류가 발생했습니다.");
+      setMembers([]);
+    } finally {
       setLoading(false);
-      return;
     }
-    const sorted = (data || []).sort((a, b) => (b.created_at > a.created_at ? 1 : -1));
-    setMembers(sorted);
-    setLoading(false);
   };
 
   useEffect(() => {

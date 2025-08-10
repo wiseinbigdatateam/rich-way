@@ -34,6 +34,7 @@ const MyPage = lazy(() => import("./pages/MyPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const FinanceDiagnosisResultPage = lazy(() => import("./pages/FinanceDiagnosisResultPage"));
 const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
+const SupabaseTestPage = lazy(() => import("./pages/SupabaseTestPage"));
 
 const queryClient = new QueryClient();
 
@@ -78,6 +79,7 @@ const App = () => (
             <Route path="/faq" element={<FaqPage />} />
             <Route path="/contact" element={<ContactPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
+            <Route path="/test-supabase" element={<SupabaseTestPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </Suspense>

@@ -13,14 +13,49 @@ import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { uploadImageToS3, generateFileName, deleteImageFromS3, extractFileNameFromUrl } from "@/lib/awsS3";
 
+interface Expert {
+  id: string;
+  user_id: string;
+  password?: string;
+  profile_image_url?: string;
+  expert_name: string;
+  company_name?: string;
+  email: string;
+  main_field: string;
+  company_phone?: string;
+  personal_phone?: string;
+  tags?: string[];
+  core_intro?: string;
+  youtube_channel_url?: string;
+  intro_video_url?: string;
+  press_url?: string;
+  education_and_certifications?: string;
+  career?: string;
+  achievements?: string;
+  expertise_detail?: string;
+  experience_years?: number;
+  status: string;
+  created_at: string;
+  updated_at?: string;
+  achievements_detail?: string;
+  education_detail?: string;
+  certifications_detail?: string;
+  experience_detail?: string;
+  expertise_areas?: string[];
+  is_featured?: boolean;
+  rating?: number;
+  rating_count?: number;
+  products?: any[];
+}
+
 const ExpertManagement = () => {
-  const [experts, setExperts] = useState([]);
+  const [experts, setExperts] = useState<Expert[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
-  const [editingExpert, setEditingExpert] = useState(null);
+  const [editingExpert, setEditingExpert] = useState<Expert | null>(null);
   const [form, setForm] = useState({
     user_id: "",
     password: "",
@@ -85,78 +120,120 @@ const ExpertManagement = () => {
     "기타"
   ];
 
-  // useEffect 밖으로 분리
+  // 전문가 데이터를 가져오는 함수
   const fetchExpertsAndRatings = async () => {
     setLoading(true);
     setError(null);
     
+    console.log('🔍 전문가 데이터 로딩 시작...');
+    
     try {
-      // 1. 전문가 목록 가져오기
-      const { data: expertsData, error: expertsError } = await supabase.from("experts").select("*");
+      // 1. experts 테이블에서 모든 전문가 데이터 가져오기
+      const { data: expertsData, error: expertsError } = await supabase
+        .from('experts')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
       if (expertsError) {
-        setError(expertsError.message);
+        console.error('❌ 전문가 데이터 조회 실패:', expertsError);
+        setError(`전문가 데이터 조회 실패: ${expertsError.message}`);
         setExperts([]);
-        setLoading(false);
         return;
       }
-
-      // 2. 전문가별 평균 평점 가져오기
-      const { data: ratingsData, error: ratingsError } = await supabase
-        .from("expert_reviews")
-        .select("expert_user_id, rating");
       
-      const ratingMap: Record<string, number> = {};
-      if (!ratingsError && ratingsData) {
-        // 전문가별 rating 평균 계산
-        const ratingStats: Record<string, { sum: number; count: number }> = {};
-        ratingsData.forEach((row: any) => {
-          if (!ratingStats[row.expert_user_id]) {
-            ratingStats[row.expert_user_id] = { sum: 0, count: 0 };
-          }
-          ratingStats[row.expert_user_id].sum += row.rating;
-          ratingStats[row.expert_user_id].count += 1;
-        });
-        Object.entries(ratingStats).forEach(([expert_user_id, stat]) => {
-          ratingMap[expert_user_id] = stat.count > 0 ? stat.sum / stat.count : 0;
-        });
-      }
-
-      // 3. 전문가별 상품 정보 가져오기
-      const { data: productsData, error: productsError } = await supabase
-        .from("expert_products")
-        .select("*");
-
-      const productsMap: Record<string, any[]> = {};
-      if (!productsError && productsData) {
-        productsData.forEach((product: any) => {
-          if (!productsMap[product.user_id]) {
-            productsMap[product.user_id] = [];
-          }
-          productsMap[product.user_id].push(product);
-        });
-      }
-
-      // 4. experts에 평균 평점과 상품 정보 매핑
-      const expertsWithRating = (expertsData || []).map((expert: any) => ({
-        ...expert,
-        avg_rating: ratingMap[expert.user_id] ? Math.round(ratingMap[expert.user_id] * 10) / 10 : null,
-        products: productsMap[expert.user_id] || []
+      console.log('✅ 전문가 데이터 조회 성공:', expertsData?.length || 0, '개');
+      
+      // 2. 데이터 포맷팅
+      const formattedExperts: Expert[] = (expertsData || []).map((expert: any) => ({
+        id: expert.id,
+        user_id: expert.user_id || '',
+        password: expert.password,
+        profile_image_url: expert.profile_image_url,
+        expert_name: expert.expert_name || '이름 없음',
+        company_name: expert.company_name || '',
+        email: expert.email || '',
+        main_field: expert.main_field || '',
+        company_phone: expert.company_phone,
+        personal_phone: expert.personal_phone,
+        tags: expert.tags || [],
+        core_intro: expert.core_intro,
+        youtube_channel_url: expert.youtube_channel_url,
+        intro_video_url: expert.intro_video_url,
+        press_url: expert.press_url,
+        education_and_certifications: expert.education_and_certifications,
+        career: expert.career,
+        achievements: expert.achievements,
+        expertise_detail: expert.expertise_detail,
+        experience_years: expert.experience_years,
+        status: expert.status || '대기',
+        created_at: expert.created_at ? new Date(expert.created_at).toLocaleDateString('ko-KR') : '',
+        updated_at: expert.updated_at ? new Date(expert.updated_at).toLocaleDateString('ko-KR') : '',
+        achievements_detail: expert.achievements_detail,
+        education_detail: expert.education_detail,
+        certifications_detail: expert.certifications_detail,
+        experience_detail: expert.experience_detail,
+        expertise_areas: expert.expertise_areas || [],
+        is_featured: expert.is_featured || false,
+        rating: 0, // 기본값
+        rating_count: 0, // 기본값
+        products: [] // 기본값
       }));
       
-      setExperts(expertsWithRating);
+      console.log('✅ 전문가 데이터 포맷팅 완료:', formattedExperts.length, '개');
+      setExperts(formattedExperts);
+      
     } catch (error) {
-      console.error('전문가 데이터 로딩 중 오류:', error);
-      setError('데이터를 불러오는 중 오류가 발생했습니다.');
+      console.error('❌ 전문가 데이터 조회 중 예외 발생:', error);
+      setError(`전문가 데이터 조회 중 오류가 발생했습니다: ${error instanceof Error ? error.message : '알 수 없는 오류'}`);
+      setExperts([]);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
+    console.log('🔧 ExpertManagement 컴포넌트 마운트');
+    console.log('🌐 현재 환경:', window.location.hostname);
+    
+    // Supabase 연결 테스트
+    const testConnection = async () => {
+      try {
+        console.log('🔍 Supabase 연결 테스트 시작...');
+        
+        // 1. 기본 연결 테스트 - 단순히 테이블 존재 여부만 확인
+        const { data: testData, error: testError } = await supabase
+          .from('experts')
+          .select('id')
+          .limit(1);
+        
+        if (testError) {
+          console.error('❌ Supabase 연결 실패:', testError);
+          console.error('❌ 오류 코드:', testError.code);
+          console.error('❌ 오류 메시지:', testError.message);
+          
+          // RLS 정책 오류인지 확인
+          if (testError.code === 'PGRST116') {
+            console.error('❌ RLS 정책 오류: 테이블에 접근 권한이 없습니다.');
+          } else if (testError.code === 'PGRST301') {
+            console.error('❌ 인증 오류: Supabase 키가 잘못되었습니다.');
+          } else if (testError.code === 'PGRST301') {
+            console.error('❌ 테이블이 존재하지 않습니다.');
+          }
+        } else {
+          console.log('✅ Supabase 연결 성공');
+          console.log('✅ 테스트 데이터 개수:', testData?.length || 0);
+        }
+        
+      } catch (err) {
+        console.error('❌ Supabase 연결 테스트 실패:', err);
+      }
+    };
+    
+    testConnection();
     fetchExpertsAndRatings();
   }, []);
 
-  const handleDelete = async (expert: any) => {
+  const handleDelete = async (expert: Expert) => {
     try {
       // S3에서 프로필 이미지 삭제
       if (expert.profile_image_url && expert.profile_image_url.includes('s3.amazonaws.com')) {
@@ -189,7 +266,7 @@ const ExpertManagement = () => {
     }
   };
 
-  const handleToggleFeatured = async (expert: any) => {
+  const handleToggleFeatured = async (expert: Expert) => {
     try {
       const newFeaturedStatus = !expert.is_featured;
       
@@ -222,7 +299,7 @@ const ExpertManagement = () => {
     }
   };
 
-  const handleEdit = async (expert) => {
+  const handleEdit = async (expert: Expert) => {
     // 1. experts 테이블에서 전문가 정보 가져오기
     const { data, error } = await (supabase
       .from("experts")
@@ -298,7 +375,8 @@ const ExpertManagement = () => {
       achievements: data.achievements || "",
       expertise_detail: data.expertise_detail || "",
       experience_years: data.experience_years !== undefined && data.experience_years !== null ? String(data.experience_years) : "",
-      status: data.status || "대기"
+      status: data.status || "대기",
+      is_featured: data.is_featured || false
     });
     setIsDialogOpen(true);
   };
@@ -346,7 +424,8 @@ const ExpertManagement = () => {
       achievements: "",
       expertise_detail: "",
       experience_years: "",
-      status: "대기"
+      status: "대기",
+      is_featured: false
     });
     setIsDialogOpen(true);
   };
@@ -643,7 +722,8 @@ const ExpertManagement = () => {
         achievements: "",
         expertise_detail: "",
         experience_years: "",
-        status: "대기"
+        status: "대기",
+        is_featured: false
       });
       setIsEditMode(false);
       setEditingUserId(null);
@@ -1146,7 +1226,7 @@ const ExpertManagement = () => {
                   <TableCell>{expert.company_name}</TableCell>
                   <TableCell>{expert.main_field}</TableCell>
                   <TableCell>{expert.experience_years ? `${expert.experience_years}년` : "-"}</TableCell>
-                  <TableCell>⭐ {expert.avg_rating !== null && expert.avg_rating !== undefined ? expert.avg_rating.toFixed(1) : "-"}</TableCell>
+                  <TableCell>⭐ {expert.rating !== null && expert.rating !== undefined ? expert.rating.toFixed(1) : "-"}</TableCell>
                   <TableCell>
                     {expert.products?.length > 0 ? (
                       <div className="text-sm">
