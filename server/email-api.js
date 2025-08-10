@@ -3,12 +3,10 @@ const nodemailer = require('nodemailer');
 const cors = require('cors');
 const path = require('path');
 const multer = require('multer');
-// 환경에 따라 적절한 .env 파일 로드
-const envPath = process.env.NODE_ENV === 'production' 
-  ? path.join(__dirname, '../.env.production')
-  : path.join(__dirname, '../.env.development');
-
-require('dotenv').config({ path: envPath });
+// 환경에 따른 .env 파일 로딩
+const isProduction = process.env.NODE_ENV === 'production';
+const envFile = isProduction ? '.env.production' : '.env.development';
+require('dotenv').config({ path: path.join(__dirname, '..', envFile) });
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -62,9 +60,9 @@ const getEmailConfig = () => {
     emailPassword = process.env.VITE_EMAIL_PASSWORD_PROD || process.env.EMAIL_PASSWORD_PROD || '';
   }
   
-  // 비밀번호가 없으면 기본값 사용 (실제 운영에서는 환경변수로 설정해야 함)
+  // 비밀번호가 없으면 에러 발생
   if (!emailPassword) {
-    emailPassword = 'richway2024!'; // 기본 비밀번호 (실제 운영에서는 환경변수로 설정)
+    throw new Error(`이메일 비밀번호가 설정되지 않았습니다. ${isDevelopment ? 'VITE_EMAIL_PASSWORD_DEV' : 'VITE_EMAIL_PASSWORD_PROD'} 환경변수를 확인해주세요.`);
   }
   
   console.log('🔧 이메일 설정 정보:');
@@ -72,6 +70,7 @@ const getEmailConfig = () => {
   console.log('- 이메일 주소: rich-way@wiseinc.co.kr');
   console.log('- 비밀번호 설정됨:', emailPassword ? '✅' : '❌');
   console.log('- 비밀번호 길이:', emailPassword.length);
+  console.log('- 환경변수 파일:', isProduction ? '.env.production' : '.env.development');
   
   return {
     host: 'smtp.worksmobile.com', // 네이버웍스 SMTP 서버
