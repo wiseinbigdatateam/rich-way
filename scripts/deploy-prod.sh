@@ -92,19 +92,62 @@ EOF"
     # 5. 메일 서버 프로세스 종료 (이미 실행 중인 경우)
     log_info "  5단계: 기존 메일 서버 프로세스 정리..."
     ssh -i $KEY_FILE $REMOTE_USER@$EC2_IP "pkill -f 'email-api.js' || true"
+    sleep 2
     
-    # 6. 메일 서버 시작
+    # 6. 메일 서버 시작 (완전히 재작성된 부분)
     log_info "  6단계: 메일 서버 시작..."
-    ssh -i $KEY_FILE $REMOTE_USER@$EC2_IP "cd ~/rich-way/mail-server && nohup node email-api.js > email-server.log 2>&1 &"
     
-    # 7. 메일 서버 상태 확인
-    log_info "  7단계: 메일 서버 상태 확인..."
-    sleep 5
-    if ssh -i $KEY_FILE $REMOTE_USER@$EC2_IP "curl -s http://localhost:3001/api/health" | grep -q "OK"; then
-        log_success "메일 서버 시작 성공"
+    # 메일 서버 시작을 위한 별도 스크립트 생성 및 실행
+    ssh -i $KEY_FILE $REMOTE_USER@$EC2_IP "cat > ~/rich-way/start-mail-server.sh << 'EOF'
+#!/bin/bash
+cd ~/rich-way/mail-server
+pkill -f 'email-api.js' 2>/dev/null || true
+sleep 2
+nohup node email-api.js > email-server.log 2>&1 &
+echo \$! > email-server.pid
+sleep 3
+echo 'Mail server started'
+EOF"
+    
+    # 스크립트 실행 권한 부여 및 실행
+    ssh -i $KEY_FILE $REMOTE_USER@$EC2_IP "chmod +x ~/rich-way/start-mail-server.sh && ~/rich-way/start-mail-server.sh"
+    
+    # 프로세스 ID 확인
+    local pid=$(ssh -i $KEY_FILE $REMOTE_USER@$EC2_IP "cat ~/rich-way/mail-server/email-server.pid 2>/dev/null || echo ''")
+    
+    if [ -n "$pid" ]; then
+        log_success "메일 서버 프로세스 시작됨 (PID: $pid)"
     else
-        log_warning "메일 서버 상태 확인 실패 (로그 확인 필요)"
-        ssh -i $KEY_FILE $REMOTE_USER@$EC2_IP "tail -10 ~/rich-way/mail-server/email-server.log"
+        log_warning "메일 서버 프로세스 ID를 확인할 수 없습니다"
+    fi
+    
+    # 7. 메일 서버 상태 확인 (완전히 재작성된 부분)
+    log_info "  7단계: 메일 서버 상태 확인..."
+    
+    # 최대 30초 대기 (5초씩 6번)
+    local max_attempts=6
+    local attempt=1
+    
+    while [ $attempt -le $max_attempts ]; do
+        log_info "  상태 확인 시도 $attempt/$max_attempts..."
+        
+        if ssh -i $KEY_FILE $REMOTE_USER@$EC2_IP "curl -s --connect-timeout 5 http://localhost:3001/api/health" > /dev/null 2>&1; then
+            log_success "메일 서버 정상 작동 확인됨"
+            break
+        fi
+        
+        if [ $attempt -lt $max_attempts ]; then
+            log_info "  메일 서버 응답 대기 중... (5초 후 재시도)"
+            sleep 5
+        fi
+        
+        attempt=$((attempt + 1))
+    done
+    
+    if [ $attempt -gt $max_attempts ]; then
+        log_warning "메일 서버 상태 확인 실패 (최대 시도 횟수 초과)"
+        log_info "메일 서버 로그 확인:"
+        ssh -i $KEY_FILE $REMOTE_USER@$EC2_IP "tail -10 ~/rich-way/mail-server/email-server.log 2>/dev/null || echo '로그 파일을 찾을 수 없습니다'"
     fi
 }
 

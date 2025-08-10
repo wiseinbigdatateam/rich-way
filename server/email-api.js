@@ -3,7 +3,12 @@ const nodemailer = require('nodemailer');
 const cors = require('cors');
 const path = require('path');
 const multer = require('multer');
-require('dotenv').config({ path: path.join(__dirname, '../.env.development') });
+// 환경에 따라 적절한 .env 파일 로드
+const envPath = process.env.NODE_ENV === 'production' 
+  ? path.join(__dirname, '../.env.production')
+  : path.join(__dirname, '../.env.development');
+
+require('dotenv').config({ path: envPath });
 
 const app = express();
 const PORT = process.env.PORT || 3001;
