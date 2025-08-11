@@ -5,6 +5,9 @@ const path = require('path');
 const multer = require('multer');
 // 환경에 따른 .env 파일 로딩
 const isProduction = process.env.NODE_ENV === 'production';
+// 메일 서버 디렉토리의 .env 파일 우선 로딩
+require('dotenv').config({ path: path.join(__dirname, '.env') });
+// 백업으로 상위 디렉토리의 환경변수 파일도 로딩
 const envFile = isProduction ? '.env.production' : '.env.development';
 require('dotenv').config({ path: path.join(__dirname, '..', envFile) });
 

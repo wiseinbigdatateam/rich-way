@@ -35,13 +35,35 @@ log_error() {
 check_ssh_key() {
     log_info "SSH 키 파일 확인 중..."
     
+    # 설정된 키 파일 경로 확인
     if [ -f "$KEY_FILE" ]; then
         log_success "SSH 키 파일 발견: $KEY_FILE"
         return 0
     fi
     
-    log_error "SSH 키 파일을 찾을 수 없습니다: $KEY_FILE"
-    log_info "스크립트 상단의 KEY_FILE 변수를 수정해주세요."
+    # 일반적인 SSH 키 경로들 확인
+    local possible_paths=(
+        "~/.ssh/richway.pem"
+        "~/awsKey/richway.pem"
+        "/Users/jinseongkim/awsKey/richway.pem"
+        "~/.ssh/id_rsa"
+    )
+    
+    for path in "${possible_paths[@]}"; do
+        expanded_path=$(eval echo $path)
+        if [ -f "$expanded_path" ]; then
+            KEY_FILE="$expanded_path"
+            log_success "SSH 키 파일 발견: $expanded_path"
+            return 0
+        fi
+    done
+    
+    log_error "SSH 키 파일을 찾을 수 없습니다!"
+    log_info "다음 경로들을 확인해주세요:"
+    for path in "${possible_paths[@]}"; do
+        echo "  - $path"
+    done
+    log_info "또는 스크립트 상단의 KEY_FILE 변수를 수정해주세요."
     return 1
 }
 
@@ -80,91 +102,122 @@ setup_mail_server() {
     
     # 4. 환경 변수 파일 생성 (운영 환경용)
     log_info "  4단계: 환경 변수 설정..."
-    ssh -i $KEY_FILE $REMOTE_USER@$EC2_IP "cat > ~/rich-way/mail-server/.env << 'EOF'
+    
+    # 로컬 .env 파일에서 이메일 비밀번호 읽기
+    local email_password=""
+    if [ -f ".env.production" ]; then
+        email_password=$(grep "VITE_EMAIL_PASSWORD_PROD" .env.production | cut -d'=' -f2)
+    elif [ -f ".env" ]; then
+        email_password=$(grep "VITE_EMAIL_PASSWORD_PROD" .env | cut -d'=' -f2)
+    fi
+    
+    # 비밀번호가 없으면 기본값 사용 (보안상 경고 표시)
+    if [ -z "$email_password" ]; then
+        log_warning "이메일 비밀번호를 .env 파일에서 찾을 수 없습니다. 기본값을 사용합니다."
+        email_password="4xFETu3AbovX"
+    else
+        log_success "이메일 비밀번호를 .env 파일에서 로드했습니다."
+    fi
+    
+    ssh -i $KEY_FILE $REMOTE_USER@$EC2_IP "cat > ~/rich-way/mail-server/.env << EOF
 NODE_ENV=production
 VITE_EMAIL_HOST_PROD=smtp.naverworks.com
 VITE_EMAIL_PORT_PROD=587
 VITE_EMAIL_USER_PROD=rich-way@wiseinc.co.kr
-VITE_EMAIL_PASSWORD_PROD=4xFETu3AbovX
+VITE_EMAIL_PASSWORD_PROD=$email_password
 VITE_EMAIL_FROM_PROD=rich-way@wiseinc.co.kr
 EOF"
     
     # 5. 메일 서버 프로세스 종료 (이미 실행 중인 경우)
     log_info "  5단계: 기존 메일 서버 프로세스 정리..."
     ssh -i $KEY_FILE $REMOTE_USER@$EC2_IP "pkill -f 'email-api.js' || true"
-    sleep 2
     
-    # 6. 메일 서버 시작 (완전히 재작성된 부분)
+    # 6. 메일 서버 시작 (개선된 버전)
     log_info "  6단계: 메일 서버 시작..."
     
-    # 메일 서버 시작을 위한 별도 스크립트 생성 및 실행
-    ssh -i $KEY_FILE $REMOTE_USER@$EC2_IP "cat > ~/rich-way/start-mail-server.sh << 'EOF'
+    # 메일 서버 시작을 위한 안정적인 스크립트 생성
+    ssh -i $KEY_FILE $REMOTE_USER@$EC2_IP "cat > ~/rich-way/mail-server/start-server.sh << 'EOF'
 #!/bin/bash
 cd ~/rich-way/mail-server
+# 기존 프로세스 완전 종료
 pkill -f 'email-api.js' 2>/dev/null || true
 sleep 2
+# 새 프로세스 시작
 nohup node email-api.js > email-server.log 2>&1 &
-echo \$! > email-server.pid
-sleep 3
-echo 'Mail server started'
+echo \$! > server.pid
+sleep 1
+echo 'Mail server startup initiated'
 EOF"
     
     # 스크립트 실행 권한 부여 및 실행
-    ssh -i $KEY_FILE $REMOTE_USER@$EC2_IP "chmod +x ~/rich-way/start-mail-server.sh && ~/rich-way/start-mail-server.sh"
+    ssh -i $KEY_FILE $REMOTE_USER@$EC2_IP "chmod +x ~/rich-way/mail-server/start-server.sh"
+    ssh -i $KEY_FILE $REMOTE_USER@$EC2_IP "~/rich-way/mail-server/start-server.sh"
     
-    # 프로세스 ID 확인
-    local pid=$(ssh -i $KEY_FILE $REMOTE_USER@$EC2_IP "cat ~/rich-way/mail-server/email-server.pid 2>/dev/null || echo ''")
-    
-    if [ -n "$pid" ]; then
-        log_success "메일 서버 프로세스 시작됨 (PID: $pid)"
-    else
-        log_warning "메일 서버 프로세스 ID를 확인할 수 없습니다"
-    fi
-    
-    # 7. 메일 서버 상태 확인 (완전히 재작성된 부분)
+    # 7. 메일 서버 상태 확인 (개선된 버전)
     log_info "  7단계: 메일 서버 상태 확인..."
     
-    # 최대 30초 대기 (5초씩 6번)
-    local max_attempts=6
+    # 짧은 대기 후 상태 확인 (최대 3회 시도)
+    local max_attempts=3
     local attempt=1
+    local server_ready=false
     
     while [ $attempt -le $max_attempts ]; do
+        sleep 2
         log_info "  상태 확인 시도 $attempt/$max_attempts..."
         
-        if ssh -i $KEY_FILE $REMOTE_USER@$EC2_IP "curl -s --connect-timeout 5 http://localhost:3001/api/health" > /dev/null 2>&1; then
+        if ssh -i $KEY_FILE $REMOTE_USER@$EC2_IP "curl -s --connect-timeout 3 --max-time 5 http://localhost:3001/api/health" 2>/dev/null | grep -q "OK"; then
             log_success "메일 서버 정상 작동 확인됨"
+            server_ready=true
             break
-        fi
-        
-        if [ $attempt -lt $max_attempts ]; then
-            log_info "  메일 서버 응답 대기 중... (5초 후 재시도)"
-            sleep 5
         fi
         
         attempt=$((attempt + 1))
     done
     
-    if [ $attempt -gt $max_attempts ]; then
-        log_warning "메일 서버 상태 확인 실패 (최대 시도 횟수 초과)"
+    if [ "$server_ready" = false ]; then
+        log_warning "메일 서버 상태 확인 실패 (하지만 배포 계속 진행)"
         log_info "메일 서버 로그 확인:"
-        ssh -i $KEY_FILE $REMOTE_USER@$EC2_IP "tail -10 ~/rich-way/mail-server/email-server.log 2>/dev/null || echo '로그 파일을 찾을 수 없습니다'"
+        ssh -i $KEY_FILE $REMOTE_USER@$EC2_IP "tail -5 ~/rich-way/mail-server/email-server.log 2>/dev/null || echo '로그 파일 없음'"
     fi
 }
 
-# ===== 권한 설정 =====
+# ===== 권한 설정 (개선된 버전) =====
 setup_permissions() {
     log_info "🔧 권한 설정 중..."
     
-    # 디렉토리 소유권 변경
-    ssh -i $KEY_FILE $REMOTE_USER@$EC2_IP "sudo chown -R $REMOTE_USER:$REMOTE_USER ~/rich-way/"
+    # 1단계: 디렉토리 소유권 변경
+    log_info "  1단계: 디렉토리 소유권 변경..."
+    if ssh -i $KEY_FILE $REMOTE_USER@$EC2_IP "sudo chown -R $REMOTE_USER:$REMOTE_USER ~/rich-way/" 2>/dev/null; then
+        log_success "  디렉토리 소유권 변경 완료"
+    else
+        log_warning "  디렉토리 소유권 변경 실패 (계속 진행)"
+    fi
     
-    # 기본 권한 설정
-    ssh -i $KEY_FILE $REMOTE_USER@$EC2_IP "chmod -R 755 ~/rich-way/current/"
+    # 2단계: 기본 권한 설정
+    log_info "  2단계: 기본 권한 설정..."
+    if ssh -i $KEY_FILE $REMOTE_USER@$EC2_IP "chmod -R 755 ~/rich-way/current/" 2>/dev/null; then
+        log_success "  기본 권한 설정 완료"
+    else
+        log_warning "  기본 권한 설정 실패 (계속 진행)"
+    fi
     
-    # Nginx 사용자 권한 설정
-    ssh -i $KEY_FILE $REMOTE_USER@$EC2_IP "sudo chown -R nginx:nginx ~/rich-way/current/"
+    # 3단계: Nginx 사용자 권한 설정 (선택적)
+    log_info "  3단계: Nginx 사용자 권한 설정..."
+    if ssh -i $KEY_FILE $REMOTE_USER@$EC2_IP "sudo chown -R nginx:nginx ~/rich-way/current/" 2>/dev/null; then
+        log_success "  Nginx 사용자 권한 설정 완료"
+    else
+        log_warning "  Nginx 사용자 권한 설정 실패 (계속 진행)"
+    fi
     
-    log_success "권한 설정 완료"
+    # 4단계: 읽기 권한 확인
+    log_info "  4단계: 읽기 권한 확인..."
+    if ssh -i $KEY_FILE $REMOTE_USER@$EC2_IP "test -r ~/rich-way/current/index.html" 2>/dev/null; then
+        log_success "  읽기 권한 확인 완료"
+    else
+        log_warning "  읽기 권한 확인 실패 (Nginx 재시작 후 확인 필요)"
+    fi
+    
+    log_success "권한 설정 프로세스 완료"
 }
 
 # ===== 메일 발송 함수 =====
@@ -206,7 +259,11 @@ main() {
     # 1. 현재 배포 백업
     log_info "📦 현재 배포 백업 중..."
     BACKUP_NAME=$(date +%Y%m%d_%H%M%S)
-    ssh -i $KEY_FILE $REMOTE_USER@$EC2_IP "mkdir -p ~/rich-way/backup && cp -r ~/rich-way/current ~/rich-way/backup/$BACKUP_NAME" 2>/dev/null || log_warning "백업 실패 (첫 배포일 수 있음)"
+    if ssh -i $KEY_FILE $REMOTE_USER@$EC2_IP "mkdir -p ~/rich-way/backup && cp -r ~/rich-way/current ~/rich-way/backup/$BACKUP_NAME" 2>/dev/null; then
+        log_success "백업 완료: $BACKUP_NAME"
+    else
+        log_warning "백업 실패 (첫 배포일 수 있음)"
+    fi
     
     # 2. 새 파일 업로드
     log_info "📤 파일 업로드 중..."
@@ -221,7 +278,7 @@ main() {
     # 3. 메일 서버 설정 및 시작
     setup_mail_server
     
-    # 4. 권한 설정
+    # 4. 권한 설정 (개선된 버전)
     setup_permissions
     
     # 5. Nginx 재시작
@@ -246,8 +303,10 @@ main() {
     echo "   로그: ssh -i $KEY_FILE $REMOTE_USER@$EC2_IP 'tail -f ~/rich-way/mail-server/email-server.log'"
     echo ""
     log_info "🔧 유용한 명령어:"
+    echo "   로그 확인: ssh -i $KEY_FILE $REMOTE_USER@$EC2_IP 'tail -f ~/rich-way/logs/access.log'"
     echo "   서버 상태: ssh -i $KEY_FILE $REMOTE_USER@$EC2_IP 'sudo systemctl status nginx'"
     echo "   백업 목록: ssh -i $KEY_FILE $REMOTE_USER@$EC2_IP 'ls -la ~/rich-way/backup/'"
+    echo "   권한 확인: ssh -i $KEY_FILE $REMOTE_USER@$EC2_IP 'ls -la ~/rich-way/current/'"
     echo "   메일 서버 재시작: ssh -i $KEY_FILE $REMOTE_USER@$EC2_IP 'cd ~/rich-way/mail-server && pkill -f email-api.js && nohup node email-api.js > email-server.log 2>&1 &'"
     
     # 7. 배포 완료 메일 발송

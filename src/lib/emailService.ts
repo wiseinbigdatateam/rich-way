@@ -159,7 +159,8 @@ export const sendPasswordResetEmail = async (email: string, resetLink: string): 
     if (isDevelopment) {
       emailServerUrl = 'http://localhost:3001';
     } else if (isProduction) {
-      emailServerUrl = 'https://rich-way.co.kr:3001'; // 운영 환경에서는 같은 도메인 사용
+      // 운영 환경에서는 현재 도메인의 /api 경로를 통해 프록시 접근
+      emailServerUrl = window.location.origin;
     } else {
       emailServerUrl = 'http://localhost:3001'; // 기본값
     }
