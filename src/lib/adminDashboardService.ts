@@ -185,12 +185,10 @@ export class AdminDashboardService {
   }
 
   private static async getTotalMbtiDiagnoses(): Promise<number> {
-    // MBTI 진단 결과가 저장되는 테이블에서 가져오기
-    // 실제 테이블 구조에 따라 조정 필요
+    // MBTI 진단 테이블에서 가져오기
     const { count, error } = await supabase
-      .from('diagnosis_results')
-      .select('*', { count: 'exact', head: true })
-      .eq('diagnosis_type', 'mbti');
+      .from('mbti_diagnosis')
+      .select('*', { count: 'exact', head: true });
     
     if (error) {
       console.warn('MBTI 진단 데이터 테이블이 없습니다. 기본값 0을 반환합니다.');
@@ -200,11 +198,10 @@ export class AdminDashboardService {
   }
 
   private static async getTotalFinanceDiagnoses(): Promise<number> {
-    // 재무 진단 결과가 저장되는 테이블에서 가져오기
+    // 재무 진단 테이블에서 가져오기
     const { count, error } = await supabase
-      .from('diagnosis_results')
-      .select('*', { count: 'exact', head: true })
-      .eq('diagnosis_type', 'finance');
+      .from('finance_diagnosis')
+      .select('*', { count: 'exact', head: true });
     
     if (error) {
       console.warn('재무 진단 데이터 테이블이 없습니다. 기본값 0을 반환합니다.');
@@ -223,16 +220,9 @@ export class AdminDashboardService {
   }
 
   private static async getTotalEducationApplications(): Promise<number> {
-    // 교육 신청 데이터 (실제 테이블 구조에 따라 조정 필요)
-    const { count, error } = await supabase
-      .from('education_applications')
-      .select('*', { count: 'exact', head: true });
-    
-    if (error) {
-      console.warn('교육 신청 데이터 테이블이 없습니다. 기본값 0을 반환합니다.');
-      return 0;
-    }
-    return count || 0;
+    // 교육 신청 데이터는 현재 테이블이 없으므로 0 반환
+    console.warn('교육 신청 데이터 테이블이 없습니다. 기본값 0을 반환합니다.');
+    return 0;
   }
 
   // 지난 달 데이터 가져오기 메서드들
@@ -274,9 +264,8 @@ export class AdminDashboardService {
     lastMonth.setHours(0, 0, 0, 0);
     
     const { count, error } = await supabase
-      .from('diagnosis_results')
+      .from('mbti_diagnosis')
       .select('*', { count: 'exact', head: true })
-      .eq('diagnosis_type', 'mbti')
       .lt('created_at', lastMonth.toISOString());
     
     if (error) return 0;
@@ -290,9 +279,8 @@ export class AdminDashboardService {
     lastMonth.setHours(0, 0, 0, 0);
     
     const { count, error } = await supabase
-      .from('diagnosis_results')
+      .from('finance_diagnosis')
       .select('*', { count: 'exact', head: true })
-      .eq('diagnosis_type', 'finance')
       .lt('created_at', lastMonth.toISOString());
     
     if (error) return 0;
@@ -390,9 +378,8 @@ export class AdminDashboardService {
       monthEnd.setDate(0);
       
       const { count, error } = await supabase
-        .from('diagnosis_results')
+        .from('mbti_diagnosis')
         .select('*', { count: 'exact', head: true })
-        .eq('diagnosis_type', 'mbti')
         .gte('created_at', monthStart.toISOString())
         .lte('created_at', monthEnd.toISOString());
       
@@ -417,9 +404,8 @@ export class AdminDashboardService {
       monthEnd.setDate(0);
       
       const { count, error } = await supabase
-        .from('diagnosis_results')
+        .from('finance_diagnosis')
         .select('*', { count: 'exact', head: true })
-        .eq('diagnosis_type', 'finance')
         .gte('created_at', monthStart.toISOString())
         .lte('created_at', monthEnd.toISOString());
       
@@ -456,29 +442,8 @@ export class AdminDashboardService {
   }
 
   private static async getMonthlyEducationApplications(startDate: Date, endDate: Date): Promise<number[]> {
-    const months = [];
-    for (let i = 0; i < 6; i++) {
-      const monthStart = new Date(startDate);
-      monthStart.setMonth(monthStart.getMonth() + i);
-      monthStart.setDate(1);
-      
-      const monthEnd = new Date(monthStart);
-      monthEnd.setMonth(monthEnd.getMonth() + 1);
-      monthEnd.setDate(0);
-      
-      const { count, error } = await supabase
-        .from('education_applications')
-        .select('*', { count: 'exact', head: true })
-        .gte('created_at', monthStart.toISOString())
-        .lte('created_at', monthEnd.toISOString());
-      
-      if (error) {
-        months.push(0);
-        continue;
-      }
-      months.push(count || 0);
-    }
-    return months;
+    // 교육 신청 테이블이 없으므로 0 반환
+    return new Array(6).fill(0);
   }
 
   // 일별 데이터 가져오기 메서드들
@@ -538,9 +503,8 @@ export class AdminDashboardService {
       dayEnd.setHours(23, 59, 59, 999);
       
       const { count, error } = await supabase
-        .from('diagnosis_results')
+        .from('mbti_diagnosis')
         .select('*', { count: 'exact', head: true })
-        .eq('diagnosis_type', 'mbti')
         .gte('created_at', dayStart.toISOString())
         .lte('created_at', dayEnd.toISOString());
       
@@ -564,9 +528,8 @@ export class AdminDashboardService {
       dayEnd.setHours(23, 59, 59, 999);
       
       const { count, error } = await supabase
-        .from('diagnosis_results')
+        .from('finance_diagnosis')
         .select('*', { count: 'exact', head: true })
-        .eq('diagnosis_type', 'finance')
         .gte('created_at', dayStart.toISOString())
         .lte('created_at', dayEnd.toISOString());
       
@@ -602,28 +565,8 @@ export class AdminDashboardService {
   }
 
   private static async getDailyEducationApplications(startDate: Date, endDate: Date): Promise<number[]> {
-    const days = [];
-    for (let i = 0; i < 7; i++) {
-      const dayStart = new Date(startDate);
-      dayStart.setDate(dayStart.getDate() + i);
-      dayStart.setHours(0, 0, 0, 0);
-      
-      const dayEnd = new Date(dayStart);
-      dayEnd.setHours(23, 59, 59, 999);
-      
-      const { count, error } = await supabase
-        .from('education_applications')
-        .select('*', { count: 'exact', head: true })
-        .gte('created_at', dayStart.toISOString())
-        .lte('created_at', dayEnd.toISOString());
-      
-      if (error) {
-        days.push(0);
-        continue;
-      }
-      days.push(count || 0);
-    }
-    return days;
+    // 교육 신청 테이블이 없으므로 0 반환
+    return new Array(7).fill(0);
   }
 
   // 성장률 계산 메서드
