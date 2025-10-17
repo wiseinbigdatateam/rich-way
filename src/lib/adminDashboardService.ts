@@ -178,7 +178,7 @@ export class AdminDashboardService {
     const { count, error } = await supabase
       .from('experts')
       .select('*', { count: 'exact', head: true })
-      .eq('is_active', true);
+      .eq('status', 'active');
     
     if (error) throw error;
     return count || 0;
@@ -250,7 +250,7 @@ export class AdminDashboardService {
     const { count, error } = await supabase
       .from('experts')
       .select('*', { count: 'exact', head: true })
-      .eq('is_active', true)
+      .eq('status', 'active')
       .lt('created_at', lastMonth.toISOString());
     
     if (error) throw error;
@@ -303,18 +303,8 @@ export class AdminDashboardService {
   }
 
   private static async getLastMonthEducationApplications(): Promise<number> {
-    const lastMonth = new Date();
-    lastMonth.setMonth(lastMonth.getMonth() - 1);
-    lastMonth.setDate(1);
-    lastMonth.setHours(0, 0, 0, 0);
-    
-    const { count, error } = await supabase
-      .from('education_applications')
-      .select('*', { count: 'exact', head: true })
-      .lt('created_at', lastMonth.toISOString());
-    
-    if (error) return 0;
-    return count || 0;
+    // 교육 신청 테이블이 없으므로 0 반환
+    return 0;
   }
 
   // 월별 데이터 가져오기 메서드들
@@ -356,7 +346,7 @@ export class AdminDashboardService {
       const { count, error } = await supabase
         .from('experts')
         .select('*', { count: 'exact', head: true })
-        .eq('is_active', true)
+        .eq('status', 'active')
         .gte('created_at', monthStart.toISOString())
         .lte('created_at', monthEnd.toISOString());
       
@@ -482,7 +472,7 @@ export class AdminDashboardService {
       const { count, error } = await supabase
         .from('experts')
         .select('*', { count: 'exact', head: true })
-        .eq('is_active', true)
+        .eq('status', 'active')
         .gte('created_at', dayStart.toISOString())
         .lte('created_at', dayEnd.toISOString());
       
