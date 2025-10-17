@@ -93,9 +93,13 @@ const AdminPage = () => {
   const [dateRange, setDateRange] = useState<{
     from: Date | undefined;
     to: Date | undefined;
-  }>({
-    from: new Date(2024, 0, 1),
-    to: new Date(2024, 5, 30)
+  }>(() => {
+    const today = new Date();
+    const sixMonthsAgo = new Date(today.getFullYear(), today.getMonth() - 5, 1);
+    return {
+      from: sixMonthsAgo,
+      to: today
+    };
   });
 
   // 대시보드 데이터 상태
@@ -112,8 +116,8 @@ const AdminPage = () => {
       
       const [stats, monthlyData, dailyData] = await Promise.all([
         AdminDashboardService.getDashboardStats(),
-        AdminDashboardService.getMonthlyChartData(),
-        AdminDashboardService.getDailyChartData()
+        AdminDashboardService.getMonthlyChartData(dateRange.from, dateRange.to),
+        AdminDashboardService.getDailyChartData(dateRange.from, dateRange.to)
       ]);
       
       setDashboardStats(stats);
@@ -137,12 +141,12 @@ const AdminPage = () => {
     loadDashboardData();
   }, [navigate]);
 
-  // 차트 기간 변경 시 데이터 다시 로드
+  // 차트 기간 또는 날짜 범위 변경 시 데이터 다시 로드
   useEffect(() => {
     if (dashboardStats) {
       loadChartData();
     }
-  }, [chartPeriod]);
+  }, [chartPeriod, dateRange]);
 
   const handleLogout = () => {
     localStorage.removeItem("adminLoggedIn");
@@ -152,8 +156,8 @@ const AdminPage = () => {
   const loadChartData = async () => {
     try {
       const newChartData = chartPeriod === 'monthly' 
-        ? await AdminDashboardService.getMonthlyChartData()
-        : await AdminDashboardService.getDailyChartData();
+        ? await AdminDashboardService.getMonthlyChartData(dateRange.from, dateRange.to)
+        : await AdminDashboardService.getDailyChartData(dateRange.from, dateRange.to);
       setChartData(newChartData);
     } catch (err) {
       console.error('차트 데이터 로드 실패:', err);

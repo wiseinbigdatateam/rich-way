@@ -85,11 +85,11 @@ export class AdminDashboardService {
   }
 
   // 월별 차트 데이터 가져오기
-  static async getMonthlyChartData(): Promise<ChartDataPoint[]> {
+  static async getMonthlyChartData(startDate?: Date, endDate?: Date): Promise<ChartDataPoint[]> {
     try {
-      const currentDate = new Date();
-      const sixMonthsAgo = new Date();
-      sixMonthsAgo.setMonth(currentDate.getMonth() - 5);
+      // 날짜 범위가 제공되지 않으면 최근 6개월 사용
+      const currentDate = endDate || new Date();
+      const sixMonthsAgo = startDate || new Date(currentDate.getFullYear(), currentDate.getMonth() - 5, 1);
 
       const [
         monthlyMembers,
@@ -107,8 +107,16 @@ export class AdminDashboardService {
         this.getMonthlyEducationApplications(sixMonthsAgo, currentDate)
       ]);
 
-      // 월별 데이터를 합쳐서 차트 데이터 생성
-      const months = ['1월', '2월', '3월', '4월', '5월', '6월'];
+      // 시작일과 종료일 사이의 월 수 계산
+      const monthDiff = (currentDate.getFullYear() - sixMonthsAgo.getFullYear()) * 12 
+        + currentDate.getMonth() - sixMonthsAgo.getMonth() + 1;
+      
+      // 동적으로 월 레이블 생성
+      const months = Array.from({ length: Math.min(monthDiff, 12) }, (_, i) => {
+        const date = new Date(sixMonthsAgo.getFullYear(), sixMonthsAgo.getMonth() + i, 1);
+        return `${date.getMonth() + 1}월`;
+      });
+
       return months.map((month, index) => ({
         name: month,
         회원수: monthlyMembers[index] || 0,
@@ -125,11 +133,11 @@ export class AdminDashboardService {
   }
 
   // 일별 차트 데이터 가져오기
-  static async getDailyChartData(): Promise<ChartDataPoint[]> {
+  static async getDailyChartData(startDate?: Date, endDate?: Date): Promise<ChartDataPoint[]> {
     try {
-      const currentDate = new Date();
-      const sevenDaysAgo = new Date();
-      sevenDaysAgo.setDate(currentDate.getDate() - 6);
+      // 날짜 범위가 제공되지 않으면 최근 7일 사용
+      const currentDate = endDate || new Date();
+      const sevenDaysAgo = startDate || new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate() - 6);
 
       const [
         dailyMembers,
@@ -147,8 +155,16 @@ export class AdminDashboardService {
         this.getDailyEducationApplications(sevenDaysAgo, currentDate)
       ]);
 
-      // 일별 데이터를 합쳐서 차트 데이터 생성
-      const days = ['1일', '2일', '3일', '4일', '5일', '6일', '7일'];
+      // 시작일과 종료일 사이의 일 수 계산
+      const dayDiff = Math.ceil((currentDate.getTime() - sevenDaysAgo.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      
+      // 동적으로 일 레이블 생성
+      const days = Array.from({ length: Math.min(dayDiff, 31) }, (_, i) => {
+        const date = new Date(sevenDaysAgo);
+        date.setDate(sevenDaysAgo.getDate() + i);
+        return `${date.getMonth() + 1}/${date.getDate()}`;
+      });
+
       return days.map((day, index) => ({
         name: day,
         회원수: dailyMembers[index] || 0,
@@ -318,9 +334,13 @@ export class AdminDashboardService {
 
   // 월별 데이터 가져오기 메서드들
   private static async getMonthlyMembers(startDate: Date, endDate: Date): Promise<number[]> {
-    // 6개월간의 월별 회원 수 데이터 생성
+    // 시작일과 종료일 사이의 월 수 계산
+    const monthDiff = (endDate.getFullYear() - startDate.getFullYear()) * 12 
+      + endDate.getMonth() - startDate.getMonth() + 1;
+    const monthCount = Math.min(monthDiff, 12); // 최대 12개월
+    
     const months = [];
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < monthCount; i++) {
       const monthStart = new Date(startDate);
       monthStart.setMonth(monthStart.getMonth() + i);
       monthStart.setDate(1);
@@ -342,8 +362,12 @@ export class AdminDashboardService {
   }
 
   private static async getMonthlyExperts(startDate: Date, endDate: Date): Promise<number[]> {
+    const monthDiff = (endDate.getFullYear() - startDate.getFullYear()) * 12 
+      + endDate.getMonth() - startDate.getMonth() + 1;
+    const monthCount = Math.min(monthDiff, 12);
+    
     const months = [];
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < monthCount; i++) {
       const monthStart = new Date(startDate);
       monthStart.setMonth(monthStart.getMonth() + i);
       monthStart.setDate(1);
@@ -365,8 +389,12 @@ export class AdminDashboardService {
   }
 
   private static async getMonthlyMbtiDiagnoses(startDate: Date, endDate: Date): Promise<number[]> {
+    const monthDiff = (endDate.getFullYear() - startDate.getFullYear()) * 12 
+      + endDate.getMonth() - startDate.getMonth() + 1;
+    const monthCount = Math.min(monthDiff, 12);
+    
     const months = [];
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < monthCount; i++) {
       const monthStart = new Date(startDate);
       monthStart.setMonth(monthStart.getMonth() + i);
       monthStart.setDate(1);
@@ -391,8 +419,12 @@ export class AdminDashboardService {
   }
 
   private static async getMonthlyFinanceDiagnoses(startDate: Date, endDate: Date): Promise<number[]> {
+    const monthDiff = (endDate.getFullYear() - startDate.getFullYear()) * 12 
+      + endDate.getMonth() - startDate.getMonth() + 1;
+    const monthCount = Math.min(monthDiff, 12);
+    
     const months = [];
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < monthCount; i++) {
       const monthStart = new Date(startDate);
       monthStart.setMonth(monthStart.getMonth() + i);
       monthStart.setDate(1);
@@ -417,8 +449,12 @@ export class AdminDashboardService {
   }
 
   private static async getMonthlyCoachingApplications(startDate: Date, endDate: Date): Promise<number[]> {
+    const monthDiff = (endDate.getFullYear() - startDate.getFullYear()) * 12 
+      + endDate.getMonth() - startDate.getMonth() + 1;
+    const monthCount = Math.min(monthDiff, 12);
+    
     const months = [];
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < monthCount; i++) {
       const monthStart = new Date(startDate);
       monthStart.setMonth(monthStart.getMonth() + i);
       monthStart.setDate(1);
@@ -441,13 +477,19 @@ export class AdminDashboardService {
 
   private static async getMonthlyEducationApplications(startDate: Date, endDate: Date): Promise<number[]> {
     // 교육 신청 테이블이 없으므로 0 반환
-    return new Array(6).fill(0);
+    const monthDiff = (endDate.getFullYear() - startDate.getFullYear()) * 12 
+      + endDate.getMonth() - startDate.getMonth() + 1;
+    const monthCount = Math.min(monthDiff, 12);
+    return new Array(monthCount).fill(0);
   }
 
   // 일별 데이터 가져오기 메서드들
   private static async getDailyMembers(startDate: Date, endDate: Date): Promise<number[]> {
+    const dayDiff = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+    const dayCount = Math.min(dayDiff, 31); // 최대 31일
+    
     const days = [];
-    for (let i = 0; i < 7; i++) {
+    for (let i = 0; i < dayCount; i++) {
       const dayStart = new Date(startDate);
       dayStart.setDate(dayStart.getDate() + i);
       dayStart.setHours(0, 0, 0, 0);
@@ -468,8 +510,11 @@ export class AdminDashboardService {
   }
 
   private static async getDailyExperts(startDate: Date, endDate: Date): Promise<number[]> {
+    const dayDiff = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+    const dayCount = Math.min(dayDiff, 31);
+    
     const days = [];
-    for (let i = 0; i < 7; i++) {
+    for (let i = 0; i < dayCount; i++) {
       const dayStart = new Date(startDate);
       dayStart.setDate(dayStart.getDate() + i);
       dayStart.setHours(0, 0, 0, 0);
@@ -490,8 +535,11 @@ export class AdminDashboardService {
   }
 
   private static async getDailyMbtiDiagnoses(startDate: Date, endDate: Date): Promise<number[]> {
+    const dayDiff = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+    const dayCount = Math.min(dayDiff, 31);
+    
     const days = [];
-    for (let i = 0; i < 7; i++) {
+    for (let i = 0; i < dayCount; i++) {
       const dayStart = new Date(startDate);
       dayStart.setDate(dayStart.getDate() + i);
       dayStart.setHours(0, 0, 0, 0);
@@ -515,8 +563,11 @@ export class AdminDashboardService {
   }
 
   private static async getDailyFinanceDiagnoses(startDate: Date, endDate: Date): Promise<number[]> {
+    const dayDiff = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+    const dayCount = Math.min(dayDiff, 31);
+    
     const days = [];
-    for (let i = 0; i < 7; i++) {
+    for (let i = 0; i < dayCount; i++) {
       const dayStart = new Date(startDate);
       dayStart.setDate(dayStart.getDate() + i);
       dayStart.setHours(0, 0, 0, 0);
@@ -540,8 +591,11 @@ export class AdminDashboardService {
   }
 
   private static async getDailyCoachingApplications(startDate: Date, endDate: Date): Promise<number[]> {
+    const dayDiff = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+    const dayCount = Math.min(dayDiff, 31);
+    
     const days = [];
-    for (let i = 0; i < 7; i++) {
+    for (let i = 0; i < dayCount; i++) {
       const dayStart = new Date(startDate);
       dayStart.setDate(dayStart.getDate() + i);
       dayStart.setHours(0, 0, 0, 0);
@@ -563,7 +617,9 @@ export class AdminDashboardService {
 
   private static async getDailyEducationApplications(startDate: Date, endDate: Date): Promise<number[]> {
     // 교육 신청 테이블이 없으므로 0 반환
-    return new Array(7).fill(0);
+    const dayDiff = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+    const dayCount = Math.min(dayDiff, 31);
+    return new Array(dayCount).fill(0);
   }
 
   // 성장률 계산 메서드
