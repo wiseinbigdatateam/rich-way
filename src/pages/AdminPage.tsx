@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Users, BookOpen, ShoppingBag, LogOut, BarChart3, UserCheck, MessageSquare, GraduationCap, Brain, Calculator, CalendarIcon } from "lucide-react";
+import { Users, BookOpen, ShoppingBag, LogOut, BarChart3, UserCheck, MessageSquare, GraduationCap, Brain, Calculator, CalendarIcon, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import MemberManagement from "@/components/admin/MemberManagement";
@@ -15,26 +15,9 @@ import ProductManagement from "@/components/admin/ProductManagement";
 import CommunityManagement from "@/components/admin/CommunityManagement";
 import ExpertManagement from "@/components/admin/ExpertManagement";
 import CoachingManagement from "@/components/admin/CoachingManagement";
+import { AdminDashboardService, DashboardStats, ChartDataPoint } from "@/lib/adminDashboardService";
 
-// Sample data for charts
-const monthlyData = [
-  { name: '1월', 회원수: 980, 전문가: 38, 'MBTI진단': 420, '재무진단': 380, 코칭신청: 67, 교육신청: 156 },
-  { name: '2월', 회원수: 1020, 전문가: 40, 'MBTI진단': 450, '재무진단': 420, 코칭신청: 72, 교육신청: 178 },
-  { name: '3월', 회원수: 1080, 전문가: 42, 'MBTI진단': 480, '재무진단': 460, 코칭신청: 78, 교육신청: 192 },
-  { name: '4월', 회원수: 1150, 전문가: 43, 'MBTI진단': 520, '재무진단': 500, 코칭신청: 83, 교육신청: 205 },
-  { name: '5월', 회원수: 1200, 전문가: 44, 'MBTI진단': 540, '재무진단': 520, 코칭신청: 86, 교육신청: 218 },
-  { name: '6월', 회원수: 1234, 전문가: 45, 'MBTI진단': 567, '재무진단': 540, 코칭신청: 89, 교육신청: 234 }
-];
-
-const dailyData = [
-  { name: '1일', 회원수: 15, 전문가: 0, 'MBTI진단': 8, '재무진단': 12, 코칭신청: 2, 교육신청: 5 },
-  { name: '2일', 회원수: 12, 전문가: 1, 'MBTI진단': 6, '재무진단': 9, 코칭신청: 1, 교육신청: 4 },
-  { name: '3일', 회원수: 18, 전문가: 0, 'MBTI진단': 10, '재무진단': 15, 코칭신청: 3, 교육신청: 7 },
-  { name: '4일', 회원수: 22, 전문가: 0, 'MBTI진단': 12, '재무진단': 18, 코칭신청: 2, 교육신청: 6 },
-  { name: '5일', 회원수: 19, 전문가: 1, 'MBTI진단': 9, '재무진단': 14, 코칭신청: 4, 교육신청: 8 },
-  { name: '6일', 회원수: 25, 전문가: 0, 'MBTI진단': 15, '재무진단': 20, 코칭신청: 3, 교육신청: 9 },
-  { name: '7일', 회원수: 16, 전문가: 0, 'MBTI진단': 7, '재무진단': 11, 코칭신청: 1, 교육신청: 3 }
-];
+// 하드코딩된 데이터 제거 - 이제 실제 DB 데이터를 사용합니다
 
 // recharts를 동적으로 import하는 컴포넌트
 const ChartComponent = ({ 
@@ -115,16 +98,66 @@ const AdminPage = () => {
     to: new Date(2024, 5, 30)
   });
 
+  // 대시보드 데이터 상태
+  const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null);
+  const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // 대시보드 데이터 로드
+  const loadDashboardData = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      const [stats, monthlyData, dailyData] = await Promise.all([
+        AdminDashboardService.getDashboardStats(),
+        AdminDashboardService.getMonthlyChartData(),
+        AdminDashboardService.getDailyChartData()
+      ]);
+      
+      setDashboardStats(stats);
+      setChartData(chartPeriod === 'monthly' ? monthlyData : dailyData);
+    } catch (err) {
+      console.error('대시보드 데이터 로드 실패:', err);
+      setError('대시보드 데이터를 불러오는데 실패했습니다.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
     const isLoggedIn = localStorage.getItem("adminLoggedIn");
     if (!isLoggedIn) {
       navigate("/admin/login");
+      return;
     }
+    
+    // 대시보드 데이터 로드
+    loadDashboardData();
   }, [navigate]);
+
+  // 차트 기간 변경 시 데이터 다시 로드
+  useEffect(() => {
+    if (dashboardStats) {
+      loadChartData();
+    }
+  }, [chartPeriod]);
 
   const handleLogout = () => {
     localStorage.removeItem("adminLoggedIn");
     navigate("/admin/login");
+  };
+
+  const loadChartData = async () => {
+    try {
+      const newChartData = chartPeriod === 'monthly' 
+        ? await AdminDashboardService.getMonthlyChartData()
+        : await AdminDashboardService.getDailyChartData();
+      setChartData(newChartData);
+    } catch (err) {
+      console.error('차트 데이터 로드 실패:', err);
+    }
   };
 
   const handleCardClick = (cardType: string) => {
@@ -132,7 +165,7 @@ const AdminPage = () => {
   };
 
   const getChartData = () => {
-    return chartPeriod === 'monthly' ? monthlyData : dailyData;
+    return chartData;
   };
 
   const getLineColor = (cardType: string) => {
@@ -196,73 +229,115 @@ const AdminPage = () => {
           </TabsList>
 
           <TabsContent value="dashboard" className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-6">
-              <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => handleCardClick('회원수')}>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">총 회원수</CardTitle>
-                  <Users className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">1,234</div>
-                  <p className="text-xs text-muted-foreground">+20.1% from last month</p>
-                </CardContent>
-              </Card>
-              
-              <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => handleCardClick('전문가')}>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">등록 전문가</CardTitle>
-                  <UserCheck className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">45</div>
-                  <p className="text-xs text-muted-foreground">+8% from last month</p>
-                </CardContent>
-              </Card>
-              
-              <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => handleCardClick('MBTI진단')}>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">MBTI 진단</CardTitle>
-                  <Brain className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">567</div>
-                  <p className="text-xs text-muted-foreground">+15% from last month</p>
-                </CardContent>
-              </Card>
-              
-              <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => handleCardClick('재무진단')}>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">재무 진단</CardTitle>
-                  <Calculator className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">423</div>
-                  <p className="text-xs text-muted-foreground">+9% from last month</p>
-                </CardContent>
-              </Card>
-              
-              <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => handleCardClick('코칭신청')}>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">코칭 신청</CardTitle>
-                  <MessageSquare className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">89</div>
-                  <p className="text-xs text-muted-foreground">+5% from last month</p>
-                </CardContent>
-              </Card>
-              
-              <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => handleCardClick('교육신청')}>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">교육 신청</CardTitle>
-                  <GraduationCap className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">234</div>
-                  <p className="text-xs text-muted-foreground">+12% from last month</p>
-                </CardContent>
-              </Card>
-            </div>
+            {isLoading ? (
+              <div className="flex items-center justify-center h-64">
+                <div className="text-center">
+                  <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+                  <p className="text-muted-foreground">대시보드 데이터를 불러오는 중...</p>
+                </div>
+              </div>
+            ) : error ? (
+              <div className="flex items-center justify-center h-64">
+                <div className="text-center">
+                  <p className="text-red-500 mb-4">{error}</p>
+                  <Button onClick={loadDashboardData} variant="outline">
+                    다시 시도
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-6">
+                <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => handleCardClick('회원수')}>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">총 회원수</CardTitle>
+                    <Users className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">
+                      {dashboardStats?.totalMembers.toLocaleString() || 0}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {dashboardStats?.memberGrowthRate >= 0 ? '+' : ''}{dashboardStats?.memberGrowthRate || 0}% from last month
+                    </p>
+                  </CardContent>
+                </Card>
+                
+                <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => handleCardClick('전문가')}>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">등록 전문가</CardTitle>
+                    <UserCheck className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">
+                      {dashboardStats?.totalExperts.toLocaleString() || 0}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {dashboardStats?.expertGrowthRate >= 0 ? '+' : ''}{dashboardStats?.expertGrowthRate || 0}% from last month
+                    </p>
+                  </CardContent>
+                </Card>
+                
+                <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => handleCardClick('MBTI진단')}>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">MBTI 진단</CardTitle>
+                    <Brain className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">
+                      {dashboardStats?.totalMbtiDiagnoses.toLocaleString() || 0}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {dashboardStats?.mbtiGrowthRate >= 0 ? '+' : ''}{dashboardStats?.mbtiGrowthRate || 0}% from last month
+                    </p>
+                  </CardContent>
+                </Card>
+                
+                <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => handleCardClick('재무진단')}>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">재무 진단</CardTitle>
+                    <Calculator className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">
+                      {dashboardStats?.totalFinanceDiagnoses.toLocaleString() || 0}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {dashboardStats?.financeGrowthRate >= 0 ? '+' : ''}{dashboardStats?.financeGrowthRate || 0}% from last month
+                    </p>
+                  </CardContent>
+                </Card>
+                
+                <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => handleCardClick('코칭신청')}>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">코칭 신청</CardTitle>
+                    <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">
+                      {dashboardStats?.totalCoachingApplications.toLocaleString() || 0}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {dashboardStats?.coachingGrowthRate >= 0 ? '+' : ''}{dashboardStats?.coachingGrowthRate || 0}% from last month
+                    </p>
+                  </CardContent>
+                </Card>
+                
+                <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => handleCardClick('교육신청')}>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">교육 신청</CardTitle>
+                    <GraduationCap className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">
+                      {dashboardStats?.totalEducationApplications.toLocaleString() || 0}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {dashboardStats?.educationGrowthRate >= 0 ? '+' : ''}{dashboardStats?.educationGrowthRate || 0}% from last month
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
 
             {/* 기본 차트 표시 영역 */}
             <Card>
@@ -331,6 +406,7 @@ const AdminPage = () => {
                       size="sm"
                       variant={chartPeriod === 'monthly' ? 'default' : 'outline'}
                       onClick={() => setChartPeriod('monthly')}
+                      disabled={isLoading}
                     >
                       월별
                     </Button>
@@ -338,6 +414,7 @@ const AdminPage = () => {
                       size="sm"
                       variant={chartPeriod === 'daily' ? 'default' : 'outline'}
                       onClick={() => setChartPeriod('daily')}
+                      disabled={isLoading}
                     >
                       일별
                     </Button>
@@ -355,11 +432,20 @@ const AdminPage = () => {
               </CardHeader>
               <CardContent>
                 <div className="h-80">
-                  <ChartComponent 
-                    chartData={getChartData()} 
-                    selectedChart={selectedChart} 
-                    getLineColor={getLineColor} 
-                  />
+                  {isLoading ? (
+                    <div className="flex items-center justify-center h-full">
+                      <div className="text-center">
+                        <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
+                        <p className="text-sm text-muted-foreground">차트 데이터 로딩 중...</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <ChartComponent 
+                      chartData={getChartData()} 
+                      selectedChart={selectedChart} 
+                      getLineColor={getLineColor} 
+                    />
+                  )}
                 </div>
               </CardContent>
             </Card>
