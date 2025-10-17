@@ -175,10 +175,20 @@ export class AdminDashboardService {
   }
 
   private static async getTotalExperts(): Promise<number> {
+    // status 필드의 실제 값을 확인하기 위해 먼저 조회
+    const { data: allExperts, error: allError } = await supabase
+      .from('experts')
+      .select('status')
+      .limit(5);
+    
+    if (!allError && allExperts) {
+      console.log('🔍 전문가 status 값 샘플:', allExperts.map(e => e.status));
+    }
+    
+    // 전체 전문가 수 카운트 (status 필터 없이)
     const { count, error } = await supabase
       .from('experts')
-      .select('*', { count: 'exact', head: true })
-      .eq('status', 'active');
+      .select('*', { count: 'exact', head: true });
     
     if (error) throw error;
     return count || 0;
@@ -250,7 +260,6 @@ export class AdminDashboardService {
     const { count, error } = await supabase
       .from('experts')
       .select('*', { count: 'exact', head: true })
-      .eq('status', 'active')
       .lt('created_at', lastMonth.toISOString());
     
     if (error) throw error;
@@ -346,7 +355,6 @@ export class AdminDashboardService {
       const { count, error } = await supabase
         .from('experts')
         .select('*', { count: 'exact', head: true })
-        .eq('status', 'active')
         .gte('created_at', monthStart.toISOString())
         .lte('created_at', monthEnd.toISOString());
       
@@ -472,7 +480,6 @@ export class AdminDashboardService {
       const { count, error } = await supabase
         .from('experts')
         .select('*', { count: 'exact', head: true })
-        .eq('status', 'active')
         .gte('created_at', dayStart.toISOString())
         .lte('created_at', dayEnd.toISOString());
       
