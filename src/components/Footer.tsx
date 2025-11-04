@@ -70,12 +70,20 @@ const Footer = () => {
             </ul>
           </div>
           <div>
-            <h4 className="font-semibold mb-4">연락처</h4>
-            <p className="text-slate-300">rich-way@wiseinc.co.kr</p>
+            <h4 className="font-semibold mb-4">Contact us</h4>
+            <p className="text-slate-300">(주)데이터파이낸스랩 
+              <br />
+              주소 : 서울특별시 강남구 강남대로112길 47, <br />
+              <span className="text-slate-300 ml-10">2층-제이691(논현동)</span>
+              <br />
+              Tel : <a href="tel:070-8676-1119" className="text-slate-300 hover:underline">070-8676-1119</a>
+              <br />
+              E-mail : <a href="mailto:rich-way@wiseinc.co.kr" className="text-slate-300 hover:underline">rich-way@wiseinc.co.kr</a>
+            </p>
           </div>
         </div>
         <div className="border-t border-slate-700 mt-8 pt-8 text-center text-slate-400">
-          <p>통신판매업 신고번호 제 2010 - 서울강남 - 00331 호 Copyright WISEINCOMPANY CO.,LTD ALL Right Reserved.</p>
+          <p>Data Finance Lab Inc. ALL Right Reserved.</p>
         </div>
       </div>
     </footer>
