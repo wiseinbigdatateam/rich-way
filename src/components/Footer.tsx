@@ -74,7 +74,7 @@ const Footer = () => {
             <p className="text-slate-300">(주)데이터파이낸스랩 
               <br />
               주소 : 서울특별시 강남구 강남대로112길 47, <br />
-              <span className="text-slate-300 ml-10">2층-제이691(논현동)</span>
+              <span className="text-slate-300 pl-10 block">2층-제이691(논현동)</span>
               <br />
               Tel : <a href="tel:070-8676-1119" className="text-slate-300 hover:underline">070-8676-1119</a>
               <br />
