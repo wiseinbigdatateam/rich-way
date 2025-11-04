@@ -265,6 +265,10 @@ main() {
         log_warning "백업 실패 (첫 배포일 수 있음)"
     fi
     
+    # 1-1. 업로드 전 권한 설정 (nginx 소유권을 ec2-user로 변경)
+    log_info "🔧 업로드 전 권한 설정 중..."
+    ssh -i $KEY_FILE $REMOTE_USER@$EC2_IP "sudo chown -R $REMOTE_USER:$REMOTE_USER ~/rich-way/current/ 2>/dev/null || true"
+    
     # 2. 새 파일 업로드
     log_info "📤 파일 업로드 중..."
     if rsync -avz --delete -e "ssh -i $KEY_FILE" dist/ $REMOTE_USER@$EC2_IP:$REMOTE_PATH/; then
