@@ -49,11 +49,18 @@ const CoachingPage = () => {
   });
 
   // 전문가별 상품 정보를 가져오는 함수
-  const fetchExpertProducts = async (expertUserId: string) => {
-    const { data: products, error } = await (supabase as any)
+  // expert_products.expert_id 는 users.id(uuid) 를 참조.
+  // 레거시 experts.user_id(text)와 스키마가 달라, 우선 experts.id 로도 조회 시도한다.
+  const fetchExpertProducts = async (expertId: string, expertUserId: string) => {
+    let query = (supabase as any)
       .from('expert_products')
-      .select('*')
-      .eq('user_id', expertUserId);
+      .select('*');
+
+    // uuid 형태면 expert_id, 아니면 레거시 user_id 컬럼(있을 경우) 대비
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(expertId);
+    const { data: products, error } = isUuid
+      ? await query.eq('expert_id', expertId)
+      : await query.eq('expert_id', expertUserId);
     
     if (error) {
       console.error('상품 정보 가져오기 오류:', error);
@@ -77,7 +84,7 @@ const CoachingPage = () => {
         // 각 전문가의 상품 정보를 가져와서 결합
         const expertsWithProducts = await Promise.all(
           allExperts.map(async (expert) => {
-            const products = await fetchExpertProducts(expert.user_id);
+            const products = await fetchExpertProducts(expert.id, expert.user_id);
             return {
               ...expert,
               products

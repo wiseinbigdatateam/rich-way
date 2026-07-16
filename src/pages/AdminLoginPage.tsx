@@ -12,8 +12,13 @@ const AdminLoginPage = () => {
   const navigate = useNavigate();
 
   const handleLogin = () => {
-    if (username === "admin" && password === "1234") {
+    const isValidAdmin =
+      (username === "kky@wiseinc.co.kr" && password === "wise1234!@") ||
+      (username === "admin" && password === "1234");
+
+    if (isValidAdmin) {
       localStorage.setItem("adminLoggedIn", "true");
+      localStorage.setItem("adminEmail", username);
       toast.success("관리자 로그인 성공!");
       navigate("/admin");
     } else {
@@ -34,7 +39,7 @@ const AdminLoginPage = () => {
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="admin"
+              placeholder="kky@wiseinc.co.kr"
             />
           </div>
           <div>
