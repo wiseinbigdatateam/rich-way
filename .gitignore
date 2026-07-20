@@ -1,0 +1,72 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.env
+
+# 배포 스크립트 (로컬 개발용)
+scripts/local-check.sh
+scripts/deploy-aws.sh
+scripts/deploy-dev.sh
+scripts/deploy-prod.sh
+scripts/build-production.sh
+
+# 환경변수 파일들 (민감한 정보 포함)
+.env
+.env.local
+.env.production
+.env.development
+env.local.old
+env.production.old
+env.production.example
+env.local.example
+env.development.example
+env.example
+
+# 환경변수 파일들
+.env.local
+.env.production
+.env.development
+env.local.old
+env.production.old
+env.production.example
+env.local.example
+env.development.example
+env.example
+env.production
+
+
+# 메모리 분석 파일
+*.heapsnapshot
+
+# 임시 파일
+temp/
+tmp/
+
+# cursor
+.cursor/mcp.json
+# local binaries and env backups
+AWSCLIV2.pkg
+env.production.backup
+env.production.temp-dev
+
