@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "./ui/dialog";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -9,6 +9,7 @@ import { Eye, EyeOff, Loader2 } from "lucide-react";
 import SignupDialog from "./SignupDialog";
 import { sendPasswordResetEmail } from "@/lib/emailService";
 import { verifyPassword } from "@/utils/passwordUtils";
+import { useAuth } from "@/contexts/AuthContext";
 // import KakaoLoginButton from "./KakaoLoginButton";
 
 interface MembersLoginDialogProps {
@@ -57,6 +58,7 @@ export default function MembersLoginDialog({ open, onOpenChange, onLoginSuccess 
   const [forgotPasswordLoading, setForgotPasswordLoading] = useState(false);
   const [forgotPasswordSuccess, setForgotPasswordSuccess] = useState(false);
   const { toast } = useToast();
+  const { login } = useAuth();
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -249,6 +251,9 @@ export default function MembersLoginDialog({ open, onOpenChange, onLoginSuccess 
       if (process.env.NODE_ENV === 'development') {
         safeLog('✅ 로그인 성공:', user.name);
       }
+
+      // AuthContext에 세션 반영 (헤더/서비스 강제 로그인 공통)
+      login(user);
       
       toast({
         title: "✅ 로그인 성공!",
@@ -259,6 +264,9 @@ export default function MembersLoginDialog({ open, onOpenChange, onLoginSuccess 
       if (onLoginSuccess) {
         onLoginSuccess(user);
       }
+
+      // 다이얼로그 닫기
+      onOpenChange?.(false);
 
       // 폼 초기화
       setLoginId("");

@@ -24,17 +24,12 @@ const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isSignupOpen, setIsSignupOpen] = useState(false);
-  const { user, loading, login, logout, isAuthenticated } = useAuth();
+  const { user, loading, logout, isAuthenticated } = useAuth();
   const { toast } = useToast();
 
-  // 로그인 성공 처리
-  const handleLoginSuccess = (loggedInUser: any) => {
-    login(loggedInUser);
+  // 로그인 성공 처리 (세션은 MembersLoginDialog에서 AuthContext에 반영)
+  const handleLoginSuccess = () => {
     setIsLoginOpen(false);
-    toast({
-      title: "✅ 로그인 성공!",
-      description: `${loggedInUser.name || loggedInUser.email?.split('@')[0] || '사용자'}님 환영합니다!`,
-    });
   };
 
   // 로그아웃 처리

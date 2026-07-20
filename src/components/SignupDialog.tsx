@@ -8,8 +8,10 @@ import { useToast } from "./ui/use-toast";
 import { Check, X, Loader2 } from "lucide-react";
 import TermsAgreementDialog from "./TermsAgreementDialog";
 import { securePassword, validatePasswordStrength } from "@/utils/passwordUtils";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function SignupDialog({ open, onOpenChange, onSignupSuccess }: { open?: boolean, onOpenChange?: (open: boolean) => void, onSignupSuccess?: (userData: any) => void } = {}) {
+  const { login } = useAuth();
   const [currentStep, setCurrentStep] = useState<'terms' | 'signup'>('terms');
   const [agreements, setAgreements] = useState({
     termsOfService: false,
@@ -312,7 +314,7 @@ export default function SignupDialog({ open, onOpenChange, onSignupSuccess }: { 
 
       toast({
         title: "✅ 회원가입 성공!",
-        description: `${name}님 (${nickname}) 환영합니다! 이제 로그인할 수 있습니다.`,
+        description: `${name}님 (${nickname}) 환영합니다!`,
       });
 
       // 입력 필드 초기화
@@ -327,8 +329,14 @@ export default function SignupDialog({ open, onOpenChange, onSignupSuccess }: { 
       setEmailAvailable(null);
       setEmailChecked(false);
 
+      const signedUpUser = data[0];
+      // AuthContext에 세션 반영
+      if (signedUpUser) {
+        login(signedUpUser);
+      }
+
       if (onSignupSuccess) {
-        onSignupSuccess(data[0]);
+        onSignupSuccess(signedUpUser);
       }
       handleOpenChange(false);
 

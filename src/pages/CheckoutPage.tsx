@@ -246,7 +246,6 @@ const CheckoutPage = () => {
         }}
         onLoginSuccess={() => {
           setShowLogin(false);
-          window.location.reload();
         }}
       />
     </div>
