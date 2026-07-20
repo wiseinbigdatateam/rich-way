@@ -192,22 +192,32 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     };
   }, []);
 
-  // 로그인 함수
+  // 로그인 함수 — members 테이블 행 기준 (id = members.id UUID)
   const login = (userData: User, userType: 'member' | 'expert' | 'admin' = 'member') => {
     if (!isMountedRef.current) return;
+
+    // members.id 를 권한 체크용 식별자로 고정 (닉네임 user_id 와 구분)
+    const normalizedUser: User = {
+      ...userData,
+      id: userData.id, // members.id
+      user_id: userData.user_id || userData.id,
+    };
+
+    setUser(normalizedUser);
+    setLoading(false);
     
-    setUser(userData);
-    setLoading(false); // 로그인 완료 후 로딩 상태 해제
-    
-    // 새로운 세션 관리 시스템으로 토큰 생성 및 저장
     const sessionInfo: Partial<SessionInfo> = {
-      name: userData.name,
-      email: userData.email,
-      avatar: userData.user_metadata?.avatar,
-      metadata: userData.user_metadata
+      name: normalizedUser.name,
+      email: normalizedUser.email,
+      avatar: normalizedUser.user_metadata?.avatar,
+      metadata: {
+        ...normalizedUser.user_metadata,
+        members_id: normalizedUser.id,
+        nickname: normalizedUser.user_id,
+      }
     };
     
-    createAndStoreToken(userData.id || userData.user_id || '', userType, sessionInfo);
+    createAndStoreToken(normalizedUser.id || '', userType, sessionInfo);
     
     // 기존 시스템과의 호환성을 위해 기존 저장소도 유지
     if (!isSupabaseConfigured) {

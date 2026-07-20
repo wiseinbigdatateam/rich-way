@@ -40,6 +40,20 @@ interface LectureWithReviews extends Lecture {
   reviewCount: number;
 }
 
+/** HTML 태그·엔티티 제거 후 순수 텍스트만 반환 */
+const stripHtml = (html?: string | null) => {
+  if (!html) return "";
+  const withBreaks = html
+    .replace(/<br\s*\/?>/gi, " ")
+    .replace(/<\/p>/gi, " ")
+    .replace(/<\/div>/gi, " ")
+    .replace(/<\/li>/gi, " ");
+  const withoutTags = withBreaks.replace(/<[^>]*>/g, "");
+  const textarea = document.createElement("textarea");
+  textarea.innerHTML = withoutTags;
+  return textarea.value.replace(/\s+/g, " ").trim();
+};
+
 const EducationPage = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -306,8 +320,8 @@ const EducationPage = () => {
               <CardTitle className="text-lg leading-tight line-clamp-2 cursor-pointer" onClick={() => handleLectureClick(lecture.id)}>
                 {lecture.title}
               </CardTitle>
-              <CardDescription className="text-sm text-gray-600">
-                {lecture.instructor_intro ? lecture.instructor_intro.split('은')[0] + '은' : '전문가'}
+              <CardDescription className="text-sm text-gray-600 line-clamp-1">
+                {stripHtml(lecture.instructor_intro) || "전문가"}
               </CardDescription>
             </CardHeader>
             
@@ -344,7 +358,7 @@ const EducationPage = () => {
                 </div>
                 
                 <p className="text-sm text-gray-700 line-clamp-2">
-                  {lecture.description}
+                  {stripHtml(lecture.description)}
                 </p>
               </div>
             </CardContent>

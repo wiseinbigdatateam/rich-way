@@ -22,6 +22,9 @@ const MbtiDiagnosisPage = lazy(() => import("./pages/MbtiDiagnosisPage"));
 const MbtiDiagnosisResultPage = lazy(() => import("./pages/MbtiDiagnosisResultPage"));
 const EducationPage = lazy(() => import("./pages/EducationPage"));
 const LectureDetailPage = lazy(() => import("./pages/LectureDetailPage"));
+const CheckoutPage = lazy(() => import("./pages/CheckoutPage"));
+const SuccessPage = lazy(() => import("./pages/SuccessPage"));
+const FailPage = lazy(() => import("./pages/FailPage"));
 const ProductsPage = lazy(() => import("./pages/ProductsPage"));
 const PlaygroundPage = lazy(() => import("./pages/PlaygroundPage"));
 const PlaygroundPostPage = lazy(() => import("./pages/PlaygroundPostPage"));
@@ -64,7 +67,10 @@ const App = () => (
             <Route path="/diagnosis/mbti/result" element={<MbtiDiagnosisResultPage />} />
             <Route path="/diagnosis/finance/result" element={<FinanceDiagnosisResultPage />} />
             <Route path="/education" element={<EducationPage />} />
+            <Route path="/education/:id/checkout" element={<CheckoutPage />} />
             <Route path="/education/:id" element={<LectureDetailPage />} />
+            <Route path="/payment/success" element={<SuccessPage />} />
+            <Route path="/payment/fail" element={<FailPage />} />
             <Route path="/products" element={<ProductsPage />} />
             <Route path="/playground" element={<PlaygroundPage />} />
             <Route path="/playground/post/:id" element={<PlaygroundPostPage />} />

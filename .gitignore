@@ -65,3 +65,8 @@ tmp/
 
 # cursor
 .cursor/mcp.json
+# local binaries and env backups
+AWSCLIV2.pkg
+env.production.backup
+env.production.temp-dev
+

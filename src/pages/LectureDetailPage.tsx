@@ -11,10 +11,16 @@ import Footer from "@/components/Footer";
 import YouTubePlayer from "@/components/YouTubePlayer";
 import { supabase } from "@/lib/supabase";
 import { safeAddEventListener } from "@/utils/memoryLeakPrevention";
+import { useAuth } from "@/contexts/AuthContext";
+import MembersLoginDialog from "@/components/MembersLoginDialog";
 
 const LectureDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user, isAuthenticated } = useAuth();
+  // members 테이블 id (닉네임 user_id가 아님)
+  const userId = user?.id || null;
+  const [showLoginDialog, setShowLoginDialog] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
   const [showCurriculum, setShowCurriculum] = useState(false);
   const [showRefundPolicy, setShowRefundPolicy] = useState(false);
@@ -22,7 +28,6 @@ const LectureDetailPage = () => {
   const [activeTab, setActiveTab] = useState("overview");
   const [selectedVideo, setSelectedVideo] = useState<{ url: string; title: string } | null>(null);
   const [likeCount, setLikeCount] = useState(0);
-  const [userId, setUserId] = useState<string | null>(null);
 
   // DB 데이터 상태
   const [lecture, setLecture] = useState<any>(null);
@@ -74,20 +79,58 @@ const LectureDetailPage = () => {
     ].filter(Boolean).join(':');
   };
 
+  const normalizeMediaUrl = (url?: string | null) => {
+    if (!url) return '';
+    return url.startsWith('//') ? `https:${url}` : url;
+  };
+
+  const isHtmlContentUrl = (url?: string | null) => {
+    if (!url) return false;
+    try {
+      const pathname = new URL(normalizeMediaUrl(url)).pathname;
+      return /\.html?$/i.test(pathname);
+    } catch {
+      return /\.html?(?:\?|#|$)/i.test(url);
+    }
+  };
+
+  /** 샘플보기가 동영상 파일이 아닌 웹페이지인지 여부 */
+  const isWebpageSampleUrl = (url?: string | null) => {
+    if (!url) return false;
+    const normalized = normalizeMediaUrl(url);
+    // 직접 재생 가능한 동영상/스트리밍
+    if (/\.(mp4|webm|ogg|m3u8|mov)(\?|#|$)/i.test(normalized)) return false;
+    // 유튜브/비메오는 기존 플레이어 사용
+    if (/youtube\.com|youtu\.be|vimeo\.com/i.test(normalized)) return false;
+    try {
+      const pathname = new URL(normalized).pathname;
+      // html/asp/php 등 웹페이지
+      if (/\.(html?|asp|aspx|php|jsp)$/i.test(pathname)) return true;
+      // 확장자 없는 경로도 웹페이지로 간주
+      if (!/\.[a-z0-9]+$/i.test(pathname.split("/").pop() || "")) return true;
+      return false;
+    } catch {
+      return /\.(html?|asp|aspx|php|jsp)(\?|#|$)/i.test(normalized);
+    }
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       // 1. 강의 정보
       const { data: lectureData } = await supabase.from("lectures").select("*", { count: "exact" }).eq("id", id).single();
       setLecture(lectureData);
-      // 2. 강사 정보
+      // 2. 강사/크리에이터 정보 (CR/LF 제거 후 조인)
       if (lectureData?.instructors_user_id) {
+        const instructorUserId = String(lectureData.instructors_user_id).trim();
         const { data: instructorData } = await supabase
           .from("instructors")
           .select("*")
-          .eq("user_id", lectureData.instructors_user_id)
-          .single();
+          .eq("user_id", instructorUserId)
+          .maybeSingle();
         setInstructor(instructorData);
+      } else {
+        setInstructor(null);
       }
       // 3. 별점/리뷰수
       const { data: reviews } = await supabase
@@ -105,33 +148,29 @@ const LectureDetailPage = () => {
     if (id) fetchData();
   }, [id]);
 
-  // 좋아요 수, 내 좋아요 상태 fetch
+  // 좋아요 수, 내 좋아요 상태 fetch (members.id 기준)
   useEffect(() => {
     const fetchLikes = async () => {
       if (!id) return;
-      // 전체 좋아요 수
       const { count } = await supabase
         .from("lecture_likes")
         .select("*", { count: "exact", head: true })
         .eq("lecture_id", id);
       setLikeCount(count || 0);
-      // 내 좋아요 여부
-      const { data: userData } = await supabase.auth.getUser();
-      const myId = userData?.user?.id || null;
-      setUserId(myId);
-      if (myId) {
+
+      if (userId) {
         const { count: myLikeCount } = await supabase
           .from("lecture_likes")
           .select("*", { count: "exact", head: true })
           .eq("lecture_id", id)
-          .eq("member_user_id", myId);
+          .eq("member_user_id", userId);
         setIsLiked((myLikeCount || 0) > 0);
       } else {
         setIsLiked(false);
       }
     };
     fetchLikes();
-  }, [id]);
+  }, [id, userId]);
 
   // 스크롤 위치 추적을 위한 useEffect
   useEffect(() => {
@@ -226,6 +265,24 @@ const LectureDetailPage = () => {
 
   // 커리큘럼(세션+영상) 데이터 fetch
   useEffect(() => {
+    const extractVideoOrder = (title?: string | null) => {
+      const match = title?.match(/\[(\d+)\]\s*$/);
+      return match ? Number(match[1]) : null;
+    };
+
+    const sortVideosByInputOrder = (list: any[]) =>
+      [...list].sort((a, b) => {
+        const aOrder = extractVideoOrder(a.video_title);
+        const bOrder = extractVideoOrder(b.video_title);
+        if (aOrder != null && bOrder != null) return aOrder - bOrder;
+        if (aOrder != null) return -1;
+        if (bOrder != null) return 1;
+        const aTime = a.created_at || "";
+        const bTime = b.created_at || "";
+        if (aTime !== bTime) return aTime.localeCompare(bTime);
+        return String(a.id || "").localeCompare(String(b.id || ""));
+      });
+
     const fetchCurriculum = async () => {
       if (!id) return;
       setCurriculumLoading(true);
@@ -236,19 +293,19 @@ const LectureDetailPage = () => {
         .eq("lecture_id", id)
         .order("session_order", { ascending: true });
       setSessions(sessionData || []);
-      // 영상 목록
+      // 영상 목록 (입력 순서: 제목 [번호] → created_at)
       const { data: videoData } = await supabase
         .from("lecture_videos")
         .select("*")
         .eq("lecture_id", id)
-        .order("video_title", { ascending: true });
-      setVideos(videoData || []);
+        .order("created_at", { ascending: true });
+      setVideos(sortVideosByInputOrder(videoData || []));
       setCurriculumLoading(false);
     };
     fetchCurriculum();
   }, [id]);
 
-  // 영상 상세 모달 접근권한 체크
+  // 영상 상세 모달 접근권한 체크 (members.id ↔ lecture_applications.member_user_id)
   useEffect(() => {
     const checkVideoAccess = async () => {
       if (!selectedVideoDetail || !userId) {
@@ -258,13 +315,17 @@ const LectureDetailPage = () => {
       const today = new Date().toISOString().slice(0, 10);
       const { data, error } = await supabase
         .from('lecture_applications')
-        .select('id')
+        .select('id, status, start_date, end_date')
         .eq('lecture_id', id)
         .eq('member_user_id', userId)
         .eq('status', '입금완료')
         .lte('start_date', today)
         .gte('end_date', today)
         .maybeSingle();
+
+      if (error) {
+        console.error('수강 권한 확인 오류:', error, { lectureId: id, memberId: userId });
+      }
       setCanPlayVideo(!!data && !error);
     };
     checkVideoAccess();
@@ -516,15 +577,39 @@ const LectureDetailPage = () => {
   };
 
   const handleSampleClick = () => {
+    const sampleUrl = lecture?.sample_video_url || "";
+    if (!sampleUrl) {
+      alert("샘플 영상이 등록되지 않았습니다.");
+      return;
+    }
+
+    const normalized = normalizeMediaUrl(sampleUrl);
+    if (isWebpageSampleUrl(normalized)) {
+      window.open(normalized, "_blank", "noopener,noreferrer");
+      return;
+    }
+
     setSelectedVideo({
-      url: lecture?.sample_video_url || '',
-      title: lectureData.title
+      url: normalized,
+      title: lectureData.title,
     });
   };
 
-  // 줄바꿈 변환 유틸 (HTML로 변환)
-  const nl2brHtml = (text?: string | null) =>
-    text ? text.replace(/\\n/g, '<br/>') : '';
+  // HTML 설명 렌더링용 (이스케이프된 태그도 복원)
+  const nl2brHtml = (text?: string | null) => {
+    if (!text) return '';
+    let html = text;
+    // &lt;p&gt; 처럼 이스케이프된 경우 실제 태그로 복원
+    if (/&lt;\/?[a-z][\s\S]*?&gt;/i.test(html) && !/<[a-z][\s\S]*?>/i.test(html)) {
+      const textarea = document.createElement('textarea');
+      textarea.innerHTML = html;
+      html = textarea.value;
+    }
+    return html
+      .replace(/\\n/g, '<br/>')
+      .replace(/\r\n/g, '<br/>')
+      .replace(/\n/g, '<br/>');
+  };
 
   // 좋아요 토글 핸들러
   const handleLikeClick = async () => {
@@ -907,24 +992,22 @@ const LectureDetailPage = () => {
             </div>
 
             {/* 소개 섹션 */}
-            <div ref={overviewRef} className="bg-white rounded-lg border p-6">
+            <div ref={overviewRef} className="bg-white rounded-lg border p-6 overflow-hidden">
               <h3 className="text-lg font-semibold mb-4">소개</h3>
               
-              {/* 강의 설명 비디오 섹션 */}
-              <div className="bg-blue-600 rounded-lg p-8 text-white text-center mb-6">
-                <h2 className="text-3xl font-bold mb-4">{lectureData.videoTitle}</h2>
-                <p className="text-lg mb-6">{lectureData.videoSubtitle}</p>
-                <p className="text-xl mb-8">{lectureData.videoDescription}</p>
+              {/* 강의 소개 배너 */}
+              <div className="bg-blue-600 rounded-lg p-8 text-white text-center mb-6 overflow-hidden">
+                <h2 className="text-3xl font-bold mb-4 break-keep">{lectureData.videoTitle}</h2>
                 
                 <div className="flex justify-center items-center gap-8 mb-8">
-                  <div className="w-32 h-32 bg-blue-500 rounded-full flex items-center justify-center text-xl font-bold">
+                  <div className="w-32 h-32 bg-blue-500 rounded-full flex items-center justify-center text-xl font-bold shrink-0">
                     {lectureData.topics[0]}
                   </div>
-                  <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center">
+                  <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center shrink-0">
                     <span className="text-blue-600 text-xl font-bold">+</span>
                   </div>
-                  <div className="w-32 h-32 bg-blue-500 rounded-full flex items-center justify-center text-xl font-bold">
-                    {lectureData.topics[1]}
+                  <div className="w-32 h-32 bg-blue-500 rounded-full flex items-center justify-center text-xl font-bold shrink-0">
+                    {lectureData.topics[1] || lectureData.topics[0]}
                   </div>
                 </div>
                 
@@ -933,7 +1016,26 @@ const LectureDetailPage = () => {
                 </p>
               </div>
 
+              {/* 강의 설명 (HTML) */}
+              {lectureData.videoDescription && (
+                <div
+                  className="mb-6 max-w-full overflow-hidden break-words text-gray-700 leading-relaxed
+                    [&_p]:mb-3 [&_p]:last:mb-0 [&_strong]:font-semibold
+                    [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5
+                    [&_a]:text-blue-600 [&_a]:underline [&_br]:block"
+                  dangerouslySetInnerHTML={{ __html: nl2brHtml(lectureData.videoDescription) }}
+                />
+              )}
 
+              {/* 강사/소개 부가 설명 (HTML) */}
+              {lectureData.videoSubtitle && (
+                <div
+                  className="max-w-full overflow-hidden break-words rounded-lg bg-gray-50 border p-4 text-gray-700 leading-relaxed
+                    [&_p]:mb-2 [&_p]:last:mb-0 [&_strong]:font-semibold
+                    [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"
+                  dangerouslySetInnerHTML={{ __html: nl2brHtml(lectureData.videoSubtitle) }}
+                />
+              )}
             </div>
 
             {/* 질문·답변 섹션 */}
@@ -1051,32 +1153,54 @@ const LectureDetailPage = () => {
             {/* 크리에이터 섹션 */}
             <div ref={creatorRef} className="bg-white rounded-lg border p-6">
               <h3 className="text-lg font-semibold mb-6">크리에이터</h3>
-              <div className="bg-gradient-to-r from-green-400 to-green-500 rounded-lg p-6 text-white mb-6">
-                <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center">
-                    <span className="text-2xl">👨‍💼</span>
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-bold">{instructor?.name || '-'}</h3>
-                    <p className="text-green-100">{instructor?.main_field || '-'}</p>
-                  </div>
+              {!instructor ? (
+                <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-8 text-center text-gray-500">
+                  등록된 크리에이터 정보가 없습니다.
                 </div>
-              </div>
-              
-              <div className="space-y-4">
-                <h4 className="text-lg font-semibold">
-                  <div dangerouslySetInnerHTML={{ __html: nl2brHtml(instructor?.introduction) }} />
-                </h4>
-                
-                <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-                  <h5 className="font-semibold text-orange-600 flex items-center gap-2">
-                    <span>🔥</span> 이력/경력
-                  </h5>
-                  <p className="text-sm text-gray-600 mt-2">
-                    <span dangerouslySetInnerHTML={{ __html: nl2brHtml(instructor?.career) }} />
-                  </p>
-                </div>
-              </div>
+              ) : (
+                <>
+                  <div className="bg-gradient-to-r from-green-400 to-green-500 rounded-lg p-6 text-white mb-6">
+                    <div className="flex items-center gap-4">
+                      <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center overflow-hidden">
+                        {instructor.profile_image_url ? (
+                          <img
+                            src={instructor.profile_image_url}
+                            alt={instructor.name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <span className="text-2xl">👨‍💼</span>
+                        )}
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-bold">{instructor.name || "-"}</h3>
+                        <p className="text-green-100">{instructor.main_field || "-"}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    {instructor.introduction && (
+                      <div
+                        className="text-gray-800 leading-relaxed [&_p]:mb-2"
+                        dangerouslySetInnerHTML={{ __html: nl2brHtml(instructor.introduction) }}
+                      />
+                    )}
+
+                    <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+                      <h5 className="font-semibold text-orange-600 flex items-center gap-2">
+                        <span>🔥</span> 이력/경력
+                      </h5>
+                      <div
+                        className="text-sm text-gray-600 mt-2 [&_p]:mb-1"
+                        dangerouslySetInnerHTML={{
+                          __html: nl2brHtml(instructor.career) || "<p>등록된 경력 정보가 없습니다.</p>",
+                        }}
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
 
             {/* 후기 섹션 */}
@@ -1190,6 +1314,13 @@ const LectureDetailPage = () => {
                 <Button 
                   className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3"
                   size="lg"
+                  onClick={() => {
+                    if (!isAuthenticated) {
+                      setShowLoginDialog(true);
+                      return;
+                    }
+                    navigate(`/education/${id}/checkout`);
+                  }}
                 >
                   강의 구매하기
                 </Button>
@@ -1307,26 +1438,66 @@ const LectureDetailPage = () => {
         />
       )}
       
-      {/* 영상 상세 모달 */}
+      {/* 영상 상세 모달 — 원본 크기(뷰포트 초과 시만 축소) */}
       {selectedVideoDetail && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-lg max-w-lg w-full p-6 relative">
-            <button className="absolute top-2 right-2 text-gray-400 hover:text-gray-700" onClick={() => setSelectedVideoDetail(null)}>
+        <div
+          className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4"
+          onClick={() => setSelectedVideoDetail(null)}
+        >
+          <div
+            className="bg-black rounded-lg shadow-lg relative w-fit max-w-[95vw] max-h-[95vh] overflow-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              className="absolute top-3 right-3 z-10 rounded-full bg-black/60 text-white px-3 py-1 text-sm hover:bg-black/80"
+              onClick={() => setSelectedVideoDetail(null)}
+            >
               닫기
             </button>
-            <h3 className="text-xl font-bold mb-2">{selectedVideoDetail.video_title}</h3>
-            {selectedVideoDetail.video_subtitle && (
-              <div className="text-sm text-gray-600 mb-2">{selectedVideoDetail.video_subtitle}</div>
-            )}
-            <div className="text-xs text-gray-500 mb-2">
-              {formatDuration(selectedVideoDetail.video_duration)}
+            <div className="px-4 pt-4 pb-2 text-white">
+              <h3 className="text-lg font-bold pr-16">{selectedVideoDetail.video_title}</h3>
+              {selectedVideoDetail.video_subtitle && (
+                <div className="text-sm text-white/70 mt-1">{selectedVideoDetail.video_subtitle}</div>
+              )}
+              {selectedVideoDetail.video_duration && (
+                <div className="text-xs text-white/50 mt-1">
+                  {formatDuration(selectedVideoDetail.video_duration)}
+                </div>
+              )}
             </div>
-            <div className="text-gray-700 mb-2">{selectedVideoDetail.video_description}</div>
             {selectedVideoDetail.video_url && canPlayVideo ? (
-              <video src={selectedVideoDetail.video_url} controls className="w-full rounded" />
+              isHtmlContentUrl(selectedVideoDetail.video_url) ? (
+                <iframe
+                  title={selectedVideoDetail.video_title || "강의 콘텐츠"}
+                  src={normalizeMediaUrl(selectedVideoDetail.video_url)}
+                  className="block w-[min(1200px,95vw)] h-[min(800px,calc(95vh-6rem))] bg-white border-0"
+                  allow="fullscreen; autoplay"
+                  allowFullScreen
+                />
+              ) : (
+                <video
+                  src={normalizeMediaUrl(selectedVideoDetail.video_url)}
+                  controls
+                  controlsList="nodownload noplaybackrate"
+                  disablePictureInPicture
+                  onContextMenu={(e) => e.preventDefault()}
+                  autoPlay
+                  className="block max-w-[95vw] max-h-[calc(95vh-6rem)] w-auto h-auto"
+                />
+              )
             ) : (
-              <div className="w-full h-40 flex items-center justify-center bg-gray-100 rounded text-gray-400">
-                동영상은 수강중인 회원만 재생할 수 있습니다.
+              <div className="w-[min(480px,90vw)] h-40 flex items-center justify-center bg-gray-900 text-gray-400 text-center px-4 m-4 rounded">
+                {!userId
+                  ? "로그인이 필요합니다."
+                  : !canPlayVideo
+                    ? "동영상은 수강중인 회원만 재생할 수 있습니다."
+                    : "동영상 URL이 등록되지 않았습니다."}
+              </div>
+            )}
+            {selectedVideoDetail.video_description && (
+              <div className="px-4 py-3 text-sm text-white/80 border-t border-white/10">
+                {selectedVideoDetail.video_description}
               </div>
             )}
           </div>
@@ -1334,6 +1505,15 @@ const LectureDetailPage = () => {
       )}
       
       <Footer />
+
+      <MembersLoginDialog
+        open={showLoginDialog}
+        onOpenChange={setShowLoginDialog}
+        onLoginSuccess={() => {
+          setShowLoginDialog(false);
+          navigate(`/education/${id}/checkout`);
+        }}
+      />
     </div>
   );
 };
